@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# --- Intel oneAPI compiler environment ---
+# (adjust this path only if your oneAPI install location/version changes)
+source "$HOME/intel/oneapi/compiler/2024.1/env/vars.sh"
+
+# --- Allow large stack for numerical codes ---
+ulimit -s unlimited
+
+# --- Best practice: go to the folder where THIS script lives ---
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+

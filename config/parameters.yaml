@@ -1,0 +1,510 @@
+schema_version: 2
+
+parameters:
+  # --- Time / iteration ---
+  - name: t0
+    kind: float
+    units: R0/vth
+    default: 0
+    group: Time
+    help: Starting time of the simulation
+
+  - name: tc
+    kind: float
+    units: R0/vth
+    default: -1
+    group: Time
+    help: Starting time of collisional processes
+
+  - name: tt
+    kind: float
+    units: R0/vth
+    default: -1
+    group: Time
+    help: Starting time of turbulence processes
+
+  - name: tmax
+    kind: float
+    units: R0/vth
+    default: 100
+    group: Time
+    help: Final time of the simulation
+
+  - name: Np
+    kind: int
+    default: 100000
+    min: 1
+    group: Numerics
+    help: Number of test-particles per loop and realization
+
+  - name: Nc
+    kind: int
+    default: 100
+    min: 1
+    group: Numerics
+    help: Number of Fourier modes used in the representation of turbulent fields
+
+  - name: Nloop
+    kind: int
+    default: 1
+    min: 1
+    group: Numerics
+    help: Number of loops
+
+  - name: Nreal
+    kind: int
+    default: 1
+    min: 1
+    group: Numerics
+    help: Number of field realizations
+
+  - name: Nt
+    kind: int
+    units: tmax/dt
+    default: 1000
+    min: 1
+    group: Numerics
+    help: Number of time steps per simulation
+
+  - name: ntraj
+    kind: int
+    default: 10
+    min: 0
+    group: Numerics
+    help: Number of trajectories to be saved/exported in full
+
+  # --- Plasma / normalization ---
+  - name: Ti
+    kind: float
+    units: keV
+    default: 1
+    group: Plasma
+    help: Local H ion temperature (also used as normalization quantity)
+
+  - name: Te
+    kind: float
+    units: keV
+    default: 1
+    group: Plasma
+    help: Local electron temperature
+
+  - name: Zeff
+    kind: float
+    units: "|e|"
+    default: 1
+    group: Plasma
+    help: Bulk plasma effective charge
+
+  - name: Aeff
+    kind: float
+    units: mH
+    default: 2
+    group: Plasma
+    help: Bulk plasma effective mass
+
+  - name: ndens
+    kind: float
+    units: 1e19 #/m3
+    default: 4
+    group: Plasma
+    help: Local plasma density
+
+  # --- Gradients / drives ---
+  - name: Ln
+    kind: float
+    default: 2.2
+    group: Plasma
+    help: R/Ln (for ITG/TEM)
+
+  - name: Li
+    kind: float
+    default: 6.9
+    group: Plasma
+    help: R/LTi (for ITG)
+
+  - name: Le
+    kind: float
+    default: 6.9
+    group: Plasma
+    help: R/LTe (for TEM)
+
+  # --- Geometry / equilibrium ---
+  - name: magnetic_model
+    kind: enum
+    default: 4
+    group: Equilibrium
+    help: Magnetic geometry model
+    choices:
+      - value: 1
+        label: EFIT
+      - value: 2
+        label: EFIT-sa
+      - value: 3
+        label: Solovev
+      - value: 4
+        label: Circular
+
+  - name: B0
+    kind: float
+    units: T
+    default: 1
+    group: Equilibrium
+    help: Major axis magnetic field
+
+  - name: R0
+    kind: float
+    units: m
+    default: 1
+    group: Equilibrium
+    help: Major radius
+
+  - name: a0
+    kind: float
+    units: m
+    default: 0.5
+    group: Equilibrium
+    help: Minor radius
+
+  - name: safe1
+    kind: float
+    default: 0.8
+    group: Equilibrium
+    help: Magnetic axis safety factor (safe1) in the model qpsi(rhot)=safe1+safe2*rhot+safe3*rhot^2
+
+  - name: safe2
+    kind: float
+    default: 0.0
+    group: Equilibrium
+    help: Magnetic axis safety factor derivative (safe2) in the model qpsi(rhot)=safe1+safe2*rhot+safe3*rhot^2; T3St currently supports only safe=0
+
+  - name: safe3
+    kind: float
+    default: 2.2
+    group: Equilibrium
+    help: Magnetic axis safety factor 2nd derivative (safe3) in the model qpsi(rhot)=safe1+safe2*rhot+safe3*rhot^2;T3ST currently supports only safe3*safe1>0
+
+  - name: amp
+    kind: float
+    units: ??
+    group: Equilibrium
+    help: Flux surface amplitude (for Solovev only)
+
+  - name: elong
+    kind: float
+    group: Equilibrium
+    help: Elongation of flux surfaces (for Solovev only)
+
+  - name: device
+    kind: enum
+    group: Equilibrium
+    help: Device ID
+    choices:
+      - value: 1
+        label: MAST
+      - value: 2
+        label: TCV
+      - value: 3
+        label: WEST
+
+  - name: shot
+    kind: int
+    group: Equilibrium
+    help: Shot number (for data import)
+
+  - name: shotslice
+    kind: int
+#    units: ??
+    group: Equilibrium
+    help: Time slice where equilibrium is evaluated
+
+  # --- Rotation ---
+  - name: Omgt0
+    kind: float
+    units: 1e3 Hz
+    default: 0
+    group: Equilibrium
+    help: Local toroidal angular frequency
+
+  - name: Omgtprim
+    kind: float
+#    units: 
+    default: 0
+    group: Equilibrium
+    help: Psi length scale of toroidal rotation (dlnOmgt/drhot)
+
+  # --- Turbulence model ---
+  - name: Phi
+    kind: float
+    default: 0.01
+    group: Turbulence
+    help: Local turbulence amplitude (eA_phi/Ti)
+
+  - name: turbprof
+    kind: float
+    default: 5
+    group: Turbulence
+    help: Artificial bending of turbulence at the core
+
+  - name: Ai
+    kind: float
+    default: 1
+    group: Turbulence
+    help: ITG fraction
+
+  - name: lambdax
+    kind: float
+    units: rhoi
+    default: 5
+    group: Turbulence
+    help: Radial correlation length
+
+  - name: lambday
+    kind: float
+    units: rhoi
+    default: 5
+    group: Turbulence
+    help: Poloidal correlation length
+
+  - name: lambdaz
+    kind: float
+    units: q0*R0
+    default: 10.0
+    group: Turbulence
+    help: Parallel correlation length for saturated decoherent fluctuations
+
+  - name: lbalonz
+    kind: float
+    units: q0*R0
+    default: 10.0
+    group: Turbulence
+    help: Parallel correlation length for ballooning envelope; this essentially decreases the flux-surface average of turbulence amplitude by a factor of 1 -lbalonz^2 + 3/4lbalonz^4 (at large lbalonz)
+
+  - name: tauc
+    kind: float
+    units: R0/vth
+    default: 10
+    group: Turbulence
+    help: Decorrelation time
+
+  - name: k0i
+    kind: float
+    units: 1/rhoi
+    default: 0.1
+    group: Turbulence
+    help: Dominant wavenumber for ITG
+
+  - name: k0e
+    kind: float
+    units: 1/rhoi
+    default: 0.1
+    group: Turbulence
+    help: Dominant wavenumber for TEM
+
+  - name: gamma_ZF
+    kind: float
+    units: 1/t0
+    default: 0.0
+    group: Turbulence
+    help: Zonal flow shearing rate
+
+  # --- Particle Initial Conditions / markers ---
+  - name: X0
+    kind: float
+    units: m
+    default: 1.3
+    group: Particle Initial Conditions
+    help: R (cylindrical) reference position
+
+  - name: Y0
+    kind: float
+    units: m
+    default: 0.0
+    group: Particle Initial Conditions
+    help: Z (cylindrical) reference position
+
+  - name: Z0
+    kind: float
+    units: rad
+    default: 0.0
+    group: Particle Initial Conditions
+    help: phi (cylindrical) reference position
+
+  - name: Tw
+    kind: float
+    units: Ti
+    default: 1.0
+    group: Particle Initial Conditions
+    help: Local species temperature (normalized to Ti); relevant only if MB distributed
+
+  - name: Ew
+    kind: float
+    units: Ti
+    default: 1.0
+    group: Particle Initial Conditions
+    help: Local species energy (normalized to Ti); relevant only if single energy distributed
+
+  - name: pitch
+    kind: float
+    min: -1
+    max: 1
+    default: 0.5
+    group: Particle Initial Conditions
+    help: Reference pitch angle; relevant only if fixed pitch distributed
+
+  - name: Aw
+    kind: float
+    units: mH
+    default: 1
+    group: Particle Initial Conditions
+    help: Species mass
+
+  - name: Zw
+    kind: float
+    units: "|e|"
+    default: 1
+    group: Particle Initial Conditions
+    help: Species charge
+
+  - name: position_type
+    kind: enum
+    default: 2
+    group: Particle Initial Conditions
+    help: Initial position distribution
+    choices:
+      - value: 1
+        label: fixed_point
+      - value: 2
+        label: flux_surface
+      - value: 3
+        label: annulus
+
+  - name: pitch_type
+    kind: enum
+    default: 2
+    group: Particle Initial Conditions
+    help: Initial pitch distribution
+    choices:
+      - value: 1
+        label: fixed_pitch
+      - value: 2
+        label: uniform_pitch
+
+  - name: energy_type
+    kind: enum
+    default: 2
+    group: Particle Initial Conditions
+    help: Initial energy distribution
+    choices:
+      - value: 1
+        label: fixed_energy
+      - value: 2
+        label: Boltzmann
+
+  # --- Switches (0/1 integers for Fortran) ---
+  - name: USE_larmor
+    kind: int
+    min: 0
+    max: 1
+    default: 0
+    ui: checkbox
+    group: Switches
+    help: FiniteLarmorRadius effects [J0] (1=yes, 0=no)
+
+  - name: USE_coll
+    kind: int
+    min: 0
+    max: 1
+    default: 0
+    ui: checkbox
+    group: Switches
+    help: Collisional effects (1=yes, 0=no)
+
+  - name: USE_turb
+    kind: int
+    min: 0
+    max: 1
+    default: 1
+    ui: checkbox
+    group: Switches
+    help: Turbulence effects (1=yes, 0=no)
+
+  - name: USE_magnturb
+    kind: int
+    min: 0
+    max: 1
+    default: 0
+    ui: checkbox
+    group: Switches
+    help: RMP presence (1=yes, 0=no)
+
+  - name: USE_freq
+    kind: int
+    min: 0
+    max: 1
+    default: 1
+    ui: checkbox
+    group: Switches
+    help: Time dependence of turbulent fields (1=time-dependent, 0=frozen fields)
+
+  - name: USE_polar
+    kind: int
+    min: 0
+    max: 1
+    default: 0
+    ui: checkbox
+    group: Switches
+    help: Polarization drift effects (1=yes, 0=no)
+
+  - name: USE_PC
+    kind: int
+    min: 0
+    max: 1
+    default: 0
+    ui: checkbox
+    group: Switches
+    help: Canonical Momentum flux tube (1=yes, 0=no)
+
+  - name: USE_real
+    kind: int
+    min: 0
+    max: 1
+    default: 0
+    ui: checkbox
+    group: Switches
+    help: Field realizations (1=yes = a single realization, 0=no = a field to each particle)
+
+  - name: USE_corr
+    kind: int
+    min: 0
+    max: 1
+    default: 0
+    ui: checkbox
+    group: Switches
+    help: Save/compute Lagrangian correlations
+
+  - name: USE_balloon
+    kind: int
+    min: 0
+    max: 1
+    default: 0
+    ui: checkbox
+    group: Switches
+    help: Ballooning effects [g(z) = exp(cos(z)lbalonz**2?)] (1=yes, 0=no)
+
+  - name: USE_tilt
+    kind: int
+    min: 0
+    max: 1
+    default: 0
+    ui: checkbox
+    group: Switches
+    help: Tilting effects ~ s ky z (1=yes, 0=no)
+    
+  - name: USE_testing
+    kind: int
+    min: 0
+    max: 1
+    default: 0
+    ui: checkbox
+    group: Switches
+    help: TDo the damn tests (1=yes, 0=no)

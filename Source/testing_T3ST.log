@@ -1,0 +1,110 @@
+[INFO] Logging started
+
+[INFO] - Inputs: NaN checks -------------------------------------------
+[ OK ] No NaNs in X
+[ OK ] No NaNs in Y
+[ OK ] No NaNs in Z
+[ OK ] No NaNs in Vp
+[ OK ] No NaNs in mu
+[ OK ] No NaNs in pb
+[ OK ] No NaNs in Vstar1
+[ OK ] No NaNs in Vstar2
+[ OK ] No NaNs in Vstar3
+
+[INFO] - Waves: NaN checks --------------------------------------------
+[INFO] Wave-set selected: base (USE_real = OFF)
+[ OK ] No NaNs in kx
+[ OK ] No NaNs in ky
+[ OK ] No NaNs in kz
+[ OK ] No NaNs in w
+[ OK ] No NaNs in ph
+
+[INFO] - Vstar checks -------------------------------------------------
+[INFO] Vstar1 Vstar2 Vstar3                                :  0.000E+00 -1.447E+06 -5.481E+03
+[ OK ] Vstar1 ~ 0 (radial drift OK)
+[INFO] Vstar3/Vstar2                                       : ratio=  3.787E-03, tol=  1.000E-01
+[ OK ] Parallel drift OK (|Vstar3/Vstar2| <= 0.1)
+
+[INFO] - Input consistency checks -------------------------------------
+[ OK ] All input arrays have consistent size
+[INFO] n                                                   : 50000
+[ OK ] X > 0 everywhere
+[ OK ] abs(Y) < 1 everywhere
+[ OK ] Z in (-pi, pi) everywhere
+[ OK ] mu > 0 everywhere
+[ OK ] pb > 0 everywhere
+[ OK ] mean(pb) = 1 within tolerance
+[INFO] mean(pb)                                            :  1.000E+00
+[INFO] tol                                                 :  1.000E-12
+[ OK ] sqrt((X-1)^2 + Y^2) < a0 everywhere
+[INFO] a0                                                  :  3.655E-01
+
+[INFO] - Wave moment checks -------------------------------------------
+[INFO] Wave diagnostics (moments / target checks)
+[ OK ] kx mean ~ 0                                         : ratio=  4.187E-04, tol=  5.000E-02
+[ OK ] ky mean ~ 0                                         : ratio=  4.197E-04, tol=  5.000E-02
+[ OK ] kz mean ~ 0                                         : ratio=  0.000E+00, tol=  5.000E-02
+[ OK ] w  mean ~ 0                                         : ratio=  0.000E+00, tol=  5.000E-02
+[ OK ] ph mean ~ 0                                         : ratio=  3.653E-04, tol=  5.000E-02
+[INFO] Second moments (targets)
+[ OK ] kx^2 target                                         : val=  3.997E-02, ref=  4.000E-02, rel=  7.244E-04, tol=  5.000E-02
+[ OK ] ky^2 target                                         : val=  1.207E-01, ref=  1.225E-01, rel=  1.454E-02, tol=  5.000E-02
+[ALERT] kz^2 target                                         : val=  0.000E+00, ref=  1.000E-06, rel=  1.000E+00, tol=  5.000E-02
+[ALERT] w^2  target                                         : val=  0.000E+00, ref=  3.136E-01, rel=  1.000E+00, tol=  5.000E-02
+[ OK ] ph^2 target                                         : val=  3.289E+00, ref=  3.290E+00, rel=  2.119E-04, tol=  5.000E-02
+[INFO] Fourth moments (targets)
+[ OK ] kx^4 target                                         : val=  4.791E-03, ref=  4.800E-03, rel=  1.787E-03, tol=  1.000E-01
+[ OK ] ky^4 target                                         : val=  2.442E-02, ref=  2.501E-02, rel=  2.354E-02, tol=  1.000E-01
+[ALERT] kz^4 target                                         : val=  0.000E+00, ref=  3.000E-12, rel=  1.000E+00, tol=  1.000E-01
+[ALERT] w^4  target                                         : val=  0.000E+00, ref=  1.600E-01, rel=  1.000E+00, tol=  1.000E-01
+[ OK ] ph^4 target                                         : val=  1.947E+01, ref=  1.948E+01, rel=  4.190E-04, tol=  1.000E-01
+
+[INFO] - RK4 propagation ----------------------------------------------
+[INFO] Np_partial                                          :  1.600E+04
+[INFO] Nt_partial                                          :  5.000E+01
+[INFO] dt                                                  :  5.000E-02
+
+[INFO] - Energy conservation proxy ------------------------------------
+[INFO] mean (H(tf)/H(ti)-1)/(tf-ti)                        : -2.541E-07
+[INFO] rms  (H(tf)/H(ti)-1)/(tf-ti)                        :  1.846E-05
+[INFO] std  (H(tf)/H(ti)-1)/(tf-ti)                        :  1.845E-05
+[INFO] max |(H(tf)/H(ti)-1)/(tf-ti)|                       :  1.887E-03
+[INFO] mean|(H(tf)/H(ti)-1)/(tf-ti)|                       :  2.303E-06
+[INFO] argmax |(H(tf)/H(ti)-1)/(tf-ti)| (particle index)   : 10631
+
+[INFO] - Toroidal(canonical) momentul conservation proxy --------------
+[INFO] mean (Pc(tf)/Pc(ti)-1)/(tf-ti)                      : -9.956E-04
+[INFO] rms  (Pc(tf)/Pc(ti)-1)/(tf-ti)                      :  1.772E-02
+[INFO] std  (Pc(tf)/Pc(ti)-1)/(tf-ti)                      :  1.769E-02
+[INFO] max |(Pc(tf)/Pc(ti)-1)/(tf-ti)|                     :  6.818E-02
+[INFO] mean|(Pc(tf)/Pc(ti)-1)/(tf-ti)|                     :  1.407E-02
+[INFO] argmax |(Pc(tf)/Pc(ti)-1)/(tf-ti)| (particle index) : 13573
+
+[INFO] - Gaussianity summary: all times x particles (kurt/3 = 1 for Gaussian)
+[INFO]  phi                                                 : E[x]=  3.964E-04, E[x^2]=  9.316E-01, kurt/3=  9.814E-01, tol=  1.500E-01, compared to =   1.000E+00
+[ALERT] phix                                                : E[x]=  6.569E-03, E[x^2]=  2.062E-01, kurt/3=  1.806E+00, tol=  1.500E-01, compared to =   1.000E+00
+[INFO]  phiy                                                : E[x]=  1.043E-02, E[x^2]=  1.006E-01, kurt/3=  1.021E+00, tol=  1.500E-01, compared to =   1.000E+00
+
+[INFO] - Gaussianity drivers (qualitative) ----------------------------
+[INFO] Larmor & Frequencies -> NO effects on Gaussianity of fields
+[INFO] Balloning breaks phix, phiz Gaussianity as I_0[4/Lbalon^2]/I_0[2/Lbalon^2]^2/2
+[INFO] Balloning breaks amplitude as: I_0(1/lbalonz^2)*exp(-lbalonz^2)
+[INFO] Tilting breaks phix/phiz Gaussianity; k_x^eff = kx+ky a --> ??
+
+[INFO] - Gaussianity summary: time slice k=1 (kurt/3 = 1 for Gaussian)
+[INFO]  phi                                                 : E[x]= -3.458E-04, E[x^2]=  8.819E-01, kurt/3=  1.003E+00, tol=  1.500E-01, compared to =   1.000E+00
+[ALERT] phix                                                : E[x]=  7.524E-04, E[x^2]=  2.203E-01, kurt/3=  1.727E+00, tol=  1.500E-01, compared to =   1.000E+00
+[INFO]  phiy                                                : E[x]= -9.002E-04, E[x^2]=  1.015E-01, kurt/3=  1.012E+00, tol=  1.500E-01, compared to =   1.000E+00
+ --------------------------------------------------------------
+ ------ A ballistic/QL estimation of turbulent transport ------
+  E[Vtx] = 1.372E-02 E[Vtx^2] = 2.377E+01 compared to  2.954E+01
+
+[INFO] Alerts recap (most recent run)
+[ALERT] kz^2 target
+[ALERT] w^2  target
+[ALERT] kz^4 target
+[ALERT] w^4  target
+[ALERT] Gaussianity: phix kurt/3 out of tol
+[ALERT] Gaussianity: phix kurt/3 out of tol
+ 
+[INFO] Logging ended
