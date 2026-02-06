@@ -306,8 +306,30 @@ parameters:
     default: 0.0
     group: Turbulence
     help: Zonal flow shearing rate
+    
+  - name: x_corr
+    kind: enum
+    default: 2
+    group: Turbulence
+    help: Choices of x spectrum/correlation (1=Gaussian, 2=Exp corr equiv. Cauchy spectrum)
+    choices:
+      - value: 1
+        label: Gaussian correlation
+      - value: 2
+        label: Exp correlation (Cauchy spectrum)
 
-  # --- Particle Initial Conditions / markers ---
+  - name: t_corr
+    kind: enum
+    default: 2
+    group: Turbulence
+    help: Choices of t spectrum/correlation (1=Gaussian, 2=Exp corr equiv. Cauchy spectrum)
+    choices:
+      - value: 1
+        label: Gaussian correlation
+      - value: 2
+        label: Exp correlation (Cauchy spectrum)
+
+# --- Particle Initial Conditions / markers ---
   - name: X0
     kind: float
     units: m

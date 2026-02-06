@@ -155,6 +155,7 @@ PROGRAM T3ST
          END IF
       END DO
 
+
       ! Console print: simulation number and folder
       WRITE (runs, *) run
       WRITE (nsim, *) (simf - simi + 1)
@@ -182,7 +183,7 @@ PROGRAM T3ST
                    "Nci", "Nce", "Ti", "Te", "B0", "vth", "rhoi", "R0", "Ln", "Li", "Le", "Zeff", "Aeff", "ndens", &
                    "a0", "Omgt0", "Omgtprim", "wi", "C1", "C2", "C3", "safe1", "safe2", "safe3", &
                    "amp", "elong", "device", "shot", "shotslice", "NgridR", "NgridZ", "Phi", "turbprof", "Ai", &
-                   "Ae", "lambdax", "lambday", "lambdaz", "lbalonz", "tauc", "k0i", "k0e", "gamma_ZF", "gamma_E", "X0", "Y0", "Z0", "r00", "q00", &
+                   "Ae", "lambdax", "lambday", "lambdaz", "lbalonz", "tauc", "k0i", "k0e", "gamma_ZF", "gamma_E","x_corr","t_corr", "X0", "Y0", "Z0", "r00", "q00", &
                    "psi0", "Tw", "Ew", "pitch", "Aw", "Zw", "taucc", "magnetic_model", "USE_larmor", "position_type", &
                    "pitch_type", "energy_type", "USE_coll", "USE_turb", "USE_magnturb", "USE_freq", "USE_polar", &
                    "USE_PC", "USE_real", "USE_corr", "USE_balloon", "USE_tilt", "USE_testing"]
@@ -191,7 +192,7 @@ PROGRAM T3ST
                    REAL(ntraj,dp), REAL(Nci,dp), REAL(Nce,dp), Ti, Te, B0, vth, rhoi, R0, Ln, Li, Le, Zeff, Aeff, ndens, &
                    a0, Omgt0, Omgtprim, wi, C1, C2, C3, safe1, safe2, safe3, amp, elong, REAL(device,dp), &
                    REAL(shot,dp), REAL(shotslice,dp), REAL(NgridR,dp), REAL(NgridZ,dp), Phi, turbprof, Ai, Ae, &
-                   lambdax, lambday, lambdaz, lbalonz, tauc, k0i, k0e, gamma_ZF, gamma_E, X0, Y0, Z0, r00, q00, psi0, Tw, Ew, pitch, Aw, Zw, &
+                   lambdax, lambday, lambdaz, lbalonz, tauc, k0i, k0e, gamma_ZF, gamma_E, REAL(x_corr,dp), REAL(t_corr,dp), X0, Y0, Z0, r00, q00, psi0, Tw, Ew, pitch, Aw, Zw, &
                    taucc, REAL(magnetic_model, dp), REAL(USE_larmor, dp), REAL(position_type, dp), REAL(pitch_type, dp), &
                    REAL(energy_type, dp), REAL(USE_coll, dp), REAL(USE_turb, dp), REAL(USE_magnturb, dp), REAL(USE_freq, dp), &
                    REAL(USE_polar, dp), REAL(USE_PC, dp), REAL(USE_real, dp), REAL(USE_corr, dp), REAL(USE_balloon,dp), REAL(USE_tilt,dp), REAL(USE_testing,dp)]
@@ -204,6 +205,7 @@ PROGRAM T3ST
       t  = [(i8*dt + t0, i8=0, Nt)]
       Lagr_ref  = 0.0_dp
       Lagr_corr = 0.0_dp
+
 
 !========================================================================================================
 ! REALIZATIONS LOOP

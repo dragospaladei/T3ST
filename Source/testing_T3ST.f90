@@ -52,7 +52,7 @@ contains
     real(dp) :: dt, ratio32
 
     real(dp), allocatable :: Xh(:,:), Yh(:,:), Zh(:,:), Vph(:,:), muh(:,:)
-    real(dp), allocatable :: Hh(:,:), Pch(:,:), c1h(:,:), c2h(:,:), c3h(:,:),  Vtx(:,:)
+    real(dp), allocatable :: Hh(:,:), Pch(:,:), c1h(:,:), c2h(:,:), c3h(:,:),  Vtx(:,:),  Vty(:,:)
     real(dp), allocatable :: Xaux(:), Yaux(:), Zaux(:), Vpaux(:), muaux(:)
 
     integer  :: nstep_eff
@@ -80,7 +80,8 @@ contains
              c1h(1:Nt_partial, 1:Np_partial), &
              c2h(1:Nt_partial, 1:Np_partial), &
              c3h(1:Nt_partial, 1:Np_partial),&
-             Vtx(1:Nt_partial, 1:Np_partial))
+             Vtx(1:Nt_partial, 1:Np_partial), &
+             Vty(1:Nt_partial, 1:Np_partial))
 
     allocate(Xaux(Np), Yaux(Np), Zaux(Np), Vpaux(Np), muaux(Np))
     Xaux=X; Yaux=Y; Zaux=Z; Vpaux=Vp; muaux=mu;
@@ -181,7 +182,7 @@ contains
     call log_val("[INFO]", "dt", dt)
 
     call rk4_propagation(X, Y, Z, Vp, mu, pb, dt, Nt_partial, Np_partial, &
-                         Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtx)
+                         Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtx, Vty)
 
     nstep_eff = max(1, Nt_partial - 1)
     T         = dt * real(nstep_eff, dp)
@@ -222,7 +223,7 @@ contains
     call print_gaussianity_slice("phiy", c3h, 1, Np_partial, no_errors, compare)
 
     call rk4_propagation(Xaux, Yaux, Zaux, Vpaux, muaux, pb, dt, 1, Np_partial, &
-                         Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtx)
+                         Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtx, Vty)
 
     if (USE_real.eq.OFF) then
       compare = ((R0/rhoi*Phi)**2)*sum(ky**2)/real(Np*Nc,dp)
@@ -239,6 +240,11 @@ contains
     write(TMP,'(A,' // FVAL // ',A,' // FVAL // ',A,' // FVAL // ')') &
       '  E[Vtx] =', sum(Vtx(1,:))/Np_partial, ' E[Vtx^2] =', sum(Vtx(1,:)**2)/Np_partial,  ' compared to ', compare
     call log_raw(TMP)
+    call log_raw(' --------------------------------------------------------------')
+    call log_raw(' ------ A ballistic/QL estimation of neoclassical transport ------')
+    write(TMP,'(A,' // FVAL // ',A,' // FVAL // ',A,' // FVAL // ')') &
+      '  E[Vnx] =', sum(Vty(1,:)-Vtx(1,:))/Np_partial, ' E[Vnx^2] =', sum((Vty(1,:)-Vtx(1,:))**2)/Np_partial,  ' compared to (only if theta=pi/2)', compare
+    call log_raw(TMP)
 
     ! -------------------------
     ! Final recap + banner end
@@ -254,14 +260,14 @@ contains
   ! RK4 propagation (unchanged numerics; formatting/indent only)
   !=============================================================================
   subroutine rk4_propagation(X, Y, Z, Vp, mu, pb, dt, Nt_partial, Np_partial, &
-                             Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtxall)
+                             Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtxall, Vtyall)
 
     real(dp), intent(in) :: X(:), Y(:), Z(:), Vp(:), mu(:), pb(:)
     integer,  intent(in) :: Np_partial, Nt_partial
     real(dp), intent(in) :: dt
 
     real(dp), intent(out) :: Xh(:,:), Yh(:,:), Zh(:,:), Vph(:,:), muh(:,:)
-    real(dp), intent(out) :: Hh(:,:), Pch(:,:), c1h(:,:), c2h(:,:), c3h(:,:), Vtxall(:,:)
+    real(dp), intent(out) :: Hh(:,:), Pch(:,:), c1h(:,:), c2h(:,:), c3h(:,:), Vtxall(:,:), Vtyall(:,:)
 
     real(dp), pointer, contiguous :: Qx(:), Qy(:), Qz(:), Qw(:), Qph(:), QL(:), Q0wrp(:)
 
@@ -321,6 +327,7 @@ contains
         c2h(k, ias) = check_2
         c3h(k, ias) = check_3
         Vtxall(k,ias) = Vtx
+        Vtyall(k,ias) = Vty
 
         Wx = vx / 6.0_dp
         Wy = vy / 6.0_dp

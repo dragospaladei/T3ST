@@ -529,7 +529,7 @@ END SUBROUTINE PDF_G
     INTEGER                :: i
     REAL(KIND=dp)                   :: normB, Vstar1, Vstar2, Vstar3
     REAL(KIND=dp),  DIMENSION(3,3)  :: gees            ! matrix of kperp^2
-    real(kind=dp) :: w000
+    real(kind=dp) :: w000, kx000
 
     IF(ALLOCATED(ph))     THEN
         IF(SIZE(ph).ne.Np)  THEN
@@ -563,17 +563,25 @@ END SUBROUTINE PDF_G
         ! Wavenumbers Kx, Ky, Kz, frequency w (depending on 'corr'; used in Fields); phx, phy, w (used in colliz)
         ! ------------------------------------------------------------------------------------------------------------------------
         w000 = 0.0
+        kx000 = 0.0    ! central radial wavenumber in the case of cauchy like kx spectrum
 
         DO i = 1, Nci     !ITG
             CALL PDF_G(4,Np,g(1:4,:),wavelength=[lambdax,lambdaz,tauc,taucc])           ! corr = 1 ~ (PDF_G, PDF_G, PDF_w_Bes)
             CALL PDF_ky(Np,lambday,k0i,g(5,:))
 
-            kx(i,:) = g(1,:)
             kz(i,:) = g(2,:)
-            w1      = g(3,:)
             wc(i,:) = g(4,:)
             ky(i,:) = g(5,:)
-            !            CALL PDF_Cauchy(Np,w000,tauc,w1)
+            if(x_corr .eq.1) then          
+               kx(i,:) = g(1,:)
+            elseif(x_corr.eq.2) then
+                CALL PDF_Cauchy(Np,kx000,lambdax,kx(i,:))
+            endif
+            if(t_corr .eq.1) then          
+                w1      = g(3,:)
+            elseif(t_corr.eq.2) then
+                CALL PDF_Cauchy(Np,w000,lambdax,w1)
+            endif
 
             ky(i,:) = 1.0*int(ky(i,:)*C2)/C2
             kz(i,:) = 0.0*(C2*ky(i,:)*q00- int(C2*ky(i,:)*q00))/C3 ! ATENTIE, am pus un 0.0 aici fiindca am schimbat reprezentarea
@@ -592,11 +600,21 @@ END SUBROUTINE PDF_G
             CALL PDF_G(4,Np,g(1:4,:),wavelength=[lambdax,lambdaz,tauc,taucc])           ! corr = 1 ~ (PDF_G, PDF_G, PDF_w_Bes)
             CALL PDF_ky(Np,lambday,k0e,g(5,:))
 
-            kx(i,:) = g(1,:)
+
             kz(i,:) = g(2,:)
-            w1      = g(3,:)
+
             wc(i,:) = g(4,:)
             ky(i,:) = g(5,:)
+            if(x_corr .eq.1) then          
+               kx(i,:) = g(1,:)
+            elseif(x_corr.eq.2) then
+                CALL PDF_Cauchy(Np,kx000,lambdax,kx(i,:))
+            endif
+            if(t_corr .eq.1) then          
+                w1      = g(3,:)
+            elseif(t_corr.eq.2) then
+                CALL PDF_Cauchy(Np,w000,lambdax,w1)
+            endif            
             !            CALL PDF_Cauchy(Np,w000,tauc,w1)
 
             ky(i,:) = 1.0*int(ky(i,:)*C2)/C2
@@ -653,7 +671,8 @@ END SUBROUTINE PDF_G
   REAL(KIND=dp) :: sx, sz, sw1, swc
   INTEGER :: i
   REAL(KIND=dp), ALLOCATABLE :: tmp4(:,:)  ! 4xNp scratch for PDF_G
-
+    real(kind=dp) :: w000, kx000
+    
 IF (ALLOCATED(ph)) THEN
     IF (SIZE(ph,1) /= Nc .OR. SIZE(ph,2) /= Np) THEN
         DEALLOCATE(ph, kx, ky, kperp, kz, w, phrmp, phx, phy, wc, dm)
@@ -686,16 +705,28 @@ END IF
      sz  = 1.0_dp/lambdaz
      sw1 = 1.0_dp/tauc
      swc = 1.0_dp/taucc
+        w000 = 0.0
+        kx000 = 0.0    ! central radial wavenumber in the case of cauchy like kx spectrum
 
      ! ----- ITG block (1..Nci)
      ALLOCATE(tmp4(4,Np))
      DO i = 1, Nci
         CALL PDF_G(4, Np, tmp4, wavelength=[lambdax, lambdaz, tauc, taucc])  ! uses faster Box-Muller
-        kx(i,:) = tmp4(1,:)
-        kz(i,:) = tmp4(2,:)
-        w (i,:) = tmp4(3,:)   ! store w1 here temporarily
-        wc(i,:) = tmp4(4,:)
 
+        kz(i,:) = tmp4(2,:)
+        wc(i,:) = tmp4(4,:)
+        
+            if(x_corr .eq.1) then          
+               kx(i,:) = tmp4(1,:)
+            elseif(x_corr.eq.2) then
+                CALL PDF_Cauchy(Np,kx000,lambdax,kx(i,:))
+            endif
+            if(t_corr .eq.1) then          
+                w(i,:)     = tmp4(3,:)
+            elseif(t_corr.eq.2) then
+                CALL PDF_Cauchy(Np,w000,lambdax,w(i,:))
+            endif
+            
         CALL PDF_ky(Np, lambday, k0i, ky(i,:))
 
         ky(i,:) = REAL(INT(ky(i,:)*C2),dp)/C2
@@ -712,10 +743,18 @@ END IF
      ! ----- TEM block (Nci+1..Nc)
      DO i = Nci+1, Nc
         CALL PDF_G(4, Np, tmp4, wavelength=[lambdax, lambdaz, tauc, taucc])
-        kx(i,:) = tmp4(1,:)
         kz(i,:) = tmp4(2,:)
-        w (i,:) = tmp4(3,:)
         wc(i,:) = tmp4(4,:)
+            if(x_corr .eq.1) then          
+               kx(i,:) = tmp4(1,:)
+            elseif(x_corr.eq.2) then
+                CALL PDF_Cauchy(Np,kx000,lambdax,kx(i,:))
+            endif
+            if(t_corr .eq.1) then          
+                w(i,:)      = tmp4(3,:)
+            elseif(t_corr.eq.2) then
+                CALL PDF_Cauchy(Np,w000,lambdax,w(i,:))
+            endif
         CALL PDF_ky(Np, lambday, k0e, ky(i,:))
 
         ky(i,:) = REAL(INT(ky(i,:)*C2),dp)/C2
@@ -814,7 +853,7 @@ END SUBROUTINE Larmor
     INTEGER                         :: i
     REAL(KIND=dp)                   :: normB, Vstar1, Vstar2, Vstar3
     REAL(KIND=dp),  DIMENSION(3,3)  :: gees            ! matrix of kperp^2
-    real(kind=dp) :: w000
+    real(kind=dp) :: w000, kx000
 
     IF(ALLOCATED(phs))     THEN
         IF(SIZE(phs).ne.Nc)  THEN
@@ -827,6 +866,8 @@ END SUBROUTINE Larmor
         ALLOCATE(phs(Nc))
         ALLOCATE(kxs,kys,kperps,kzs,ws, phrmps, phxs,phys,wcs,dms, mold=phs)
     END IF
+        w000 = 0.0
+        kx000 = 0.0    ! central radial wavenumber in the case of cauchy like kx spectrum
 
     ! ------------------------------------------------------------------------------------------------------------------------
     IF(USE_turb == ON) THEN
@@ -849,12 +890,22 @@ END SUBROUTINE Larmor
         ! ------------------------------------------------------------------------------------------------------------------------
 
         CALL PDF_G(4,Nc,g(1:4,:),wavelength=[lambdax,lambdaz,tauc,taucc])           ! corr = 1 ~ (PDF_G, PDF_G, PDF_w_Bes)
-        kxs = g(1,:)
+
         kzs = g(2,:)
-        w1s = g(3,:)
+
         !      CALL PDF_Cauchy(Np,w000,tauc,w1s)
         wcs = g(4,:)
-
+        
+            if(x_corr .eq.1) then          
+               kxs = g(1,:)
+            elseif(x_corr.eq.2) then
+                CALL PDF_Cauchy(Np,kx000,lambdax,kxs)
+            endif
+            if(t_corr .eq.1) then          
+                w1s      = g(3,:)
+            elseif(t_corr.eq.2) then
+                CALL PDF_Cauchy(Np,w000,lambdax,w1s)
+            endif
         CALL PDF_ky(Nc,lambday,k0i,g(5,:))
 
         DO i = 1, Nci     !ITG

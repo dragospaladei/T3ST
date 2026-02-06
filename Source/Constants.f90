@@ -148,6 +148,8 @@ MODULE constants
    ! Choices / switches
    !---------------------------------------------------------------------------------
    INTEGER :: magnetic_model                        ! equilibrium: 1-EFIT, 2-EFIT-sa, 3-Solovev, 4-Circular
+   INTEGER :: x_corr                                ! turbulence correlation on x: 1-gaussian, 2-exponential
+   INTEGER :: t_corr                                ! turbulence correlation on x: 1-gaussian, 2-exponential
    INTEGER :: USE_larmor                            ! FLR effects: 0 = OFF, 1 = ON, else = ERROR
    INTEGER :: position_type                         ! init position: 1-all same (X0,Y0,Z0)
    INTEGER :: pitch_type                            ! init pitch: 1-fixed, 2-random uniform (2pi)
@@ -241,6 +243,8 @@ tauc     = pp(param_index("tauc"))
 k0i      = pp(param_index("k0i"))
 k0e      = pp(param_index("k0e"))
 gamma_ZF = pp(param_index("gamma_ZF"))
+x_corr    = INT(pp(param_index("x_corr")))
+t_corr    = INT(pp(param_index("t_corr")))
 
 X0       = pp(param_index("X0"))
 Y0       = pp(param_index("Y0"))
@@ -422,4 +426,3 @@ USE_testing    = INT(pp(param_index("USE_testing")))
    END SUBROUTINE parameters
 
 END MODULE constants
-

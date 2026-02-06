@@ -46,6 +46,8 @@ CycloneBaseZhang:
   k0i: 0.05
   k0e: 0.05
   gamma_ZF: 0.0
+  x_corr: 2
+  t_corr: 2
   X0: 2.022
   Y0: 0.0
   Z0: 0
@@ -114,6 +116,8 @@ MAST-U:
   k0i: 0.1
   k0e: 0.1
   gamma_ZF: 0.0
+  x_corr: 2
+  t_corr: 2
   X0: 1.2
   Y0: 0
   Z0: 0
@@ -182,6 +186,8 @@ TCV:
   k0i: 0.1
   k0e: 0.1
   gamma_ZF: 0.0
+  x_corr: 2
+  t_corr: 2
   X0: 1.03
   Y0: 0
   Z0: 0
@@ -250,6 +256,8 @@ WEST:
   k0i: 0.1
   k0e: 0.1
   gamma_ZF: 0.0
+  x_corr: 2
+  t_corr: 2
   X0: 2.75
   Y0: 0
   Z0: 0
@@ -307,7 +315,7 @@ CycloneBaseCase:
   shotslice: 6
   Omgt0: 0
   Omgtprim: 0
-  Phi: 0.05
+  Phi: 0.01
   turbprof: 5.0
   Ai: 1.0
   lambdax: 5.0
@@ -318,6 +326,8 @@ CycloneBaseCase:
   k0i: 0.05
   k0e: 0.05
   gamma_ZF: 0.0
+  x_corr: 2
+  t_corr: 2
   X0: 1.95
   Y0: 0
   Z0: 0
