@@ -25,9 +25,8 @@
 
     REAL(KIND=dp), ALLOCATABLE, DIMENSION(:,:),target    :: ph,kx,ky,kperp,kz,w,phx,phy,wc,dm, L, phrmp, Ls, q00wrap
     REAL(KIND=dp), ALLOCATABLE, DIMENSION(:),target      :: phs,kxs,kys,kperps,kzs,ws,phxs,phys,wcs,dms, phrmps, q00wraps
-    REAL(KIND=dp), ALLOCATABLE, DIMENSION(:,:,:)  :: Wien
     CONTAINS
-
+    
     ! Subroutine :: rand_p_sphere(n,x,d)
     ! Purpose    :: uniform generation of points in a dim-dimensional sphere
     ! Record of revisions:
@@ -310,7 +309,7 @@ END SUBROUTINE PDF_ky
         STOP
     END IF
 
-    a = -5.0/zlam - zk0                                     ! the random no. "x" are generated in the (a,b) interval:: PDF(x)->0, for x<a && x>b
+    a = -5.0/zlam - zk0                                     ! the rgandom no. "x" are generated in the (a,b) interval:: PDF(x)->0, for x<a && x>b
     b =  5.0/zlam + zk0
     c = SQRT(2.0/pi)/2.71828*zlam                           ! c = maxval(PDF(x))
     xf = 0.*xf
@@ -515,12 +514,280 @@ END SUBROUTINE PDF_G
 
 
     END SUBROUTINE PDF_G_D
+    
     !  ========================================================
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!! SUBROUTINE wavenum
     !!! Generates wavenumbers, phases and frequencies;; all constant for each 'run'
     !!! Should be called in 'main' at the start of every 'run', after parameters(run)
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! --------------------------------------------------------------------------
+  ! Unified generator:
+  !   USE_real = ON  (1) -> fills *_s arrays (Nc)
+  !   USE_real = OFF (0) -> fills 2D arrays (Nc,Np)
+  ! --------------------------------------------------------------------------
+  SUBROUTINE wavenum_unified(normB, Vstar1, Vstar2, Vstar3, gees, USE_real_flag, gnorm_out)
+    USE constants
+    IMPLICIT NONE
+
+    REAL(KIND=dp), INTENT(IN) :: normB, Vstar1, Vstar2, Vstar3
+    REAL(KIND=dp), INTENT(IN) :: gees(3,3)
+    INTEGER,       INTENT(IN) :: USE_real_flag
+    real(KIND=dp), INTENT(OUT):: gnorm_out
+
+    INTEGER :: i, npts, dmm
+    REAL(KIND=dp) :: invR0, rhoi_over_R0, R2, Te_over_Ti, ATeTi
+    REAL(KIND=dp) :: w000, kx000, k0, sgn, Gnorm_tmp
+    REAL(KIND=dp), ALLOCATABLE :: tmp4(:,:),frac(:,:), gg(:,:)  ! (4,npts) scratch for PDF_G
+    REAL(KIND=dp), ALLOCATABLE :: kyrow(:), kxrow(:), kzrow(:), wrow(:), wcrow(:), fracs(:),ggs(:)
+    REAL(KIND=dp), ALLOCATABLE :: phrow(:), phxrow(:), phyrow(:), phrmprow(:), dmrow(:)
+
+    ! Decide number of samples/trajectories to generate in this call
+    IF (USE_real_flag == ON) THEN
+      npts = 1
+    ELSE
+      npts = Np
+    END IF
+
+    ! Allocate outputs depending on mode
+    IF (USE_real_flag == ON) THEN
+      IF (ALLOCATED(phs)) THEN
+        IF (SIZE(phs) /= Nc) THEN
+          DEALLOCATE(phs,kxs,kys,kperps,kzs,ws,phrmps,phxs,phys,wcs,dms,q00wraps)
+        END IF
+      END IF
+      IF (.NOT. ALLOCATED(phs)) THEN
+        ALLOCATE(phs(Nc))
+        ALLOCATE(kxs,kys,kzs,kperps,ws,phrmps,phxs,phys,wcs,dms,q00wraps,mold=phs)
+      END IF
+    ELSE
+      IF (ALLOCATED(ph)) THEN
+        IF (SIZE(ph,1) /= Nc .OR. SIZE(ph,2) /= Np) THEN
+          DEALLOCATE(ph,kx,ky,kperp,kz,w,phrmp,phx,phy,wc,dm,q00wrap)
+        END IF
+      END IF
+      IF (.NOT. ALLOCATED(ph)) THEN
+        ALLOCATE(ph(Nc,Np))
+        ALLOCATE(kx,ky,kperp,kz,w,phrmp,phx,phy,wc,dm,q00wrap, MOLD=ph)
+      END IF
+    END IF
+         allocate(frac(Nc,Np),gg(Nc,Np),fracs(Nc),ggs(Nc))
+
+    ! Constants
+    invR0        = 1.0_dp / R0
+    rhoi_over_R0 = rhoi * invR0
+    Te_over_Ti   = Te / Ti
+    R2           = (rhoi_over_R0 / normB)**2
+    ATeTi        = Aeff * Te_over_Ti
+
+    w000  = 0.0_dp
+    kx000 = 0.0_dp
+
+    ! Scratch
+    ALLOCATE(tmp4(4,npts))
+    ALLOCATE(kyrow(npts), kxrow(npts), kzrow(npts), wrow(npts), wcrow(npts))
+    ALLOCATE(phrow(npts), phxrow(npts), phyrow(npts), phrmprow(npts), dmrow(npts))
+
+    IF (USE_turb == ON) THEN
+
+      DO i = 1, Nc
+
+        ! ----- phases + parallel shift
+        CALL RANDOM_NUMBER(phrow);     phrow     = pi*(2.0_dp*phrow     - 1.0_dp)
+        CALL RANDOM_NUMBER(phrmprow);  phrmprow  = pi*(2.0_dp*phrmprow  - 1.0_dp)
+        CALL RANDOM_NUMBER(phxrow);    phxrow    = pi*(2.0_dp*phxrow    - 1.0_dp)
+        CALL RANDOM_NUMBER(phyrow);    phyrow    = pi*(2.0_dp*phyrow    - 1.0_dp)
+        CALL RANDOM_NUMBER(dmrow);     dmrow     = 2.0_dp*(dmrow - 0.5_dp)
+        dmrow = INT(q00/lambdaz * dmrow)    ! integer shifts
+
+        ! ----- correlated (kx,kz,w,wc)
+        CALL PDF_G(4, npts, tmp4, wavelength=[lambdax, lambdaz, tauc, taucc])
+
+        kzrow = tmp4(2,:)
+        wcrow = tmp4(4,:)
+
+        IF (x_corr == 1) THEN
+          kxrow = tmp4(1,:)
+        ELSEIF (x_corr == 2) THEN
+          CALL PDF_Cauchy(npts, kx000, lambdax, kxrow)
+        END IF
+
+        IF (t_corr == 1) THEN
+          wrow = tmp4(3,:)
+        ELSEIF (t_corr == 2) THEN
+          CALL PDF_Cauchy(npts, w000, lambdax, wrow)
+        END IF
+
+        ! ----- ky depends on ITG/TEM block
+        IF (i <= Nci) THEN
+          k0  = k0i
+          sgn = +1.0_dp
+        ELSE
+          k0  = k0e
+          sgn = -Te_over_Ti
+        END IF
+
+        CALL PDF_ky(npts, lambday, k0, kyrow)
+
+        ! integer wrapping (your original)
+        kyrow = REAL(INT(kyrow*C2), dp) / C2
+        kzrow = REAL(INT(kzrow), dp)   / C3
+
+        ! write out + compute kperp and frequency correction
+        IF (USE_real_flag == ON) THEN
+          phs(i)    = phrow(1)
+          phrmps(i) = phrmprow(1)
+          phxs(i)   = phxrow(1)
+          phys(i)   = phyrow(1)
+          dms(i)    = dmrow(1)
+
+          kxs(i) = kxrow(1)
+          kys(i) = kyrow(1)
+          kzs(i) = kzrow(1)
+          wcs(i) = wcrow(1)
+
+          kperps(i) = rhoi_over_R0 * SQRT( &
+               kxs(i)*gees(1,1)*kxs(i) + 2.0_dp*kxs(i)*gees(1,2)*kys(i) + 2.0_dp*kxs(i)*gees(1,3)*kzs(i) + &
+               kys(i)*gees(2,2)*kys(i) + 2.0_dp*kys(i)*gees(2,3)*kzs(i) + &
+               kzs(i)*gees(3,3)*kzs(i) )
+
+          ws(i) = wrow(1) + ( sgn * Ln * R2 * (kxs(i)*Vstar1 + kys(i)*Vstar2 + kzs(i)*Vstar3) ) / &
+                           (1.0_dp + ATeTi*kperps(i)**2)
+
+          ws(i)       = REAL(USE_freq,dp) * ws(i)
+          q00wraps(i) = REAL(INT(C2*kys(i)*q00), dp)
+
+        ELSE
+          ph(i,:)    = phrow
+          phrmp(i,:) = phrmprow
+          phx(i,:)   = phxrow
+          phy(i,:)   = phyrow
+          dm(i,:)    = dmrow
+
+          kx(i,:) = kxrow
+          ky(i,:) = kyrow
+          kz(i,:) = kzrow
+          wc(i,:) = wcrow
+
+          kperp(i,:) = rhoi_over_R0 * SQRT( &
+               kx(i,:)*gees(1,1)*kx(i,:) + 2.0_dp*kx(i,:)*gees(1,2)*ky(i,:) + 2.0_dp*kx(i,:)*gees(1,3)*kz(i,:) + &
+               ky(i,:)*gees(2,2)*ky(i,:) + 2.0_dp*ky(i,:)*gees(2,3)*kz(i,:) + &
+               kz(i,:)*gees(3,3)*kz(i,:) )
+
+          w(i,:) = wrow + ( sgn * Ln * R2 * (kx(i,:)*Vstar1 + ky(i,:)*Vstar2 + kz(i,:)*Vstar3) ) / &
+                         (1.0_dp + ATeTi*kperp(i,:)**2)
+
+        END IF
+
+      END DO
+
+      IF (USE_real_flag /= ON) THEN
+        w       = REAL(USE_freq,dp) * w
+        q00wrap = REAL(INT(C2*ky*q00), dp)
+      END IF
+
+    ELSE
+      ! No turbulence: zero everything
+      IF (USE_real_flag == ON) THEN
+        phs = 0.0_dp; phrmps = 0.0_dp; phxs = 0.0_dp; phys = 0.0_dp
+        kxs = 0.0_dp; kys   = 0.0_dp; kzs  = 0.0_dp
+        ws  = 0.0_dp; wcs   = 0.0_dp; kperps = 0.0_dp; dms = 0.0_dp
+        q00wraps = 0.0_dp
+      ELSE
+        ph  = 0.0_dp; phrmp = 0.0_dp; phx = 0.0_dp; phy = 0.0_dp
+        kx  = 0.0_dp; ky    = 0.0_dp; kz  = 0.0_dp
+        w   = 0.0_dp; wc    = 0.0_dp; kperp = 0.0_dp; dm = 0.0_dp
+        q00wrap = 0.0_dp
+      END IF
+    END IF
+
+! proper normalization of the parallel structure
+    IF (USE_real_flag == OFF) THEN
+
+     frac  = C2*ky*q00 - int(C2*ky*q00)
+      gg = 0.0_dp
+      do dmm = - dmmax, dmmax
+          gg    = gg + exp(-(dmm + frac)**2/2.0_dp*lbalonz**2)
+      enddo
+          Gnorm_tmp = sum(gg**2)/Np
+    ELSE
+
+      fracs  = C2*kys*q00 - int(C2*kys*q00)
+      ggs = 0.0_dp
+      do dmm = - dmmax, dmmax
+        ggs    = ggs + exp(-(dmm + fracs)**2/2.0_dp*lbalonz**2)
+      enddo
+          Gnorm_tmp = sum(ggs**2)
+    END IF
+
+     gnorm_out = sqrt(2.0_dp/Gnorm_tmp)!real(sqrt(2.0_dp/Gnorm_tmp),dp)! sqrt(2/sum_k(sum_m g(m+{nq0})))     
+! Preserve your "first sample has no turbulence" convention
+    IF (USE_real_flag == ON) THEN
+      phs(1) = 0.0_dp; phrmps(1) = 0.0_dp; phxs(1) = 0.0_dp; phys(1) = 0.0_dp
+      kxs(1) = 0.0_dp; kys(1)    = 0.0_dp; kzs(1)  = 0.0_dp
+      ws(1)  = 0.0_dp; wcs(1)    = 0.0_dp; kperps(1) = 0.0_dp
+      q00wraps(1) = 0.0_dp;
+    ELSE
+      ph(:,1) = 0.0_dp; phrmp(:,1)=0.0_dp; phx(:,1)=0.0_dp; phy(:,1)=0.0_dp
+      kx(:,1) = 0.0_dp; ky(:,1)   =0.0_dp; kz(:,1)=0.0_dp
+      w(:,1)  = 0.0_dp; wc(:,1)   =0.0_dp; kperp(:,1)=0.0_dp
+      q00wrap(:,1)=0.0_dp; 
+    END IF
+
+    DEALLOCATE(tmp4, kyrow, kxrow, kzrow, wrow, wcrow, phrow, phxrow, phyrow, phrmprow, dmrow)
+        deallocate(frac,gg,ggs,fracs)
+  END SUBROUTINE wavenum_unified
+
+SUBROUTINE Larmor(ind, mut)
+  IMPLICIT NONE
+  INTEGER, INTENT(IN) :: ind
+  REAL(KIND=dp), DIMENSION(Np), INTENT(IN) :: mut
+  INTEGER :: i
+  REAL(KIND=dp) :: coef
+
+  IF (USE_real == OFF) THEN
+    IF (ALLOCATED(L)) DEALLOCATE(L)
+    ALLOCATE(L(Nc, Np))
+  ELSEIF (USE_real == ON) THEN
+    IF (ALLOCATED(Ls)) THEN
+      DEALLOCATE(Ls)
+    END IF
+    ALLOCATE(Ls(Nc, Np))
+  END IF
+
+  IF (ind == ON) THEN
+    coef = SQRT(2.0_dp * Aw / Zw**2)
+
+    IF (USE_real == OFF) THEN
+      !$omp parallel do default(none) shared(L, kperp, mut, coef, Nc, Np) private(i)
+      DO i = 1, Np
+        L(:, i) = BESSEL_J0(kperp(:, i) * coef * SQRT(ABS(mut(i))))
+      END DO
+      !$omp end parallel do
+
+    ELSEIF (USE_real == ON) THEN
+      !$omp parallel do default(none) shared(Ls, kperps, mut, coef, Nc, Np) private(i)
+      DO i = 1, Np
+        Ls(:, i) = BESSEL_J0(kperps * coef * SQRT(ABS(mut(i))))
+      END DO
+      !$omp end parallel do
+    END IF
+
+  ELSE
+    IF (USE_real == OFF) THEN
+      L = 1.0_dp
+    ELSEIF (USE_real == ON) THEN
+      Ls = 1.0_dp
+    END IF
+  END IF
+
+END SUBROUTINE Larmor
+
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!OLDER THINGS
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     SUBROUTINE wavenum_old(normB, Vstar1, Vstar2, Vstar3, gees)
     IMPLICIT NONE
@@ -783,61 +1050,6 @@ END IF
   w(:,1)  = 0.0_dp; wc(:,1)  = 0.0_dp; kperp(:,1) = 0.0_dp; q00wrap(:,1) = 0.0_dp;
 END SUBROUTINE wavenum
 
-
-    SUBROUTINE Larmor_old(ind,X,Y,Z,mut)
-    IMPLICIT NONE
-    REAL(KIND=dp), DIMENSION(Np)    :: X,Y,Z,mut,B
-!    REAL(KIND=dp)   :: ind
-    INTEGER                :: i, ind
-
-
-    IF(ALLOCATED(L))     THEN
-        DEALLOCATE(L)
-    ENDIF
-    ALLOCATE(L(Nc,Np))
-
-    ! ------------------------------------------------------------------------------------------------------------------------
-    IF(ind == ON) THEN
-        !     CALL magnetic_norm(X,Y,Z,B)                              ! the norm of the magnetic field evaluated at initial positions
-        !$OMP PARALLEL DO &
-        !$OMP SHARED (mut,B) &
-        !$OMP PRIVATE (i)
-        DO i=1, Np
-            !         L(:,i) = BESSEL_J0(kperp(:,i)*SQRT(2.0*Aw*abs(mut(i))/Zw**2/B(i)))
-            L(:,i) = BESSEL_J0(kperp(:,i)*SQRT(2.0*Aw*abs(mut(i))/Zw**2))
-        END DO
-        !$OMP END parallel DO
-    ELSE
-        L = 1.d0
-    END IF
-
-    END SUBROUTINE Larmor_old
-    
-    
-    SUBROUTINE Larmor(ind, X, Y, Z, mut)
-  IMPLICIT NONE
-  INTEGER, INTENT(IN) :: ind
-  REAL(KIND=dp), DIMENSION(Np), INTENT(IN) :: X, Y, Z, mut
-  REAL(KIND=dp), DIMENSION(Np) :: B  ! if you later compute norm(B)
-  INTEGER :: i
-  REAL(KIND=dp) :: coef
-
-  IF (ALLOCATED(L)) DEALLOCATE(L)
-  ALLOCATE(L(Nc,Np))
-
-  IF (ind == ON) THEN
-     coef = SQRT(2.0_dp*Aw/Zw**2)
-     !$omp parallel do default(none) shared(L, kperp, mut, coef, Nc, Np) private(i)
-     DO i = 1, Np
-        L(:,i) = BESSEL_J0(kperp(:,i) * coef * SQRT(ABS(mut(i))))
-     END DO
-     !$omp end parallel do
-  ELSE
-     L = 1.0_dp
-  END IF
-END SUBROUTINE Larmor
-
-
     ! = = = = == ======================   =========================
     !  ========================================================
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -960,61 +1172,34 @@ END SUBROUTINE Larmor
     END SUBROUTINE wavenum_single
 
 
-    SUBROUTINE Larmor_single(ind,X,Y,Z,mut)
+    SUBROUTINE Larmor_old(ind,X,Y,Z,mut)
     IMPLICIT NONE
     REAL(KIND=dp), DIMENSION(Np)    :: X,Y,Z,mut,B
+!    REAL(KIND=dp)   :: ind
     INTEGER                :: i, ind
 
-    IF(ALLOCATED(Ls))     THEN
-        DEALLOCATE(Ls)
+
+    IF(ALLOCATED(L))     THEN
+        DEALLOCATE(L)
     ENDIF
-    ALLOCATE(Ls(Nc,Np))
+    ALLOCATE(L(Nc,Np))
 
     ! ------------------------------------------------------------------------------------------------------------------------
     IF(ind == ON) THEN
+        !     CALL magnetic_norm(X,Y,Z,B)                              ! the norm of the magnetic field evaluated at initial positions
+        !$OMP PARALLEL DO &
+        !$OMP SHARED (mut,B) &
+        !$OMP PRIVATE (i)
         DO i=1, Np
-            Ls(:,i) = BESSEL_J0(kperps*SQRT(2.0*Aw*abs(mut(i))/Zw**2))
+            !         L(:,i) = BESSEL_J0(kperp(:,i)*SQRT(2.0*Aw*abs(mut(i))/Zw**2/B(i)))
+            L(:,i) = BESSEL_J0(kperp(:,i)*SQRT(2.0*Aw*abs(mut(i))/Zw**2))
         END DO
+        !$OMP END parallel DO
     ELSE
-        Ls = 1.d0
+        L = 1.d0
     END IF
 
-    END SUBROUTINE Larmor_single
-
-
-    SUBROUTINE Wienner()
-    USE constants
-    IMPLICIT NONE
-
-    ! Local variables
-    REAL(KIND = dp),  DIMENSION(5,Np)                     :: grf!, grf1, grf2
-    !      REAL(KIND = dp),  DIMENSION(Nt+1,5,Np)                :: Wien
-    REAL(KIND = dp)                                       :: dt
-    INTEGER                                               :: i
-
-
-    IF(ALLOCATED(Wien))     THEN
-        IF(SIZE(Wien).ne.(Nt+1))  THEN
-            DEALLOCATE(Wien)
-
-            ALLOCATE(Wien(Nt+1,5,Np))
-        END IF
-    ELSE
-        ALLOCATE(Wien(Nt+1,5,Np))
-    END IF
-
-    dt = (tmax - t0)/REAL(Nt)                                               ! time step
-
-    Wien = 0.0
-    if(USE_coll == ON) then
-        do i=2,Nt+1
-            CALL PDF_G(5,Np,grf(1:5,:))           ! corr = 1 ~ (PDF_G, PDF_G, PDF_w_Bes)
-            Wien(i,:,:) = Wien(i-1,:,:) + grf*sqrt(dt)
-        enddo
-    endif
-    END SUBROUTINE Wienner
-
-
+    END SUBROUTINE Larmor_old
 
     END MODULE random_numbers
 

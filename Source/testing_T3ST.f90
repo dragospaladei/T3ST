@@ -205,21 +205,34 @@ contains
     call section("Gaussianity summary: all times x particles (kurt/3 = 1 for Gaussian)")
     compare = 1.0_dp
     call print_gaussianity_block("phi",  c1h, Np_partial, Nt_partial, no_errors, compare)
+        compare = 1.0_dp
     call print_gaussianity_block("phix", c2h, Np_partial, Nt_partial, no_errors, compare)
+        compare = 1.0_dp
     call print_gaussianity_block("phiy", c3h, Np_partial, Nt_partial, no_errors, compare)
 
     call section("Gaussianity drivers (qualitative)")
     call log_info("Larmor & Frequencies -> NO effects on Gaussianity of fields")
     call log_info("Balloning breaks phix, phiz Gaussianity as I_0[4/Lbalon^2]/I_0[2/Lbalon^2]^2/2")
     call log_info("Balloning breaks amplitude as: I_0(1/lbalonz^2)*exp(-lbalonz^2)")
-    call log_info("Tilting breaks phix/phiz Gaussianity; k_x^eff = kx+ky a --> ??")
+    call log_info("Tilting breaks phix/phiz Gaussianit when particles are z distributey; k_x^eff = kx+ky a --> ??")
 
     ! =====================================================================
     ! Gaussianity / moment checks: time slice (k = 1)
     ! =====================================================================
     call section("Gaussianity summary: time slice k=1 (kurt/3 = 1 for Gaussian)")
+     compare = 1.0_dp
+         if (USE_balloon.eq.ON) then
+      compare = compare**exp(-1.0_dp/lbalonz**2)*(1 + 1.0_dp/lbalonz**2/4.0_dp + 1.0_dp/lbalonz**4/64.0_dp)
+    endif
     call print_gaussianity_slice("phi",  c1h, 1, Np_partial, no_errors, compare)
-    call print_gaussianity_slice("phix", c2h, 1, Np_partial, no_errors, compare)
+           compare = 1.0_dp / lambdax**4 &
+        + (pi**4 / 5.0_dp) * (3.0_dp/lambday**2 + k0i**2)**2 &
+          * (2.0_dp*C2/(C1*C3))**4 * 9.0_dp * (r00/a0**2)**4 &
+        + (2.0_dp*pi**2 / 3.0_dp) * (1.0_dp/lambdax**2) &
+          * (3.0_dp/lambday**2 + k0i**2) &
+          * (2.0_dp*C2/(C1*C3))**2 * 3.0_dp * (r00/a0**2)**2
+          call print_gaussianity_slice("phix", c2h, 1, Np_partial, no_errors, compare)
+ 
     call print_gaussianity_slice("phiy", c3h, 1, Np_partial, no_errors, compare)
 
     call rk4_propagation(Xaux, Yaux, Zaux, Vpaux, muaux, pb, dt, 1, Np_partial, &
@@ -274,10 +287,11 @@ contains
     real(dp) :: xi, yi, zi, mui, vpi, pbi
     real(dp) :: vx, vy, vz, vm, ap
     real(dp) :: Wx, Wy, Wz, Wm, Wp
-    real(dp) :: q1, q2, q3
+    real(dp) :: q1, q2, q3, gnorm_local
     real(dp) :: Hi, B, Vtx, Vty, Pc
     real(dp) :: check_1, check_2, check_3, time
     integer  :: ias, k
+
 
     do ias = 1, Np_partial
 
@@ -314,7 +328,7 @@ contains
 
         call Drift2(dt, xi, yi, zi, vpi, mui, q1, q2, q3, time,                 &
                     vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty,                    &
-                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp)
+                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp,gnorm_local)
 
         Xh(k, ias)  = xi
         Yh(k, ias)  = yi
@@ -339,7 +353,7 @@ contains
                     vpi + ap*dt/2.0_dp, mui + vm*dt/2.0_dp, q1, q2, q3,         &
                     time + dt/2.0_dp,                                           &
                     vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty,                    &
-                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp)
+                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp,gnorm_local)
 
         Wx = Wx + vx / 3.0_dp
         Wy = Wy + vy / 3.0_dp
@@ -351,7 +365,7 @@ contains
                     vpi + ap*dt/2.0_dp, mui + vm*dt/2.0_dp, q1, q2, q3,         &
                     time + dt/2.0_dp,                                           &
                     vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty,                    &
-                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp)
+                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp,gnorm_local)
 
         Wx = Wx + vx / 3.0_dp
         Wy = Wy + vy / 3.0_dp
@@ -362,7 +376,7 @@ contains
         call Drift2(dt, xi + vx*dt, yi + vy*dt, zi + vz*dt,                      &
                     vpi + ap*dt, mui + vm*dt, q1, q2, q3, time + dt,            &
                     vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty,                    &
-                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp)
+                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp,gnorm_local)
 
         Wx = Wx + vx / 6.0_dp
         Wy = Wy + vy / 6.0_dp

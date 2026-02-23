@@ -82,11 +82,11 @@ MODULE constants
    REAL(KIND=dp) :: q00                            ! safety factor @ r00           [1]
 
    !---------------------------------------------------------------------------------
-   ! Circular model parameters (indexmodel = 4): q = safe1 + safe2*(r/a) + safe3*(r/a)^2
+   ! Circular model parameters (indexmodel = 4): q = s1 + s2*(r/a) + s3*(r/a)^2
    !---------------------------------------------------------------------------------
-   REAL(KIND=dp) :: safe1
-   REAL(KIND=dp) :: safe2
-   REAL(KIND=dp) :: safe3
+   REAL(KIND=dp) :: s1
+   REAL(KIND=dp) :: s2
+   REAL(KIND=dp) :: s3
 
    !---------------------------------------------------------------------------------
    ! Solovev model parameters (indexmodel = 3)
@@ -127,6 +127,7 @@ MODULE constants
    REAL(KIND=dp) :: k0e                             ! TEM dominant ky [1/rhoi]
    REAL(KIND=dp) :: gamma_E                         ! rotational sheering [1/t0]
    REAL(KIND=dp) :: gamma_ZF                        ! Zonal flow rotational sheering [1/t0]
+   INTEGER       :: dmmax                           ! maximal parallel number ()
 
    !---------------------------------------------------------------------------------
    ! Particle parameters
@@ -150,6 +151,7 @@ MODULE constants
    INTEGER :: magnetic_model                        ! equilibrium: 1-EFIT, 2-EFIT-sa, 3-Solovev, 4-Circular
    INTEGER :: x_corr                                ! turbulence correlation on x: 1-gaussian, 2-exponential
    INTEGER :: t_corr                                ! turbulence correlation on x: 1-gaussian, 2-exponential
+   INTEGER :: turb_model                            ! type of turbulence model: 1 = old, 2 = new, better
    INTEGER :: USE_larmor                            ! FLR effects: 0 = OFF, 1 = ON, else = ERROR
    INTEGER :: position_type                         ! init position: 1-all same (X0,Y0,Z0)
    INTEGER :: pitch_type                            ! init pitch: 1-fixed, 2-random uniform (2pi)
@@ -221,9 +223,9 @@ a0       = pp(param_index("a0"))
 Omgt0    = pp(param_index("Omgt0"))
 Omgtprim = pp(param_index("Omgtprim"))
 
-safe1    = pp(param_index("safe1"))
-safe2    = pp(param_index("safe2"))
-safe3    = pp(param_index("safe3"))
+s1       = pp(param_index("s1"))
+s2       = pp(param_index("s2"))
+s3       = pp(param_index("s3"))
 
 amp      = pp(param_index("amp"))
 elong    = pp(param_index("elong"))
@@ -245,6 +247,7 @@ k0e      = pp(param_index("k0e"))
 gamma_ZF = pp(param_index("gamma_ZF"))
 x_corr    = INT(pp(param_index("x_corr")))
 t_corr    = INT(pp(param_index("t_corr")))
+turb_model  = INT(pp(param_index("turb_model")))
 
 X0       = pp(param_index("X0"))
 Y0       = pp(param_index("Y0"))
@@ -389,7 +392,7 @@ USE_testing    = INT(pp(param_index("USE_testing")))
 
       gama = 1.0_dp - 2.0_dp*sqrt((a0/R0)**2 - (a0/R0)**4)
       alfa = elong*(sqrt(2.0_dp - gama) - sqrt(gama)) / sqrt(2.0_dp - 2.0_dp*gama)
-      amp  = 0.5_dp*(1.0_dp + alfa**2) / (1.0_dp - gama) / safe1
+      amp  = 0.5_dp*(1.0_dp + alfa**2) / (1.0_dp - gama) / s1
 
       a0    = a0/R0
       Omgt0 = Omgt0*10.0_dp**3 / (vth/R0)
@@ -417,12 +420,15 @@ USE_testing    = INT(pp(param_index("USE_testing")))
 
       CALL error_signal
 
-      gamma_E = gamma_ZF + 0.0_dp*Omgtprim    ! sheering
+      gamma_E = gamma_ZF + 0.0_dp*Omgtprim          ! sheering
       usetilt = real(USE_tilt, dp)
       balloon = real(USE_balloon, dp)                ! integer -> 0.0 or 1.0
       noballoon = 1.0_dp - balloon
       norm = 1.0_dp / sqrt(real(Nc, dp)/2.0_dp)
-
+      
+!      dmmax = max(1,int(4.0_dp/lbalonz))
+!      dmmax = int(4.0_dp/lbalonz)
+dmmax = 2
    END SUBROUTINE parameters
 
 END MODULE constants

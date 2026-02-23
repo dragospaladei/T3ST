@@ -165,23 +165,23 @@ parameters:
     group: Equilibrium
     help: Minor radius
 
-  - name: safe1
+  - name: s1
     kind: float
     default: 0.8
     group: Equilibrium
-    help: Magnetic axis safety factor (safe1) in the model qpsi(rhot)=safe1+safe2*rhot+safe3*rhot^2
+    help: Magnetic axis safety factor (s1) in the model qpsi(rhot)=s1+s2*rhot+s3*rhot^2
 
-  - name: safe2
+  - name: s2
     kind: float
     default: 0.0
     group: Equilibrium
-    help: Magnetic axis safety factor derivative (safe2) in the model qpsi(rhot)=safe1+safe2*rhot+safe3*rhot^2; T3St currently supports only safe=0
+    help: Magnetic axis safety factor  derivative (s2) in the model qpsi(rhot)=s1+s2*rhot+s3*rhot^2
 
-  - name: safe3
+  - name: s3
     kind: float
     default: 2.2
     group: Equilibrium
-    help: Magnetic axis safety factor 2nd derivative (safe3) in the model qpsi(rhot)=safe1+safe2*rhot+safe3*rhot^2;T3ST currently supports only safe3*safe1>0
+    help: Magnetic axis safety factor 2nd derivative (s3) in the model qpsi(rhot)=s1+s2*rhot+s3*rhot^2
 
   - name: amp
     kind: float
@@ -233,6 +233,18 @@ parameters:
     help: Psi length scale of toroidal rotation (dlnOmgt/drhot)
 
   # --- Turbulence model ---
+  
+  - name: turb_model
+    kind: enum
+    default: 2
+    group: Turbulence
+    help: Choices of functional turbulence spectrum construction (1=old, no real tilting, 2=new, better)
+    choices:
+      - value: 1
+        label: old
+      - value: 2
+        label: new
+
   - name: Phi
     kind: float
     default: 0.01
@@ -277,7 +289,7 @@ parameters:
     units: q0*R0
     default: 10.0
     group: Turbulence
-    help: Parallel correlation length for ballooning envelope; this essentially decreases the flux-surface average of turbulence amplitude by a factor of 1 -lbalonz^2 + 3/4lbalonz^4 (at large lbalonz)
+    help: Parallel correlation length for ballooning envelope (0 -> high localization of the turbulence at the LFS; generally >1);
 
   - name: tauc
     kind: float
@@ -328,6 +340,7 @@ parameters:
         label: Gaussian correlation
       - value: 2
         label: Exp correlation (Cauchy spectrum)
+
 
 # --- Particle Initial Conditions / markers ---
   - name: X0

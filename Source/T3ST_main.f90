@@ -87,6 +87,7 @@ PROGRAM T3ST
    REAL(KIND=dp), ALLOCATABLE                :: Lagr_corr(:)    ! correlation vs time, size Nt+1
 
    REAL(dp), POINTER, CONTIGUOUS             :: Qx(:), Qy(:), Qz(:), Qw(:), Qph(:), QL(:), Q0wrp(:)
+real(dp) :: gnorm_local
 
 !========================================================================================================
 ! ADDRESS DECLARATION FOR EXPORTING DATA
@@ -176,24 +177,25 @@ PROGRAM T3ST
 !      ALLOCATE ( Xtot(Np, 2))
 !      ALLOCATE (Ytot, Ztot, Vptot, mutot, Htot, q1tot, q2tot, q3tot, MOLD=Xtot)
 
+
 !========================================================================================================
 ! EXPORT SOME PARAMETERS (names & values) OF THIS RUN
 !========================================================================================================
       WRITE(11,*) [ CHARACTER(LEN=15) :: "t0", "tc", "tt", "tmax", "Np", "Nc", "Nloop", "Nreal", "Nt", "ntraj", &
                    "Nci", "Nce", "Ti", "Te", "B0", "vth", "rhoi", "R0", "Ln", "Li", "Le", "Zeff", "Aeff", "ndens", &
-                   "a0", "Omgt0", "Omgtprim", "wi", "C1", "C2", "C3", "safe1", "safe2", "safe3", &
+                   "a0", "Omgt0", "Omgtprim", "wi", "C1", "C2", "C3", "s1", "s2", "s3", &
                    "amp", "elong", "device", "shot", "shotslice", "NgridR", "NgridZ", "Phi", "turbprof", "Ai", &
                    "Ae", "lambdax", "lambday", "lambdaz", "lbalonz", "tauc", "k0i", "k0e", "gamma_ZF", "gamma_E","x_corr","t_corr", "X0", "Y0", "Z0", "r00", "q00", &
-                   "psi0", "Tw", "Ew", "pitch", "Aw", "Zw", "taucc", "magnetic_model", "USE_larmor", "position_type", &
+                   "psi0", "Tw", "Ew", "pitch", "Aw", "Zw", "taucc", "magnetic_model", "turb_model", "USE_larmor", "position_type", &
                    "pitch_type", "energy_type", "USE_coll", "USE_turb", "USE_magnturb", "USE_freq", "USE_polar", &
                    "USE_PC", "USE_real", "USE_corr", "USE_balloon", "USE_tilt", "USE_testing"]
 
       WRITE(11,*) [ t0, tc, tt, tmax, REAL(Np,dp), REAL(Nc,dp), REAL(Nloop,dp), REAL(Nreal,dp), REAL(Nt,dp), &
                    REAL(ntraj,dp), REAL(Nci,dp), REAL(Nce,dp), Ti, Te, B0, vth, rhoi, R0, Ln, Li, Le, Zeff, Aeff, ndens, &
-                   a0, Omgt0, Omgtprim, wi, C1, C2, C3, safe1, safe2, safe3, amp, elong, REAL(device,dp), &
+                   a0, Omgt0, Omgtprim, wi, C1, C2, C3, s1, s2, s3, amp, elong, REAL(device,dp), &
                    REAL(shot,dp), REAL(shotslice,dp), REAL(NgridR,dp), REAL(NgridZ,dp), Phi, turbprof, Ai, Ae, &
                    lambdax, lambday, lambdaz, lbalonz, tauc, k0i, k0e, gamma_ZF, gamma_E, REAL(x_corr,dp), REAL(t_corr,dp), X0, Y0, Z0, r00, q00, psi0, Tw, Ew, pitch, Aw, Zw, &
-                   taucc, REAL(magnetic_model, dp), REAL(USE_larmor, dp), REAL(position_type, dp), REAL(pitch_type, dp), &
+                   taucc, REAL(magnetic_model, dp), REAL(turb_model, dp), REAL(USE_larmor, dp), REAL(position_type, dp), REAL(pitch_type, dp), &
                    REAL(energy_type, dp), REAL(USE_coll, dp), REAL(USE_turb, dp), REAL(USE_magnturb, dp), REAL(USE_freq, dp), &
                    REAL(USE_polar, dp), REAL(USE_PC, dp), REAL(USE_real, dp), REAL(USE_corr, dp), REAL(USE_balloon,dp), REAL(USE_tilt,dp), REAL(USE_testing,dp)]
 
@@ -214,17 +216,10 @@ PROGRAM T3ST
          DO k2 = 1, Nloop
 
             CALL dispersion(normB, Vstar1, Vstar2, Vstar3, gees)
+            CALL wavenum_unified(normB, Vstar1, Vstar2, Vstar3, gees, USE_real,gnorm_local)
+            CALL initial_conditions(X, Y, Z, mu, Vp, pb)
+            CALL Larmor(USE_larmor, mu)
 
-            IF (USE_real == OFF) THEN
-               CALL wavenum(normB, Vstar1, Vstar2, Vstar3, gees)
-               CALL initial_conditions(X, Y, Z, mu, Vp, pb)
-               CALL Larmor(USE_larmor, X, Y, Z, mu)
-            ELSEIF (USE_real == ON) THEN
-               CALL wavenum_single(normB, Vstar1, Vstar2, Vstar3, gees)
-               CALL initial_conditions(X, Y, Z, mu, Vp, pb)
-               CALL Larmor_single(USE_larmor, X, Y, Z, mu)
-            END IF
-            
     	    IF(USE_testing == ON) then
 	       CALL testing_T3ST(X,Y,Z,Vp,mu,pb,Vstar1,Vstar2,Vstar3, eror_flag)
 	       STOP
@@ -232,6 +227,7 @@ PROGRAM T3ST
 
             WRITE (23) X
             WRITE (24) Y
+ 
 
             !============================================================================================
             ! TIME PROPAGATION
@@ -256,10 +252,10 @@ PROGRAM T3ST
 
                      ! Select per-particle or single-spectrum arrays
                      IF (USE_real == OFF) THEN
-                        Qx  => kx(:, i);   Qy  => ky(:, i);   Qz  => kz(:, i)
+                        Qx  => kx(:, i);   Qy  => ky(:, i);   Qz  => kz(:, i);   
                         Qw  => w(:, i);    Qph => ph(:, i);   QL  => L(:, i);    Q0wrp => q00wrap(:,i)
 		     ELSEIF (USE_real == ON) THEN
-                        Qx  => kxs;        Qy  => kys;        Qz  => kzs
+                        Qx  => kxs;        Qy  => kys;        Qz  => kzs;       
                         Qw  => ws;         Qph => phs;        QL  => Ls(:, i);   Q0wrp => q00wraps
                      END IF
 
@@ -274,7 +270,7 @@ PROGRAM T3ST
                         sm1 = rng_uniform()
                         sm2 = rng_uniform()
                         CALL Drift2(dt, xi, yi, zi, vpi, mui, q1, q2, q3, t(k), &
-                                    vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp)
+                                    vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp,gnorm_local)
                         CALL collisions_1_MP(sm1, sm2, dt_half, xi, yi, zi, vpi, mui, B, vx, vy, vz, vm, ap)
 
                         xi  = xi  + dt_half*vx
@@ -286,7 +282,7 @@ PROGRAM T3ST
 
                      ! RK4 stage 1
                      CALL Drift2(dt, xi, yi, zi, vpi, mui, q1, q2, q3, t(k), &
-                                 vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp)
+                                 vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp,gnorm_local)
                      ! store reference Vtx at k=1 (per particle)
                      IF (k == 1) Lagr_ref(i) = Vtx
 
@@ -317,21 +313,21 @@ PROGRAM T3ST
                      ! RK4 stage 2
                      CALL Drift2(dt, xi+vx*dt/2.0_dp, yi+vy*dt/2.0_dp, zi+vz*dt/2.0_dp, &
                                  vpi+ap*dt/2.0_dp, mui+vm*dt/2.0_dp, q1, q2, q3, t(k)+dt/2.0_dp, &
-                                 vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp)
+                                 vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp,gnorm_local)
                      Wx = Wx + vx/3.0_dp; Wy = Wy + vy/3.0_dp; Wz = Wz + vz/3.0_dp
                      Wm = Wm + vm/3.0_dp; Wp = Wp + ap/3.0_dp
 
                              ! RK4 stage 3
                      CALL Drift2(dt, xi+vx*dt/2.0_dp, yi+vy*dt/2.0_dp, zi+vz*dt/2.0_dp, &
                                  vpi+ap*dt/2.0_dp, mui+vm*dt/2.0_dp, q1, q2, q3, t(k)+dt/2.0_dp, &
-                                 vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp)
+                                 vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp,gnorm_local)
                      Wx = Wx + vx/3.0_dp; Wy = Wy + vy/3.0_dp; Wz = Wz + vz/3.0_dp
                      Wm = Wm + vm/3.0_dp; Wp = Wp + ap/3.0_dp
 
                      ! RK4 stage 4
                      CALL Drift2(dt, xi+vx*dt, yi+vy*dt, zi+vz*dt, vpi+ap*dt, mui+vm*dt, &
                                  q1, q2, q3, t(k)+dt, vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, &
-                                 Qx, Qy, Qz, Qw, Qph, QL, Q0wrp)
+                                 Qx, Qy, Qz, Qw, Qph, QL, Q0wrp, gnorm_local)
                      Wx = Wx + vx/6.0_dp; Wy = Wy + vy/6.0_dp; Wz = Wz + vz/6.0_dp
                      Wm = Wm + vm/6.0_dp; Wp = Wp + ap/6.0_dp
 
@@ -359,7 +355,7 @@ PROGRAM T3ST
                         sm1 = rng_uniform()
                         sm2 = rng_uniform()
                         CALL Drift2(dt, xi, yi, zi, vpi, mui, q1, q2, q3, t(k), &
-                                    vx, vy, vz, ap, vm, Hi,Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp)
+                                    vx, vy, vz, ap, vm, Hi,Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp,gnorm_local)
                         CALL collisions_1_MP(sm1, sm2, dt_half, xi, yi, zi, vpi, mui, B, vx, vy, vz, vm, ap)
 
                         X(i)  = X(i)  + dt_half*vx
@@ -478,8 +474,7 @@ PROGRAM T3ST
       WRITE (333, *) '------------------------------------------------------------------------------'
 
       DEALLOCATE( X, Y, Z, Vp, mu, Ham, Pb, vit, dif, Xtr, Ytr, Ztr, Vptr, mutr, Htr, q1tr, q2tr, q3tr, &
-                  Vcorff, VcorTT, VcorTN, VcorNT, t, q1al, q2al, q3al,  Pcc, ck1,ck2,ck3, Pctr, ck1tr, ck2tr, ck3tr)
-!      DEALLOCATE(Xtot, Ytot, Ztot, Vptot, q1tot, q2tot, q3tot, mutot, Htot,randm1, randm2)
+                  Vcorff, VcorTT, VcorTN, VcorNT, t, q1al, q2al, q3al,  Pcc, ck1,ck2,ck3, Pctr, ck1tr, ck2tr, ck3tr,Lagr_ref,Lagr_corr)
   
       IF ((magnetic_model == 1) .OR. (magnetic_model == 2)) THEN
          DEALLOCATE (Efit_data)

@@ -1,18 +1,20 @@
 module drift_kernels
    use constants
+!  use random_numbers, only: gnorm000.1414213732144890000000-
    implicit none
 
 contains
 
    pure subroutine Drift2(dt, xi, yi, zi, vpi, mui, q1, q2, q3, time, &
                           vx, vy, vz, ap, vm, Hi,Pc, B, Vtx, Vty, check_1, check_2, check_3, &
-                          Qx1, Qy1, Qz1, Qw1, Qph1, QL1, Q0wrp1)
-      !$omp declare simd(Drift2) uniform(dt,time,Qx1,Qy1,Qz1,Qw1,Qph1,QL1,Q0wrp1) notinbranch
+                          Qx1, Qy1, Qz1, Qw1, Qph1, QL1, Q0wrp1,anormal)
+      !$omp declare simd(Drift2) uniform(dt,anormal,time,Qx1,Qy1,Qz1,Qw1,Qph1,QL1,Q0wrp1) notinbranch
 
       !---------------------------------------------------------------------------------
       ! Arguments
       !---------------------------------------------------------------------------------
-      real(dp), intent(in)  :: dt, xi, yi, zi, vpi, mui, time
+      real(dp), intent(in)  :: dt, xi, yi, zi, vpi, mui, time, anormal
+!      real(dp), value, intent(in) :: 
       real(dp), intent(out) :: q1, q2, q3, vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3
       real(dp), intent(in), contiguous :: Qx1(:), Qy1(:), Qz1(:), Qw1(:), Qph1(:), QL1(:), Q0wrp1(:)
 
@@ -44,10 +46,11 @@ contains
       real(dp) :: phi0, phix, phiy, phiz, phixt, phiyt, phizt
       real(dp) :: Tprofile, faza, zintc, zints, gpar, gprim
       ! --- hoisted invariants ---
-	real(dp) :: env
+	real(dp) :: env, env2
 	real(dp) :: dqpsi, ge_t
 	! --- SIMD-loop temporaries ---
-	real(dp) :: amplu, qq, wfac, keff_x,keff_y,keff_z
+	real(dp) :: amplu, qq, wfac, keff_x,keff_y,keff_z, frac, gg
+	integer  ::ddm
 
       ! Numerics / helpers
       real(dp) :: xi_m1, xi2, yi2
@@ -60,8 +63,10 @@ contains
       integer  :: poz1, poz2
       real(dp) :: X1, Y1, Xef, Yef
       real(dp) :: F1, F2, F3, F4
-
-      integer :: n, jax
+      real(dp) :: faza0,zintc0,zints0, frac0, cos_m, sin_m
+      real(dp) :: cos_ddm(-dmmax:dmmax)
+      real(dp) :: sin_ddm(-dmmax:dmmax)
+      integer :: n, jax, i
 
       !---------------------------------------------------------------------------------
       ! Quick aliases / hoists
@@ -116,8 +121,8 @@ contains
          rhotzz = (1.0_dp/a0) * (xi_m1*xi_m1)/(rr*rr*rr)
 
          ! q(r) via Horner
-         qpsi  = (safe3*rhot + safe2)*rhot + safe1
-         qprim = 2.0_dp*safe3*rhot + safe2
+         qpsi  = (s3*rhot + s2)*rhot + s1
+         qprim = 2.0_dp*s3*rhot + s2
 
          ! psi'(r), psi''(r)
          psiprim  = a0*rr/(qpsi*root1)
@@ -135,9 +140,9 @@ contains
          Fprim = 0.0_dp
 
          ! psi (closed form) kept, algebraically simplified
-         t_tmp   = a02*safe1/safe3
+         t_tmp   = a02*s1/s3
          sqrt_t1 = sqrt(t_tmp + 1.0_dp)
-         psi     = -(a02/safe3)/sqrt_t1 * (atanh(root1/sqrt_t1) - atanh(1.0_dp/sqrt_t1))
+         psi     = -(a02/s3)/sqrt_t1 * (atanh(root1/sqrt_t1) - atanh(1.0_dp/sqrt_t1))
 
       else if (magnetic_model == 3) then
 
@@ -169,9 +174,8 @@ contains
          rhotz = rr/2.0_dp/a0 * psiz/psi
 
          ! q(r) via Horner
-         qpsi  = (safe3*rhot + safe2)*rhot + safe1
-         qprim = 2.0_dp*safe3*rhot + safe2
-         
+         qpsi  = (s3*rhot + s2)*rhot + s1
+         qprim = 2.0_dp*s3*rhot + s2
  !        note that this form of qpsi is an approximation and is not consistent with psi, thus, with field-alginement
 
       else
@@ -349,23 +353,26 @@ contains
       M(3, 2) = hz*(By*hy*G(1, 2)*invhx - Bx*hx*G(2, 2)*invhy)*invB
       M(3, 3) = hz*(By*hy*G(1, 3)*invhx - Bx*hx*G(2, 3)*invhy)*invB
 
+
       !---------------------------------------------------------------------------------
       ! Turbulent contribution (SIMD)
       !---------------------------------------------------------------------------------
       phi0  = 0.0_dp; phix  = 0.0_dp; phiy  = 0.0_dp; phiz  = 0.0_dp
       phixt = 0.0_dp; phiyt = 0.0_dp; phizt = 0.0_dp
+      env2 = anormal!
 
       ! Normalization (outside the loop)
      
-	! turbulence must be ON and must have started
+      ! turbulence must be ON and must have started
       if ( (USE_turb == ON) .and. (time > tt) ) then
 
-      ! Defaults (kept as in your original snippet)
-      gpar    = exp((cos(q3/C3)-1.0_dp)/lbalonz**2)*balloon   ! this must be periodic
-      gprim   = -sin(q3/C3)/lbalonz**2/C3*balloon ! note that this is g'/g
-      env     = noballoon + gpar             ! ballooning envelope multiplier
-      ge_t    = gamma_E * time
+        ! Defaults (kept as in your original snippet)
+        gpar    = exp((cos(q3/C3)-1.0_dp)/lbalonz**2)*balloon   ! this must be periodic
+        gprim   = -sin(q3/C3)/lbalonz**2/C3*balloon ! note that this is g'/g
+        env     = noballoon + gpar             ! ballooning envelope multiplier
+        ge_t    = gamma_E * time
      
+         if(turb_model == 1) then     
          !$omp simd private(faza,zintc,zints,amplu,wfac,keff_x,keff_y,keff_z) &
          !$omp& reduction(+:phi0,phix,phiy,phiz,phixt,phiyt,phizt)
          do n = 1, Nc
@@ -379,7 +386,7 @@ contains
             keff_z    = Qz1(n) + usetilt*(C2*Qy1(n)*qpsi - Q0wrp1(n))/C3
             
             faza  = Qx1(n)*q1 + Qy1(n)*q2 + Qz1(n)*q3 - wfac*time + q3/C3*usetilt*(C2*Qy1(n)*qpsi - Q0wrp1(n)) + Qph1(n)
-	
+	           
             ! ifx is typically good at fusing sin/cos, but paired calls are still fine
             zintc = cos(faza)
             zints = sin(faza)
@@ -406,8 +413,63 @@ contains
          phiyt = env*phiyt
          phizt = env*phizt
 
-      end if
-      
+         elseif(turb_model == 2) then     
+!         env = anormal
+! precompute once per call (or keep cached in a module if dmmax is fixed)
+		do i = -dmmax, dmmax
+		  cos_ddm(i) = cos(q3 / C3 * real(i,dp))
+		  sin_ddm(i) = sin(q3 / C3 * real(i,dp))
+		end do
+
+		!$omp simd private(faza0,zintc0,zints0,amplu,wfac,gg,keff_x,keff_y,keff_z,frac0,frac,cos_m,sin_m,zintc,zints) &
+		!$omp& reduction(+:phi0,phix,phiy,phiz,phixt,phiyt,phizt)
+		do n = 1, Nc
+		  keff_x = Qx1(n) + Qy1(n)*( q3/C3*(C2*qprim/C1) - ge_t )
+		  keff_y = Qy1(n)
+		  wfac   = Qw1(n) + Qy1(n)*gamma_E*delta_q1
+
+		  frac0  = C2*Qy1(n)*qpsi - int(C2*Qy1(n)*qpsi)    ! (same as your original)
+		  faza0  = Qx1(n)*q1 + Qy1(n)*q2 + Qz1(n)*q3 - wfac*time + (q3/C3)*frac0 + Qph1(n)
+
+		  zintc0 = cos(faza0)
+		  zints0 = sin(faza0)
+
+		  do ddm = -dmmax, dmmax
+		    frac  = frac0 + ddm
+		    gg    = exp(-frac**2 / (2.0_dp*lbalonz**2))
+		    amplu = gg * QL1(n)
+
+		    keff_z = Qz1(n) + frac/C3
+
+		    cos_m = cos_ddm(ddm)
+		    sin_m = sin_ddm(ddm)
+
+		    zintc = zintc0*cos_m - zints0*sin_m
+		    zints = zints0*cos_m + zintc0*sin_m
+
+		    phi0  = phi0  + amplu*zints
+
+		    phix  = phix  + amplu*keff_x*zintc + amplu*(-frac*lbalonz**2)*C2*Qy1(n)*qprim/C1*zints
+		    phiy  = phiy  + amplu*keff_y*zintc
+		    phiz  = phiz  + amplu*keff_z*zintc
+
+		    phixt = phixt + amplu*keff_x*wfac*zints - amplu*(gamma_E*Qy1(n))*zintc &
+				  - amplu*wfac*(-frac*lbalonz**2)*C2*Qy1(n)*qprim/C1*zintc
+		    phiyt = phiyt + amplu*keff_y*wfac*zints
+		    phizt = phizt + amplu*keff_z*wfac*zints
+		  end do
+		end do
+! Apply the normalization once
+         phi0  = env2*phi0
+         phix  = env2*phix
+         phiy  = env2*phiy
+         phiz  = env2*phiz
+         phixt = env2*phixt
+         phiyt = env2*phiyt
+         phizt = env2*phizt
+
+         endif ! turbulence+model
+      end if  ! use_turb condition
       !=====//////
       
       Tprofile = tanh((turbprof*turbprof) * ((rhot - 1.0_dp)**2) * (rhot**2))    ! radial profile of turbulence amplitude

@@ -327,8 +327,8 @@ SELECT CASE (USE_turb)
            '); in normalized units this implies minor radius exceeds major radius.'
    END IF
 
-   IF (ABS(safe2) > 0.0_dp) THEN
-      WRITE(output_unit,'(A,1X,ES12.4)') 'Warning :: safe2 is not 0 (safe2 =', safe2, ').'
+   IF (ABS(s2) > 0.0_dp) THEN
+      WRITE(output_unit,'(A,1X,ES12.4)') 'Warning :: s2 not 0 (s2 =', s2, ').'
    END IF
 
    IF (Phi > 0.2_dp) THEN

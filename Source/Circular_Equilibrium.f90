@@ -50,8 +50,8 @@ SUBROUTINE Circular(X, Y, R)
    !---------------------------------------------------------------------------------
    ! q(r) and psi(r) + derivatives
    !---------------------------------------------------------------------------------
-   qpsi  = safe1 + safe2*rhot + safe3*rhot**2
-   qprim = safe2 + 2.0_dp*safe3*rhot
+   qpsi  = s1 + s2*rhot + s3*rhot**2
+   qprim = s2 + 2.0_dp*s3*rhot
 
    psiprim  = a0*rr/qpsi/sqrt(1.0_dp - rr**2)
    psiprim2 = -a0**2 * (rr/qpsi/sqrt(1.0_dp - rr**2)) * (qprim/a0/qpsi - 1.0_dp/(1.0_dp - rr**2)/rr)
@@ -66,9 +66,9 @@ SUBROUTINE Circular(X, Y, R)
    Fprim = 0.0_dp
 
    ! Closed-form psi(r)
-   psi = -(a0**2/safe3) / sqrt(1.0_dp + a0**2*safe1/safe3) * &
-         ( atanh( sqrt(1.0_dp - rr**2) / sqrt(1.0_dp + a0**2*safe1/safe3) ) - &
-           atanh( 1.0_dp / sqrt(1.0_dp + a0**2*safe1/safe3) ) )
+   psi = -(a0**2/s3) / sqrt(1.0_dp + a0**2*s1/s3) * &
+         ( atanh( sqrt(1.0_dp - rr**2) / sqrt(1.0_dp + a0**2*s1/s3) ) - &
+           atanh( 1.0_dp / sqrt(1.0_dp + a0**2*s1/s3) ) )
 
    !---------------------------------------------------------------------------------
    ! Pack results
@@ -120,7 +120,7 @@ SUBROUTINE psisurf_circ_old(X, Y, Vp)
    aux  = pi*(2.0_dp*aux - 1.0_dp)     ! theta in [-pi, pi]
 
    F      = 1.0
-   qpsi   = safe1 + safe2*aux3*(1.0/a0) + safe3*aux3**2*(1.0/a0)**2
+   qpsi   = s1 + s2*aux3*(1.0/a0) + s3*aux3**2*(1.0/a0)**2
    psiprim = aux3/qpsi/sqrt(1.0 - aux3**2)
 
    DO k = 1, Np
@@ -131,9 +131,9 @@ SUBROUTINE psisurf_circ_old(X, Y, Vp)
       psiz  = psiprim*aux2/aux3
       normB = sqrt(F**2 + psir**2 + psiz**2) / (1.0 + aux2)
 
-      psi = -(a0**2/safe3) / sqrt(1.0 + a0**2*safe1/safe3) * &
-            ( atanh( sqrt(1.0 - aux3**2) / sqrt(1.0 + a0**2*safe1/safe3) ) - &
-              atanh( 1.0 / sqrt(1.0 + a0**2*safe1/safe3) ) )
+      psi = -(a0**2/s3) / sqrt(1.0 + a0**2*s1/s3) * &
+            ( atanh( sqrt(1.0 - aux3**2) / sqrt(1.0 + a0**2*s1/s3) ) - &
+              atanh( 1.0 / sqrt(1.0 + a0**2*s1/s3) ) )
 
       ioc = minloc(abs(psi/psi0 - real(USE_PC,dp)*rhoi/R0*Aw/Zw*F/normB*Vp(k)/psi0 - 1.0), 1)
 
@@ -236,10 +236,10 @@ CONTAINS
          r_g(j) = r
       END DO
 
-      beta          = 1.0_dp + (a0*a0)*safe1/safe3
+      beta          = 1.0_dp + (a0*a0)*s1/s3
       inv_sqrt_beta = 1.0_dp / sqrt(beta)
 
-      cA = -(a0*a0)/safe3 * inv_sqrt_beta
+      cA = -(a0*a0)/s3 * inv_sqrt_beta
       cB = atanh(inv_sqrt_beta)
 
       DO j = 1, Nr
@@ -247,7 +247,7 @@ CONTAINS
          rh = r*inv_a0
 
          ! Horner: safe1 + safe2*(r/a0) + safe3*(r/a0)^2
-         qpsi = (safe3*rh + safe2)*rh + safe1
+         qpsi = (s3*rh + s2)*rh + s1
 
          one_m_r2 = max(1.0_dp - r*r, 1.0e-15_dp)
          psip     = r/(qpsi*sqrt(one_m_r2))                    ! psi'(r)

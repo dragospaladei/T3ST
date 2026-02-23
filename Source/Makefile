@@ -1,5 +1,5 @@
 FC = ifx
-FCFLAGS = -qopenmp -O3 -xhost
+FCFLAGS = -qopenmp -qopenmp-simd -O3 -xhost
 
 SOURCES = Import_sims.f90 Constants.f90 rand_omp.f90 Random_number_generation.f90 Drifts_kernels.f90 \
 Collisions.f90 Circular_Equilibrium.f90 Dispersion.f90 EFIT_Equilibrium.f90 Equilibrium_magnetic.f90 Magn_Equil_Choice.f90 \
