@@ -8,7 +8,7 @@ CycloneBaseZhang:
   tt: -1
   tmax: 60
   Np: 50000
-  Nc: 100
+  Nc: 50
   Nloop: 2
   Nreal: 1
   Nt: 1200
@@ -79,7 +79,7 @@ MAST-U:
   tt: -1
   tmax: 100
   Np: 20000
-  Nc: 100
+  Nc: 50
   Nloop: 1
   Nreal: 1
   Nt: 1000
@@ -150,7 +150,7 @@ TCV:
   tt: -1
   tmax: 100
   Np: 200000
-  Nc: 100
+  Nc: 50
   Nloop: 1
   Nreal: 1
   Nt: 2000
@@ -221,7 +221,7 @@ WEST:
   tt: -1
   tmax: 60
   Np: 10000
-  Nc: 100
+  Nc: 50
   Nloop: 1
   Nreal: 1
   Nt: 1500
@@ -292,7 +292,7 @@ CycloneBaseCase:
   tt: -1
   tmax: 60
   Np: 50000
-  Nc: 100
+  Nc: 50
   Nloop: 1
   Nreal: 1
   Nt: 1200

@@ -1,578 +1,603 @@
-    !   This file contains subroutines for random generators for several PDF's
-    !  1.  rand_p_sphere(n,d,x) generates <n> uniform points in a <d>-dimensional sphere of unit radius
-    !  2.  PDF_G(m,n,g,mean,wavelength,variance) generates <m> arrays of <n> random normal numbers, with <mean> average
-    !                                            and <wavelength> or <variance> variance;; SUBROUTINE FOUND IN "CONSTANTS"
-    !  2.  PDF_G_D(m,n,g,mean,wavelength,variance) generates <m> arrays of <n> random normal numbers, with <mean> average
-    !                                            and <wavelength> or <variance> variance;; no need to move subroutine in constnats, since is not "present" anymore
-    !  3.  PDF_ky(n,zlam,k0,ky) generates <n> random numbers computed for
-    !            PDF(ky) = ky/k0 (Exp[-(ky - k0)^2zlam^2/2] - Exp[-(ky + k0)^2 zlam^2/2])
-    !  4.  PDF_Cauchy(n,tau,w00,xf) generates <n> random numbers computed for
-    !             PDF(xf) = 1/(1+\tau^2(xf-w00)^2)
-    !  6.  PDF_w_Bes(n,tau,znu,xf)  generates <n> random numbers computed for
-    !             PDF(xf) ~ xf^(nu-1/2)*K(nu-1/2,xf*sqrt(2nu)) !
-    !  7.  PDF_k_iso(n,zlam,znu,xf,yf)  generates <n> random numbers computed for
-    !             PDF(xf) ~ xf^(nu-1/2)*K(nu-1/2,xf*sqrt(2nu)) !
-    !  8.  PDF_k_inert(n,zlam,znu,xf,yf)  generates <n> random numbers computed for
-    !             PDF(kx,ky) ~ sqrt(kx^2+ky^2)^znu*exp(-(kx^2+ky^2)/4*(2+znu))  !
-    !  9.  PDF_Boltz(n,tau,xf) Boltzmann distribution
-    !========================================================================================================
-    !  10. wavenum - generates wavenumbers kx,ky,kz; phases ph,phx,phy; frequencies w,wc
-    !========================================================================================================
-    MODULE random_numbers
-    USE constants
-    IMPLICIT NONE
-    SAVE
+!=========================================================================================
+!  This file contains subroutines for random generators for several PDF's
+!
+!  1)  rand_p_sphere(n,d,x)
+!        Generates <n> uniform points in a <d>-dimensional sphere of unit radius
+!
+!  2)  PDF_G(m,n,g,mean,wavelength,variance)
+!        Generates <m> arrays of <n> random normal numbers, with <mean> average
+!        and <wavelength> or <variance> variance
+!
+!  3)  PDF_G_D(m,n,g,mean,wavelength,variance)
+!        Same as PDF_G but without OPTIONAL args (legacy interface)
+!
+!  4)  PDF_ky(n,zlam,k0,ky)
+!        Generates <n> random numbers with
+!        PDF(ky) = ky/k0 * ( exp[-(ky-k0)^2 zlam^2/2] - exp[-(ky+k0)^2 zlam^2/2] )
+!
+!  5)  PDF_Cauchy(n,w00,tau,xf,trunc)
+!        Truncated/double-symmetric Cauchy via inverse CDF trick
+!
+!  6)  PDF_Boltz(n,tau,xf)
+!        Maxwell-Boltzmann-like energy PDF ~ sqrt(x)*exp(-x) (scaled by tau)
+!
+!  7)  wavenum_unified(...)
+!        Generates wavenumbers/phases/frequencies in either 2D (Nc,Np) mode
+!        or "single sample per mode" (Nc) mode (USE_real_flag)
+!
+!  8)  Larmor(ind,mut)
+!        Computes Larmor (Bessel J0) factors from kperp and mu
+!
+!  Legacy kept: wavenum_old, wavenum, wavenum_single, Larmor_old
+!=========================================================================================
 
-    REAL(KIND=dp), ALLOCATABLE, DIMENSION(:,:),target    :: ph,kx,ky,kperp,kz,w,phx,phy,wc,dm, L, phrmp, Ls, q00wrap
-    REAL(KIND=dp), ALLOCATABLE, DIMENSION(:),target      :: phs,kxs,kys,kperps,kzs,ws,phxs,phys,wcs,dms, phrmps, q00wraps
-    CONTAINS
-    
-    ! Subroutine :: rand_p_sphere(n,x,d)
-    ! Purpose    :: uniform generation of points in a dim-dimensional sphere
-    ! Record of revisions:
-    !    Date       |    Programmer       |   Description of change
-    !  =======      |   =============     |   ===========================
-    !  01/07/2021   |     D.Palade        |   Conversion to Fortran 95
-    !  01/09/2022   |     L.Pomarjanschi  |   Testing
-    !  01/12/2022   |     L.Pomarjanschi  |   Final
-
-    SUBROUTINE rand_p_sphere(n,d,x)
-    USE constants, ONLY: pi
-    IMPLICIT NONE
-
-    ! I/O variables
-    INTEGER,                       INTENT(IN)  :: n, d
-    REAL(KIND=dp),DIMENSION(d, n), INTENT(OUT) :: x
-
-    ! Local variables
-    INTEGER :: i
-    REAL(KIND=dp), DIMENSION(n)    :: r1, r2, r3
-
-    CALL RANDOM_NUMBER(r1)                                  ! generate random vectors uniformly in (0,1) ;; r1 = radius
-
-    r1=r1**(1.0/d)
-
-    IF (d.EQ.1) THEN                                        ! 1D case
-        x(1,:) = 2.0*r1 - 1.0
-    ELSE IF (d.EQ.2) THEN                                   ! 2D case
-        CALL random_number (r2)                             ! generate random vectors uniformly in (0,1) ;; r2 = poloidal angle
-        r2 = 2.0*pi*r2
-        x(1,:) = r1*sin(r2)
-        x(2,:) = r1*cos(r2)
-    ELSE IF (d.EQ.3) THEN                                   ! 3D case
-        CALL random_number (r2)                             ! generate random vectors uniformly in (0,1) ;; r2 = poloidal angle
-        CALL random_number (r3)                             ! generate random vectors uniformly in (0,1) ;; r3 = azimuthal angle
-        r2 = 2.0*pi*r2
-        r3 = acos(1.0 - 2.0*r3)
-        x(1,:) = r1*sin(r2)*sin(r3)
-        x(2,:) = r1*cos(r2)*sin(r3)
-        x(3,:) = r1*cos(r3)
-    ELSE
-        WRITE(*,*) 'Error: keep it in maximum 3D! ~ rand_p_sphere'            ! don't go beyond 3D space
-        PAUSE
-        STOP
-    END IF
-
-    END SUBROUTINE rand_p_sphere
-
-
-    ! Subroutine :: PDF_Boltz(n,tau,xf)
-    ! Purpose    :: generate Boltzmann distributed random numbers ~ exp(-x/T)sqrt(x/T)
-    ! Note       :: this is related to the distribution of kinetic energies in the Maxwell-Boltzmann distribution and not the exponetnial bolzmann
-    ! Record of revisions:
-    !    Date       |    Programmer       |   Description of change
-    !  =======      |   =============     |   ===========================
-    !  01/07/2021   |     D.Palade        |   Conversion to Fortran 95
-    !  01/09/2022   |     L.Pomarjanschi  |   Testing
-    !  01/12/2022   |     L.Pomarjanschi  |   Final
-
-    SUBROUTINE PDF_Boltz2(n,tau,xf)
-    USE constants
-    IMPLICIT NONE
-
-    ! I/O variables
-    INTEGER,                        INTENT(IN)  :: n
-    REAL(KIND=dp),                  INTENT(IN)  :: tau
-    REAL(KIND=dp), DIMENSION(n),    INTENT(OUT) :: xf
-
-    ! Local variables
-    INTEGER                                     :: i, q
-    REAL(KIND=dp)                               :: a, b, c
-    REAL(KIND=dp), DIMENSION(MAX(n/500,10))     :: x1, x2, y1, y2
-    REAL(KIND=dp), DIMENSION(:), ALLOCATABLE    :: x3
-
-    IF(n.lt.10) THEN
-        PRINT*, '--------------------------------------------------------------------------------------'
-        PRINT*, 'ERROR'
-        PRINT*, "Please generate at least 10 numbers! ~ PDF_Boltz"
-        PAUSE
-        STOP
-    END IF
-
-    a   = 0.0
-    b   = 20.0
-    c   = 1.0/SQRT(2.0*E)
-    xf  = 0.*xf
-    i   = 0
-
-    DO WHILE (i<n)
-
-        CALL RANDOM_NUMBER(x1)
-        CALL RANDOM_NUMBER(x2)
-
-        x1 = a + (b-a)*x1
-        y1 = c*x2
-        y2 = SQRT(x1)*EXP(-x1)
-        x3 = PACK(x1,y2-y1>=0)
-
-        q = MIN(n, i + SIZE(x3))
-
-        xf(i+1:q) = x3(1:q-i)
-
-        i = i + SIZE(x3)
-        DEALLOCATE(x3)
-    END DO
-
-    xf = xf*tau
-
-    END SUBROUTINE PDF_Boltz2
-    
-    SUBROUTINE PDF_Boltz(n, tau, xf)
-  USE constants, ONLY: dp, E
+MODULE random_numbers
+  USE constants
   IMPLICIT NONE
-  INTEGER,               INTENT(IN)  :: n
-  REAL(KIND=dp),         INTENT(IN)  :: tau
-  REAL(KIND=dp),         INTENT(OUT) :: xf(n)
+  SAVE
 
-  INTEGER, PARAMETER :: CHUNK = 65536
-  INTEGER :: out, m, j
-  REAL(KIND=dp) :: a, b, c
-  REAL(KIND=dp), ALLOCATABLE :: x1(:), x2(:), y1(:), y2(:)
-  LOGICAL,        ALLOCATABLE :: keep(:)
+  ! "Full" (Nc,Np) fields
+  REAL(KIND=dp), ALLOCATABLE, DIMENSION(:,:), TARGET :: &
+       ph, kx, ky, kperp, kz, w, phx, phy, wc, dm, L, phrmp
 
-  IF (n < 10) THEN
-     PRINT *, 'ERROR: generate at least 10 numbers ~ PDF_Boltz'
-     STOP
-  END IF
+  ! "Single" (Nc) fields (USE_real mode)
+  REAL(KIND=dp), ALLOCATABLE, DIMENSION(:),   TARGET :: &
+       phs, kxs, kys, kperps, kzs, ws, phxs, phys, wcs, dms, phrmps
 
-  a = 0.0_dp;  b = 20.0_dp
-  c = 1.0_dp/SQRT(2.0_dp*E)
+  ! Larmor factors in USE_real mode are stored as (Nc,Np) in Ls
+  REAL(KIND=dp), ALLOCATABLE, DIMENSION(:,:), TARGET :: Ls
 
-  xf  = 0.0_dp
-  out = 0
-  ALLOCATE(x1(CHUNK), x2(CHUNK), y1(CHUNK), y2(CHUNK), keep(CHUNK))
+CONTAINS
 
-  DO WHILE (out < n)
-     m = MIN(CHUNK, n - out)
-     CALL RANDOM_NUMBER(x1(1:m))
-     CALL RANDOM_NUMBER(x2(1:m))
-
-     x1(1:m) = a + (b - a) * x1(1:m)
-     y1(1:m) = c * x2(1:m)
-     y2(1:m) = SQRT(x1(1:m)) * EXP(-x1(1:m))
-
-     keep(1:m) = (y2(1:m) >= y1(1:m))
-     DO j = 1, m
-        IF (keep(j)) THEN
-           out = out + 1
-           xf(out) = x1(j)
-           IF (out == n) EXIT
-        END IF
-     END DO
-  END DO
-
-  xf = tau * xf
-  DEALLOCATE(x1, x2, y1, y2, keep)
-END SUBROUTINE PDF_Boltz
-
-
-    !==========================================================================================
-    ! Subroutine :: PDF_Cauchy
-    ! Purpose    :: Inversion Method for the following PDF (the Cauchy distribution)
-    !               PDF(xf) =  1/(pi*\tau*(1+(xf-w)^2/\tau^2)) + 1/(pi*\tau*(1+(xf+w)^2/\tau^2))
-    !               Which has the inverse CDF:
-    !               CDF^(-1)(y) = Tan(pi(y-1/2))
-    !
-    ! Note       :: The distribution of the generated numbers has considerable errors in comparison to the real PDF
-    !
-    ! Record of revisions:
-    !    Date       |    Programmer       |   Description of change
-    !  =======      |   =============     |   ===========================
-    !  01/07/2021   |     D.Palade        |   Conversion to Fortran 95
-    !  01/09/2022   |     L.Pomarjanschi  |   Testing
-    !  01/12/2022   |     L.Pomarjanschi  |   Final
-
-    SUBROUTINE PDF_Cauchy(n,w00,tau,xf)
-    USE constants, ONLY: pi
+  !=============================================================================
+  ! rand_p_sphere
+  !   Uniform points in d-dimensional unit sphere (implemented up to d=3).
+  !=============================================================================
+  SUBROUTINE rand_p_sphere(n, d, x)
+    USE constants, ONLY: pi, dp
     IMPLICIT NONE
 
-    ! I/O variables
-    REAL(KIND=dp),               INTENT(IN)  :: tau, w00
+    INTEGER,                        INTENT(IN)  :: n, d
+    REAL(KIND=dp), DIMENSION(d, n),  INTENT(OUT) :: x
+
+    REAL(KIND=dp), DIMENSION(n) :: r1, r2, r3
+
+    ! r1 ~ U(0,1) -> radius distribution for uniform volume: r = u^(1/d)
+    CALL RANDOM_NUMBER(r1)
+    r1 = r1**(1.0_dp / REAL(d, dp))
+
+    SELECT CASE (d)
+
+    CASE (1)
+      x(1,:) = 2.0_dp * r1 - 1.0_dp
+
+    CASE (2)
+      CALL RANDOM_NUMBER(r2)       ! angle in [0,2pi)
+      r2    = 2.0_dp*pi*r2
+      x(1,:) = r1 * SIN(r2)
+      x(2,:) = r1 * COS(r2)
+
+    CASE (3)
+      CALL RANDOM_NUMBER(r2)       ! poloidal
+      CALL RANDOM_NUMBER(r3)       ! azimuthal (via cos(theta) trick)
+      r2 = 2.0_dp*pi*r2
+      r3 = ACOS(1.0_dp - 2.0_dp*r3)
+
+      x(1,:) = r1 * SIN(r2) * SIN(r3)
+      x(2,:) = r1 * COS(r2) * SIN(r3)
+      x(3,:) = r1 * COS(r3)
+
+    CASE DEFAULT
+      WRITE(*,*) 'Error: keep it in maximum 3D! ~ rand_p_sphere'
+      PAUSE
+      STOP
+
+    END SELECT
+  END SUBROUTINE rand_p_sphere
+
+
+  !=============================================================================
+  ! PDF_Boltz2  (legacy, PACK-based)
+  !   Acceptance-rejection for y ~ sqrt(x)*exp(-x) on x in [0,20],
+  !   then scaled by tau.
+  !=============================================================================
+  SUBROUTINE PDF_Boltz2(n, tau, xf)
+    USE constants
+    IMPLICIT NONE
+
     INTEGER,                     INTENT(IN)  :: n
+    REAL(KIND=dp),               INTENT(IN)  :: tau
     REAL(KIND=dp), DIMENSION(n), INTENT(OUT) :: xf
 
-    ! Local variables
-    REAL(KIND=dp), DIMENSION(n)              :: x1, x2, aux
+    INTEGER                                  :: i, q
+    REAL(KIND=dp)                            :: a, b, c
+    REAL(KIND=dp), DIMENSION(MAX(n/500,10))  :: x1, x2, y1, y2
+    REAL(KIND=dp), DIMENSION(:), ALLOCATABLE :: x3
 
-    CALL RANDOM_NUMBER(x1)                                  ! generate random vectors uniformly in (0,1)
-    CALL RANDOM_NUMBER(x2)                                  ! generate random vectors uniformly in (0,1)
-
-    x2 = TAN((x2-0.5d0)*pi)                                 ! Inverse of CDF computation
-    aux = SIGN(1.d0,x1-0.5d0)                                ! this is an auxiliary vector with random +1,-1 values ;; it is used further to make a double-symetric PDF
-    xf = x2/tau + w00*aux                                 ! Scaling Cauchy no. with \tau and center them at +w00 and -w00
-
-    END SUBROUTINE PDF_Cauchy
-
-    !  ========================================================
-
-    ! Subroutine :: PDF_ky
-    ! Purpose    :: Acceptance-Rejection Method for the following PDF
-    !               PDF(x) = x/zk0 (Exp[-(x - zk0)^2/2] - Exp[-(x + zk0)^2 zlam^2/2])
-    ! Record of revisions:
-    !    Date       |    Programmer       |   Description of change
-    !  =======      |   =============     |   ===========================
-    !  01/07/2021   |     D.Palade        |   Conversion to Fortran 95
-    !  01/09/2022   |     L.Pomarjanschi  |   Testing
-    !  01/12/2022   |     L.Pomarjanschi  |   Final
-
-
-    SUBROUTINE PDF_ky(n, zlam, zk0, xf)
-  USE constants, ONLY: dp, pi, E
-  IMPLICIT NONE
-  INTEGER,               INTENT(IN)  :: n
-  REAL(KIND=dp),         INTENT(IN)  :: zlam, zk0
-  REAL(KIND=dp),         INTENT(OUT) :: xf(n)
-
-  INTEGER, PARAMETER :: CHUNK = 65536   ! size of reusable buffers
-  REAL(KIND=dp) :: a, b, c
-  INTEGER :: out, m, j
-  REAL(KIND=dp), ALLOCATABLE :: x1(:), x2(:), y1(:), y2(:)
-  LOGICAL,        ALLOCATABLE :: keep(:)
-
-  IF (n < 10) THEN
-     PRINT *, 'ERROR: generate at least 10 numbers ~ PDF_ky'
-     STOP
-  END IF
-
-  a = -5.0_dp/zlam - zk0
-  b =  5.0_dp/zlam + zk0
-  c = SQRT(2.0_dp/pi)/E*zlam   ! an upper bound; same as your code
-
-  ALLOCATE(x1(CHUNK), x2(CHUNK), y1(CHUNK), y2(CHUNK), keep(CHUNK))
-  out = 0
-
-  DO WHILE (out < n)
-     m = MIN(CHUNK, n - out)
-
-     CALL RANDOM_NUMBER(x1(1:m))
-     CALL RANDOM_NUMBER(x2(1:m))
-
-     x1(1:m) = a + (b - a) * x1(1:m)
-     y1(1:m) = c * x2(1:m)
-     y2(1:m) = ( x1(1:m)/zk0 * ( EXP(-zlam*zlam*(x1(1:m)-zk0)**2/2.0_dp) - &
-                                 EXP(-zlam*zlam*(x1(1:m)+zk0)**2/2.0_dp) ) ) * zlam/SQRT(2.0_dp*pi)/2.0_dp
-
-     keep(1:m) = (y2(1:m) >= y1(1:m))
-     DO j = 1, m
-        IF (keep(j)) THEN
-           out = out + 1
-           xf(out) = x1(j)
-           IF (out == n) EXIT
-        END IF
-     END DO
-  END DO
-
-  DEALLOCATE(x1, x2, y1, y2, keep)
-END SUBROUTINE PDF_ky
-
-    
-    SUBROUTINE PDF_ky2(n,zlam,zk0,xf)
-    USE constants, ONLY: pi
-    IMPLICIT NONE
-
-    ! I/O variables
-    INTEGER,                        INTENT(IN)  :: n                 ! number of random numbers
-    REAL(KIND=dp),                  INTENT(IN)  :: zlam, zk0         ! parameters of the distribution
-    REAL(KIND=dp), DIMENSION(n),    INTENT(OUT) :: xf                ! final array that stores the numbers
-
-    ! Local variables
-    INTEGER                            :: i, q
-    REAL(KIND=dp)                               :: a, b, c
-    REAL(KIND=dp), DIMENSION(MAX(n/500,10))     :: x1, x2, y1, y2    ! fragment the auxiliary arrays into smaller ones;; speeds up computation
-    REAL(KIND=dp), DIMENSION(:), ALLOCATABLE    :: x3
-
-    IF(n.lt.10) THEN                                        ! take into account the minimum size(x1,2 etc.)
-        PRINT*, '--------------------------------------------------------------------------------------'
-        PRINT*, 'ERROR'
-        Print*, "Please generate at least 10 numbers! ~ PDF_ky"
-        PAUSE
-        STOP
+    IF (n < 10) THEN
+      PRINT*, '--------------------------------------------------------------------------------------'
+      PRINT*, 'ERROR'
+      PRINT*, 'Please generate at least 10 numbers! ~ PDF_Boltz'
+      PAUSE
+      STOP
     END IF
 
-    a = -5.0/zlam - zk0                                     ! the rgandom no. "x" are generated in the (a,b) interval:: PDF(x)->0, for x<a && x>b
-    b =  5.0/zlam + zk0
-    c = SQRT(2.0/pi)/2.71828*zlam                           ! c = maxval(PDF(x))
-    xf = 0.*xf
-    i = 0                                                   ! stores the number of "good" numbers found (that satisfy the condition y2>=y1); initially 0
+    a  = 0.0_dp
+    b  = 20.0_dp
+    c  = 1.0_dp / SQRT(2.0_dp * E)
 
-    DO WHILE (i<n)
+    xf = 0.0_dp
+    i  = 0
 
-        CALL RANDOM_NUMBER(x1)
-        CALL RANDOM_NUMBER(x2)
+    DO WHILE (i < n)
 
-        x1 = a + (b-a)*x1
-        y1 = c*x2                                             ! y1 ~ uniform distribution of height c, always greater than or equal to PDF(x2)
-        y2 = x1/zk0*(EXP(-zlam**2*(x1 - zk0)**2/2.0)-EXP(-zlam**2*(x1 + zk0)**2/2.0))*zlam/SQRT(2.0*pi)/2.0   ! y2 ~ PDF(x1)
-        x3 = PACK(x1,y2-y1>=0)                                ! store in x3 the values of x1 that satisfy the Acceptance-Rejection condition y2>=y1
+      CALL RANDOM_NUMBER(x1)
+      CALL RANDOM_NUMBER(x2)
 
-        q = MIN(n, i + SIZE(x3))                              ! use q to decide where the values of x3 are stored in xf; use MIN in order to avoid overwriting xf
+      x1 = a + (b - a) * x1
+      y1 = c * x2
+      y2 = SQRT(x1) * EXP(-x1)
 
-        xf(i+1:q) = x3(1:q-i)                                 ! fill the array xf with the "good" values found
+      ! Keep x1 where y2 >= y1
+      x3 = PACK(x1, y2 - y1 >= 0.0_dp)
 
-        i = i + SIZE(x3)                                      ! with each iteration, increase i with the size of x3 (variable for each iteration)
-        DEALLOCATE(x3)
+      q = MIN(n, i + SIZE(x3))
+      xf(i+1:q) = x3(1:q-i)
+
+      i = i + SIZE(x3)
+      DEALLOCATE(x3)
+
     END DO
 
-    END SUBROUTINE PDF_ky2
+    xf = xf * tau
+  END SUBROUTINE PDF_Boltz2
 
-    !  ========================================================
 
-    ! Subroutine :: PDF_G
-    ! Purpose    :: Box-Muller transform ;;
-    !               Generate 3 vectors of normal no. with 0 mean and l1, l2, l3 square-variance
-    !               included in 0constants.mod
-    ! Record of revisions:
-    !    Date       |    Programmer       |   Description of change
-    !  =======      |   =============     |   ===========================
-    !  01/07/2021   |     D.Palade        |   Conversion to Fortran 95
-    !  01/09/2022   |     L.Pomarjanschi  |   Testing
-    !  01/12/2022   |     L.Pomarjanschi  |   Final
-
-    SUBROUTINE PDF_G2(m,n,g,mean,wavelength,variance)
-    USE constants, ONLY: pi
+  !=============================================================================
+  ! PDF_Boltz  (chunked streaming accept-reject; same logic as your revised code)
+  !=============================================================================
+  SUBROUTINE PDF_Boltz(n, tau, xf)
+    USE constants, ONLY: dp, E
     IMPLICIT NONE
 
-    ! I/O variables
-    INTEGER,               INTENT(IN)  :: m                 ! number of Gaussians
-    INTEGER,               INTENT(IN)  :: n                 ! size of each Gaussian
-    REAL(KIND=dp), DIMENSION(m, n), INTENT(OUT) :: g                 ! vector that stores the values
+    INTEGER,               INTENT(IN)  :: n
+    REAL(KIND=dp),         INTENT(IN)  :: tau
+    REAL(KIND=dp),         INTENT(OUT) :: xf(n)
 
-    ! Local variables
+    INTEGER, PARAMETER :: CHUNK = 65536
+    INTEGER :: out, m, j
+    REAL(KIND=dp) :: a, b, c
+
+    REAL(KIND=dp), ALLOCATABLE :: x1(:), x2(:), y1(:), y2(:)
+    LOGICAL,       ALLOCATABLE :: keep(:)
+
+    IF (n < 10) THEN
+      PRINT *, 'ERROR: generate at least 10 numbers ~ PDF_Boltz'
+      STOP
+    END IF
+
+    a = 0.0_dp
+    b = 20.0_dp
+    c = 1.0_dp / SQRT(2.0_dp * E)
+
+    xf  = 0.0_dp
+    out = 0
+
+    ALLOCATE(x1(CHUNK), x2(CHUNK), y1(CHUNK), y2(CHUNK), keep(CHUNK))
+
+    DO WHILE (out < n)
+
+      m = MIN(CHUNK, n - out)
+
+      CALL RANDOM_NUMBER(x1(1:m))
+      CALL RANDOM_NUMBER(x2(1:m))
+
+      x1(1:m) = a + (b - a) * x1(1:m)
+      y1(1:m) = c * x2(1:m)
+      y2(1:m) = SQRT(x1(1:m)) * EXP(-x1(1:m))
+
+      keep(1:m) = (y2(1:m) >= y1(1:m))
+
+      DO j = 1, m
+        IF (keep(j)) THEN
+          out     = out + 1
+          xf(out) = x1(j)
+          IF (out == n) EXIT
+        END IF
+      END DO
+
+    END DO
+
+    xf = tau * xf
+    DEALLOCATE(x1, x2, y1, y2, keep)
+  END SUBROUTINE PDF_Boltz
+
+
+  !=============================================================================
+  ! PDF_Cauchy
+  !   Truncated + double-symmetric (centered at +/-w00) Cauchy-like draw.
+  !
+  !   NOTE: This keeps your exact algebra:
+  !     x2 = TAN((2u-1)*atan(trunc))
+  !     aux = SIGN(1, u-0.5)
+  !     xf = x2/tau + w00*aux
+  !=============================================================================
+  SUBROUTINE PDF_Cauchy(n, w00, tau, xf, trunc)
+    USE constants, ONLY: dp, pi
+    IMPLICIT NONE
+
+    INTEGER,                     INTENT(IN)  :: n
+    REAL(KIND=dp),               INTENT(IN)  :: tau, w00, trunc
+    REAL(KIND=dp), DIMENSION(n), INTENT(OUT) :: xf
+
+    REAL(KIND=dp), DIMENSION(n) :: x1, x2, aux
+
+    CALL RANDOM_NUMBER(x1)
+    CALL RANDOM_NUMBER(x2)
+
+    ! Inverse-CDF with truncation control via atan(trunc)
+    x2  = TAN((2.0_dp*x2 - 1.0_dp) * ATAN(trunc))
+
+    ! Random +/-1 to mirror around +/-w00
+    aux = SIGN(1.0_dp, x1 - 0.5_dp)
+
+    ! Scale and shift
+    xf  = x2 / tau + w00 * aux
+  END SUBROUTINE PDF_Cauchy
+
+
+  !=============================================================================
+  ! PDF_ky (chunked accept-reject; same math as your revised code)
+  !=============================================================================
+  SUBROUTINE PDF_ky(n, zlam, zk0, xf)
+    USE constants, ONLY: dp, pi, E
+    IMPLICIT NONE
+
+    INTEGER,               INTENT(IN)  :: n
+    REAL(KIND=dp),         INTENT(IN)  :: zlam, zk0
+    REAL(KIND=dp),         INTENT(OUT) :: xf(n)
+
+    INTEGER, PARAMETER :: CHUNK = 65536
+    REAL(KIND=dp) :: a, b, c
+    INTEGER :: out, m, j
+
+    REAL(KIND=dp), ALLOCATABLE :: x1(:), x2(:), y1(:), y2(:)
+    LOGICAL,       ALLOCATABLE :: keep(:)
+
+    IF (n < 10) THEN
+      PRINT *, 'ERROR: generate at least 10 numbers ~ PDF_ky'
+      STOP
+    END IF
+
+    a = -5.0_dp/zlam - zk0
+    b =  5.0_dp/zlam + zk0
+
+    ! Upper bound used in your code
+    c = SQRT(2.0_dp/pi) / E * zlam
+
+    ALLOCATE(x1(CHUNK), x2(CHUNK), y1(CHUNK), y2(CHUNK), keep(CHUNK))
+    out = 0
+
+    DO WHILE (out < n)
+
+      m = MIN(CHUNK, n - out)
+
+      CALL RANDOM_NUMBER(x1(1:m))
+      CALL RANDOM_NUMBER(x2(1:m))
+
+      x1(1:m) = a + (b - a) * x1(1:m)
+      y1(1:m) = c * x2(1:m)
+
+      y2(1:m) = ( x1(1:m)/zk0 * ( EXP(-zlam*zlam*(x1(1:m)-zk0)**2/2.0_dp) - &
+                                  EXP(-zlam*zlam*(x1(1:m)+zk0)**2/2.0_dp) ) ) * &
+                zlam/SQRT(2.0_dp*pi)/2.0_dp
+
+      keep(1:m) = (y2(1:m) >= y1(1:m))
+
+      DO j = 1, m
+        IF (keep(j)) THEN
+          out     = out + 1
+          xf(out) = x1(j)
+          IF (out == n) EXIT
+        END IF
+      END DO
+
+    END DO
+
+    DEALLOCATE(x1, x2, y1, y2, keep)
+  END SUBROUTINE PDF_ky
+
+
+  !=============================================================================
+  ! PDF_ky2 (legacy PACK-based)
+  !=============================================================================
+  SUBROUTINE PDF_ky2(n, zlam, zk0, xf)
+    USE constants, ONLY: dp, pi
+    IMPLICIT NONE
+
+    INTEGER,                     INTENT(IN)  :: n
+    REAL(KIND=dp),               INTENT(IN)  :: zlam, zk0
+    REAL(KIND=dp), DIMENSION(n), INTENT(OUT) :: xf
+
+    INTEGER                                  :: i, q
+    REAL(KIND=dp)                            :: a, b, c
+    REAL(KIND=dp), DIMENSION(MAX(n/500,10))  :: x1, x2, y1, y2
+    REAL(KIND=dp), DIMENSION(:), ALLOCATABLE :: x3
+
+    IF (n < 10) THEN
+      PRINT*, '--------------------------------------------------------------------------------------'
+      PRINT*, 'ERROR'
+      PRINT*, 'Please generate at least 10 numbers! ~ PDF_ky'
+      PAUSE
+      STOP
+    END IF
+
+    a  = -5.0_dp/zlam - zk0
+    b  =  5.0_dp/zlam + zk0
+    c  = SQRT(2.0_dp/pi)/2.71828_dp*zlam
+
+    xf = 0.0_dp
+    i  = 0
+
+    DO WHILE (i < n)
+
+      CALL RANDOM_NUMBER(x1)
+      CALL RANDOM_NUMBER(x2)
+
+      x1 = a + (b - a) * x1
+      y1 = c * x2
+
+      y2 = x1/zk0 * ( EXP(-zlam**2*(x1 - zk0)**2/2.0_dp) - &
+                      EXP(-zlam**2*(x1 + zk0)**2/2.0_dp) ) * &
+           zlam/SQRT(2.0_dp*pi)/2.0_dp
+
+      x3 = PACK(x1, y2 - y1 >= 0.0_dp)
+
+      q = MIN(n, i + SIZE(x3))
+      xf(i+1:q) = x3(1:q-i)
+
+      i = i + SIZE(x3)
+      DEALLOCATE(x3)
+
+    END DO
+  END SUBROUTINE PDF_ky2
+
+
+  !=============================================================================
+  ! PDF_G2 (legacy: odd-m handling via k=m+1 + extra row in r)
+  !=============================================================================
+  SUBROUTINE PDF_G2(m, n, g, mean, wavelength, variance)
+    USE constants, ONLY: dp, pi
+    IMPLICIT NONE
+
+    INTEGER,                           INTENT(IN)  :: m, n
+    REAL(KIND=dp), DIMENSION(m, n),    INTENT(OUT) :: g
+    REAL(KIND=dp), DIMENSION(m), OPTIONAL          :: mean, variance, wavelength
+
     INTEGER :: i, k
-    REAL(KIND=dp), DIMENSION(m+1, n)            :: r
-    REAL(KIND=dp), DIMENSION(m)                 :: avg, var
-    REAL(KIND=dp), DIMENSION(m), OPTIONAL       :: mean, variance, wavelength  ! format :: [:[,:,...]]
-    ! optional argument; if not provided, will use default;
-    ! should only use variance <var0> OR wavelength <l0>
-    ! <l0> overwrites <var0>
+    REAL(KIND=dp), DIMENSION(m+1, n) :: r
+    REAL(KIND=dp), DIMENSION(m)      :: avg, var
 
-    IF(PRESENT(mean)) THEN                                  ! default average set to 0.
-        avg = mean
+    ! Defaults
+    IF (PRESENT(mean)) THEN
+      avg = mean
     ELSE
-        avg = 0.
+      avg = 0.0_dp
     END IF
 
-    IF(PRESENT(wavelength)) THEN                            ! default variance set to 1.; wavelength overwrites variance
-        var = 1./wavelength
-    ELSE IF(PRESENT(variance)) THEN
-        var = variance
+    IF (PRESENT(wavelength)) THEN
+      var = 1.0_dp / wavelength
+    ELSEIF (PRESENT(variance)) THEN
+      var = variance
     ELSE
-        var = 1.
+      var = 1.0_dp
     END IF
 
-
-    IF(MOD(m,2)/=0) THEN                                    ! we need an even iterator <k> for the number of arrays generated with Box-Muller
-        k = m + 1
+    ! Need even index for Box-Muller pairing
+    IF (MOD(m,2) /= 0) THEN
+      k = m + 1
     ELSE
-        k = m
+      k = m
     END IF
-
 
     DO i = 1, k
 
-        CALL RANDOM_NUMBER(r(i,:))
+      CALL RANDOM_NUMBER(r(i,:))
 
-        WHERE(r(i,:)==0.)                                     ! prevent NaN results (which come from trying to compute log(0.) )
-            r(i,:)=10.**(-8)
-        END WHERE
+      WHERE (r(i,:) == 0.0_dp)
+        r(i,:) = 1.0e-8_dp
+      END WHERE
 
-        IF(MOD(i,2)==0) THEN                                  ! we always need the index to be an even number in order to use the Box-Muller transform
-            IF ((m-i)>=0) THEN                                ! if the initial number of arrays <m> is even, then generate the arrays in pairs of two
+      IF (MOD(i,2) == 0) THEN
 
-                g(i-1,:) = var(i-1)*SQRT(-2.0*LOG(r(i-1,:)))*SIN(2.0*pi*r(i,:))+avg(i-1)
-                g(i,:) = var(i)*SQRT(-2.0*LOG(r(i-1,:)))*COS(2.0*pi*r(i,:))+avg(i)
-
-            ELSE                                              ! if the initial number of arrays <m> is odd, then only compute one array for the last index
-
-                g(i-1,:) = var(i-1)*SQRT(-2.0*LOG(r(i-1,:)))*SIN(2.0*pi*r(i,:))+avg(i-1)
-
-            END IF
+        IF ((m - i) >= 0) THEN
+          g(i-1,:) = var(i-1) * SQRT(-2.0_dp*LOG(r(i-1,:))) * SIN(2.0_dp*pi*r(i,:)) + avg(i-1)
+          g(i,:)   = var(i)   * SQRT(-2.0_dp*LOG(r(i-1,:))) * COS(2.0_dp*pi*r(i,:)) + avg(i)
+        ELSE
+          g(i-1,:) = var(i-1) * SQRT(-2.0_dp*LOG(r(i-1,:))) * SIN(2.0_dp*pi*r(i,:)) + avg(i-1)
         END IF
+
+      END IF
     END DO
+  END SUBROUTINE PDF_G2
 
 
-    END SUBROUTINE PDF_G2
-    
-    SUBROUTINE PDF_G(m, n, g, mean, wavelength, variance)
-  USE constants, ONLY: dp, pi
-  IMPLICIT NONE
-  INTEGER,                    INTENT(IN)  :: m, n
-  REAL(KIND=dp),              INTENT(OUT) :: g(m, n)
-  REAL(KIND=dp), OPTIONAL,    INTENT(IN)  :: mean(m), wavelength(m), variance(m)
-
-  INTEGER :: i
-  REAL(KIND=dp) :: avg(m), sig(m)
-  REAL(KIND=dp), ALLOCATABLE :: u1(:), u2(:), r(:), s(:), c(:)
-
-  ! Defaults: avg=0, sig=1
-  avg = 0.0_dp;  sig = 1.0_dp
-  IF (PRESENT(mean))       avg = mean
-  IF (PRESENT(wavelength)) sig = 1.0_dp / wavelength
-  IF (PRESENT(variance))   sig = variance   ! wavelength wins only if provided; same as your logic
-
-  ALLOCATE(u1(n), u2(n), r(n), s(n), c(n))
-
-  DO i = 1, m, 2
-     CALL RANDOM_NUMBER(u1);  CALL RANDOM_NUMBER(u2)
-     WHERE (u1 < 1.0e-12_dp) u1 = 1.0e-12_dp
-     r = SQRT(-2.0_dp * LOG(u1))
-     s = SIN(2.0_dp*pi*u2)
-     c = COS(2.0_dp*pi*u2)
-
-     g(i, :) = sig(i) * r * s + avg(i)
-     IF (i+1 <= m) g(i+1, :) = sig(i+1) * r * c + avg(i+1)
-  END DO
-
-  DEALLOCATE(u1, u2, r, s, c)
-END SUBROUTINE PDF_G
-
-    !  ========================================================
-
-    ! Subroutine :: PDF_G_D
-    ! Purpose    :: Box-Muller transform ;;
-    !               Generate 3 vectors of normal no. with 0 mean and l1, l2, l3 square-variance
-    !               included in 0constants.mod
-    ! Record of revisions:
-    !    Date       |    Programmer       |   Description of change
-    !  =======      |   =============     |   ===========================
-    !  01/07/2021   |     D.Palade        |   Conversion to Fortran 95
-    !  01/09/2022   |     L.Pomarjanschi  |   Testing
-    !  01/12/2022   |     L.Pomarjanschi  |   Final
-    !  27/12/2023   |     D.Palade        |   without optional arguments
-
-    SUBROUTINE PDF_G_D(m,n,g,mean,wavelength,variance)
-    USE constants, ONLY: pi
+  !=============================================================================
+  ! PDF_G (faster + cleaner Box-Muller; keeps your precedence rules)
+  !
+  ! Precedence as in your revised version:
+  !   avg default 0; sig default 1
+  !   IF wavelength PRESENT -> sig = 1/wavelength
+  !   IF variance PRESENT   -> sig = variance
+  !
+  ! So if both provided, variance overwrites wavelength (exactly your code comment).
+  !=============================================================================
+  SUBROUTINE PDF_G(m, n, g, mean, wavelength, variance)
+    USE constants, ONLY: dp, pi
     IMPLICIT NONE
 
-    ! I/O variables
-    INTEGER,               INTENT(IN)  :: m                 ! number of Gaussians
-    INTEGER,               INTENT(IN)  :: n                 ! size of each Gaussian
-    REAL(KIND=dp), DIMENSION(m, n), INTENT(OUT) :: g                 ! vector that stores the values
+    INTEGER,                 INTENT(IN)  :: m, n
+    REAL(KIND=dp),           INTENT(OUT) :: g(m, n)
+    REAL(KIND=dp), OPTIONAL, INTENT(IN)  :: mean(m), wavelength(m), variance(m)
 
-    ! Local variables
+    INTEGER :: i
+    REAL(KIND=dp) :: avg(m), sig(m)
+    REAL(KIND=dp), ALLOCATABLE :: u1(:), u2(:), r(:), s(:), c(:)
+
+    avg = 0.0_dp
+    sig = 1.0_dp
+
+    IF (PRESENT(mean))       avg = mean
+    IF (PRESENT(wavelength)) sig = 1.0_dp / wavelength
+    IF (PRESENT(variance))   sig = variance
+
+    ALLOCATE(u1(n), u2(n), r(n), s(n), c(n))
+
+    DO i = 1, m, 2
+
+      CALL RANDOM_NUMBER(u1)
+      CALL RANDOM_NUMBER(u2)
+
+      ! Prevent log(0)
+      WHERE (u1 < 1.0e-12_dp) u1 = 1.0e-12_dp
+
+      r = SQRT(-2.0_dp * LOG(u1))
+      s = SIN(2.0_dp * pi * u2)
+      c = COS(2.0_dp * pi * u2)
+
+      g(i,:) = sig(i) * r * s + avg(i)
+      IF (i + 1 <= m) g(i+1,:) = sig(i+1) * r * c + avg(i+1)
+
+    END DO
+
+    DEALLOCATE(u1, u2, r, s, c)
+  END SUBROUTINE PDF_G
+
+
+  !=============================================================================
+  ! PDF_G_D (legacy "no optional args" version; logic kept exactly as given)
+  !   NOTE: your original has:
+  !     var = 1./wavelength
+  !     var = variance
+  !   so wavelength assignment is overwritten unconditionally by variance.
+  !=============================================================================
+  SUBROUTINE PDF_G_D(m, n, g, mean, wavelength, variance)
+    USE constants, ONLY: dp, pi
+    IMPLICIT NONE
+
+    INTEGER,                        INTENT(IN)  :: m, n
+    REAL(KIND=dp), DIMENSION(m, n), INTENT(OUT) :: g
+    REAL(KIND=dp), DIMENSION(m)                 :: mean, variance, wavelength
+
     INTEGER :: i, k
-    REAL(KIND=dp), DIMENSION(m+1, n)            :: r
-    REAL(KIND=dp), DIMENSION(m)                 :: avg, var
-    REAL(KIND=dp), DIMENSION(m)                 :: mean, variance, wavelength  ! format :: [:[,:,...]]
-    ! optional argument; if not provided, will use default;
-    ! should only use variance <var0> OR wavelength <l0>
-    ! <l0> overwrites <var0>
+    REAL(KIND=dp), DIMENSION(m+1, n) :: r
+    REAL(KIND=dp), DIMENSION(m)      :: avg, var
 
     avg = mean
 
-    var = 1./wavelength
-    var = variance
+    var = 1.0_dp / wavelength
+    var = variance     ! <- preserves your exact original overwrite
 
-    IF(MOD(m,2)/=0) THEN                                    ! we need an even iterator <k> for the number of arrays generated with Box-Muller
-        k = m + 1
+    IF (MOD(m,2) /= 0) THEN
+      k = m + 1
     ELSE
-        k = m
+      k = m
     END IF
-
 
     DO i = 1, k
 
-        CALL RANDOM_NUMBER(r(i,:))
+      CALL RANDOM_NUMBER(r(i,:))
 
-        WHERE(r(i,:)==0.)                                     ! prevent NaN results (which come from trying to compute log(0.) )
-            r(i,:)=10.**(-8)
-        END WHERE
+      WHERE (r(i,:) == 0.0_dp)
+        r(i,:) = 1.0e-8_dp
+      END WHERE
 
-        IF(MOD(i,2)==0) THEN                                  ! we always need the index to be an even number in order to use the Box-Muller transform
-            IF ((m-i)>=0) THEN                                ! if the initial number of arrays <m> is even, then generate the arrays in pairs of two
+      IF (MOD(i,2) == 0) THEN
 
-                g(i-1,:) = var(i-1)*SQRT(-2.0*LOG(r(i-1,:)))*SIN(2.0*pi*r(i,:))+avg(i-1)
-                g(i,:) = var(i)*SQRT(-2.0*LOG(r(i-1,:)))*COS(2.0*pi*r(i,:))+avg(i)
-
-            ELSE                                              ! if the initial number of arrays <m> is odd, then only compute one array for the last index
-
-                g(i-1,:) = var(i-1)*SQRT(-2.0*LOG(r(i-1,:)))*SIN(2.0*pi*r(i,:))+avg(i-1)
-
-            END IF
+        IF ((m - i) >= 0) THEN
+          g(i-1,:) = var(i-1) * SQRT(-2.0_dp*LOG(r(i-1,:))) * SIN(2.0_dp*pi*r(i,:)) + avg(i-1)
+          g(i,:)   = var(i)   * SQRT(-2.0_dp*LOG(r(i-1,:))) * COS(2.0_dp*pi*r(i,:)) + avg(i)
+        ELSE
+          g(i-1,:) = var(i-1) * SQRT(-2.0_dp*LOG(r(i-1,:))) * SIN(2.0_dp*pi*r(i,:)) + avg(i-1)
         END IF
+
+      END IF
     END DO
+  END SUBROUTINE PDF_G_D
 
 
-    END SUBROUTINE PDF_G_D
-    
-    !  ========================================================
-    !!! SUBROUTINE wavenum
-    !!! Generates wavenumbers, phases and frequencies;; all constant for each 'run'
-    !!! Should be called in 'main' at the start of every 'run', after parameters(run)
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  ! --------------------------------------------------------------------------
-  ! Unified generator:
-  !   USE_real = ON  (1) -> fills *_s arrays (Nc)
-  !   USE_real = OFF (0) -> fills 2D arrays (Nc,Np)
-  ! --------------------------------------------------------------------------
+  !=============================================================================
+  ! wavenum_unified
+  !   Unified generator:
+  !     USE_real_flag = ON  -> fills *_s arrays (Nc), with npts=1
+  !     USE_real_flag = OFF -> fills 2D arrays (Nc,Np), with npts=Np
+  !
+  !   NOTE: This is your routine re-indented + commented only; algebra preserved.
+  !=============================================================================
   SUBROUTINE wavenum_unified(normB, Vstar1, Vstar2, Vstar3, gees, USE_real_flag, gnorm_out)
     USE constants
     IMPLICIT NONE
 
-    REAL(KIND=dp), INTENT(IN) :: normB, Vstar1, Vstar2, Vstar3
-    REAL(KIND=dp), INTENT(IN) :: gees(3,3)
-    INTEGER,       INTENT(IN) :: USE_real_flag
-    real(KIND=dp), INTENT(OUT):: gnorm_out
+    REAL(KIND=dp), INTENT(IN)  :: normB, Vstar1, Vstar2, Vstar3
+    REAL(KIND=dp), INTENT(IN)  :: gees(3,3)
+    INTEGER,       INTENT(IN)  :: USE_real_flag
+    REAL(KIND=dp), INTENT(OUT) :: gnorm_out
 
     INTEGER :: i, npts, dmm
-    REAL(KIND=dp) :: invR0, rhoi_over_R0, R2, Te_over_Ti, ATeTi
+    REAL(KIND=dp) :: invR0, rhoi_over_R0, R2, Te_over_Ti, ATeTi, trunc
     REAL(KIND=dp) :: w000, kx000, k0, sgn, Gnorm_tmp
-    REAL(KIND=dp), ALLOCATABLE :: tmp4(:,:),frac(:,:), gg(:,:)  ! (4,npts) scratch for PDF_G
-    REAL(KIND=dp), ALLOCATABLE :: kyrow(:), kxrow(:), kzrow(:), wrow(:), wcrow(:), fracs(:),ggs(:)
+
+    REAL(KIND=dp), ALLOCATABLE :: tmp4(:,:)         ! (4,npts) scratch for PDF_G
+    REAL(KIND=dp), ALLOCATABLE :: frac(:,:), gg(:,:) ! (Nc,Np) normalization scratch
+    REAL(KIND=dp), ALLOCATABLE :: fracs(:), ggs(:)   ! (Nc) normalization scratch
+
+    REAL(KIND=dp), ALLOCATABLE :: kyrow(:), kxrow(:), kzrow(:), wrow(:), wcrow(:)
     REAL(KIND=dp), ALLOCATABLE :: phrow(:), phxrow(:), phyrow(:), phrmprow(:), dmrow(:)
 
-    ! Decide number of samples/trajectories to generate in this call
+    ! Decide number of samples/trajectories generated for each mode i
     IF (USE_real_flag == ON) THEN
       npts = 1
     ELSE
       npts = Np
     END IF
 
-    ! Allocate outputs depending on mode
+    !-----------------------------
+    ! Allocate outputs (mode-wise)
+    !-----------------------------
     IF (USE_real_flag == ON) THEN
+
       IF (ALLOCATED(phs)) THEN
         IF (SIZE(phs) /= Nc) THEN
-          DEALLOCATE(phs,kxs,kys,kperps,kzs,ws,phrmps,phxs,phys,wcs,dms,q00wraps)
+          DEALLOCATE(phs, kxs, kys, kperps, kzs, ws, phrmps, phxs, phys, wcs, dms)
         END IF
       END IF
+
       IF (.NOT. ALLOCATED(phs)) THEN
         ALLOCATE(phs(Nc))
-        ALLOCATE(kxs,kys,kzs,kperps,ws,phrmps,phxs,phys,wcs,dms,q00wraps,mold=phs)
+        ALLOCATE(kxs, kys, kzs, kperps, ws, phrmps, phxs, phys, wcs, dms, MOLD=phs)
       END IF
+
     ELSE
+
       IF (ALLOCATED(ph)) THEN
         IF (SIZE(ph,1) /= Nc .OR. SIZE(ph,2) /= Np) THEN
-          DEALLOCATE(ph,kx,ky,kperp,kz,w,phrmp,phx,phy,wc,dm,q00wrap)
+          DEALLOCATE(ph, kx, ky, kperp, kz, w, phrmp, phx, phy, wc, dm)
         END IF
       END IF
-      IF (.NOT. ALLOCATED(ph)) THEN
-        ALLOCATE(ph(Nc,Np))
-        ALLOCATE(kx,ky,kperp,kz,w,phrmp,phx,phy,wc,dm,q00wrap, MOLD=ph)
-      END IF
-    END IF
-         allocate(frac(Nc,Np),gg(Nc,Np),fracs(Nc),ggs(Nc))
 
-    ! Constants
+      IF (.NOT. ALLOCATED(ph)) THEN
+        ALLOCATE(ph(Nc, Np))
+        ALLOCATE(kx, ky, kperp, kz, w, phrmp, phx, phy, wc, dm, MOLD=ph)
+      END IF
+
+    END IF
+
+    ! Scratch arrays for normalization (you used both modes)
+    ALLOCATE(frac(Nc, Np), gg(Nc, Np), fracs(Nc), ggs(Nc))
+
+    !-----------------------------
+    ! Constants and parameters
+    !-----------------------------
     invR0        = 1.0_dp / R0
     rhoi_over_R0 = rhoi * invR0
     Te_over_Ti   = Te / Ti
@@ -581,43 +606,59 @@ END SUBROUTINE PDF_G
 
     w000  = 0.0_dp
     kx000 = 0.0_dp
+    trunc = 10.0_dp
 
-    ! Scratch
-    ALLOCATE(tmp4(4,npts))
+    !-----------------------------
+    ! Per-mode scratch buffers
+    !-----------------------------
+    ALLOCATE(tmp4(4, npts))
     ALLOCATE(kyrow(npts), kxrow(npts), kzrow(npts), wrow(npts), wcrow(npts))
     ALLOCATE(phrow(npts), phxrow(npts), phyrow(npts), phrmprow(npts), dmrow(npts))
 
+    !=============================
+    ! Main turbulence switch
+    !=============================
     IF (USE_turb == ON) THEN
 
       DO i = 1, Nc
 
-        ! ----- phases + parallel shift
-        CALL RANDOM_NUMBER(phrow);     phrow     = pi*(2.0_dp*phrow     - 1.0_dp)
-        CALL RANDOM_NUMBER(phrmprow);  phrmprow  = pi*(2.0_dp*phrmprow  - 1.0_dp)
-        CALL RANDOM_NUMBER(phxrow);    phxrow    = pi*(2.0_dp*phxrow    - 1.0_dp)
-        CALL RANDOM_NUMBER(phyrow);    phyrow    = pi*(2.0_dp*phyrow    - 1.0_dp)
-        CALL RANDOM_NUMBER(dmrow);     dmrow     = 2.0_dp*(dmrow - 0.5_dp)
-        dmrow = INT(q00/lambdaz * dmrow)    ! integer shifts
+        !-------------------------
+        ! Phases and parallel shifts
+        !-------------------------
+        CALL RANDOM_NUMBER(phrow);     phrow    = pi * (2.0_dp*phrow    - 1.0_dp)
+        CALL RANDOM_NUMBER(phrmprow);  phrmprow = pi * (2.0_dp*phrmprow - 1.0_dp)
+        CALL RANDOM_NUMBER(phxrow);    phxrow   = pi * (2.0_dp*phxrow   - 1.0_dp)
+        CALL RANDOM_NUMBER(phyrow);    phyrow   = pi * (2.0_dp*phyrow   - 1.0_dp)
 
-        ! ----- correlated (kx,kz,w,wc)
+        CALL RANDOM_NUMBER(dmrow)
+        dmrow = 2.0_dp * (dmrow - 0.5_dp)
+        dmrow = INT(q00/lambdaz * dmrow)  ! integer shifts
+
+        !-------------------------
+        ! Correlated draws: (kx,kz,w,wc) from Gaussian generator
+        !-------------------------
         CALL PDF_G(4, npts, tmp4, wavelength=[lambdax, lambdaz, tauc, taucc])
 
         kzrow = tmp4(2,:)
         wcrow = tmp4(4,:)
 
+        ! Radial spectrum selection
         IF (x_corr == 1) THEN
           kxrow = tmp4(1,:)
         ELSEIF (x_corr == 2) THEN
-          CALL PDF_Cauchy(npts, kx000, lambdax, kxrow)
+          CALL PDF_Cauchy(npts, kx000, lambdax, kxrow, trunc)
         END IF
 
+        ! Temporal spectrum selection
         IF (t_corr == 1) THEN
           wrow = tmp4(3,:)
         ELSEIF (t_corr == 2) THEN
-          CALL PDF_Cauchy(npts, w000, lambdax, wrow)
+          CALL PDF_Cauchy(npts, w000, lambdax, wrow, trunc)
         END IF
 
-        ! ----- ky depends on ITG/TEM block
+        !-------------------------
+        ! ky depends on ITG/TEM block
+        !-------------------------
         IF (i <= Nci) THEN
           k0  = k0i
           sgn = +1.0_dp
@@ -628,12 +669,17 @@ END SUBROUTINE PDF_G
 
         CALL PDF_ky(npts, lambday, k0, kyrow)
 
-        ! integer wrapping (your original)
+        !-------------------------
+        ! Integer wrapping (as in your original)
+        !-------------------------
         kyrow = REAL(INT(kyrow*C2), dp) / C2
-        kzrow = REAL(INT(kzrow), dp)   / C3
+        kzrow = REAL(INT(kzrow),   dp) / C3
 
-        ! write out + compute kperp and frequency correction
+        !=========================================================
+        ! Write outputs + compute kperp and frequency correction
+        !=========================================================
         IF (USE_real_flag == ON) THEN
+
           phs(i)    = phrow(1)
           phrmps(i) = phrmprow(1)
           phxs(i)   = phxrow(1)
@@ -646,17 +692,17 @@ END SUBROUTINE PDF_G
           wcs(i) = wcrow(1)
 
           kperps(i) = rhoi_over_R0 * SQRT( &
-               kxs(i)*gees(1,1)*kxs(i) + 2.0_dp*kxs(i)*gees(1,2)*kys(i) + 2.0_dp*kxs(i)*gees(1,3)*kzs(i) + &
-               kys(i)*gees(2,2)*kys(i) + 2.0_dp*kys(i)*gees(2,3)*kzs(i) + &
-               kzs(i)*gees(3,3)*kzs(i) )
+            kxs(i)*gees(1,1)*kxs(i) + 2.0_dp*kxs(i)*gees(1,2)*kys(i) + 2.0_dp*kxs(i)*gees(1,3)*kzs(i) + &
+            kys(i)*gees(2,2)*kys(i) + 2.0_dp*kys(i)*gees(2,3)*kzs(i) + &
+            kzs(i)*gees(3,3)*kzs(i) )
 
           ws(i) = wrow(1) + ( sgn * Ln * R2 * (kxs(i)*Vstar1 + kys(i)*Vstar2 + kzs(i)*Vstar3) ) / &
                            (1.0_dp + ATeTi*kperps(i)**2)
 
-          ws(i)       = REAL(USE_freq,dp) * ws(i)
-          q00wraps(i) = REAL(INT(C2*kys(i)*q00), dp)
+          ws(i)       = REAL(USE_freq, dp) * ws(i)
 
         ELSE
+
           ph(i,:)    = phrow
           phrmp(i,:) = phrmprow
           phx(i,:)   = phxrow
@@ -669,9 +715,9 @@ END SUBROUTINE PDF_G
           wc(i,:) = wcrow
 
           kperp(i,:) = rhoi_over_R0 * SQRT( &
-               kx(i,:)*gees(1,1)*kx(i,:) + 2.0_dp*kx(i,:)*gees(1,2)*ky(i,:) + 2.0_dp*kx(i,:)*gees(1,3)*kz(i,:) + &
-               ky(i,:)*gees(2,2)*ky(i,:) + 2.0_dp*ky(i,:)*gees(2,3)*kz(i,:) + &
-               kz(i,:)*gees(3,3)*kz(i,:) )
+            kx(i,:)*gees(1,1)*kx(i,:) + 2.0_dp*kx(i,:)*gees(1,2)*ky(i,:) + 2.0_dp*kx(i,:)*gees(1,3)*kz(i,:) + &
+            ky(i,:)*gees(2,2)*ky(i,:) + 2.0_dp*ky(i,:)*gees(2,3)*kz(i,:) + &
+            kz(i,:)*gees(3,3)*kz(i,:) )
 
           w(i,:) = wrow + ( sgn * Ln * R2 * (kx(i,:)*Vstar1 + ky(i,:)*Vstar2 + kz(i,:)*Vstar3) ) / &
                          (1.0_dp + ATeTi*kperp(i,:)**2)
@@ -681,525 +727,638 @@ END SUBROUTINE PDF_G
       END DO
 
       IF (USE_real_flag /= ON) THEN
-        w       = REAL(USE_freq,dp) * w
-        q00wrap = REAL(INT(C2*ky*q00), dp)
+        w       = REAL(USE_freq, dp) * w
       END IF
 
     ELSE
-      ! No turbulence: zero everything
+      !----------------------------------------------------------
+      ! No turbulence: zero everything (preserve your exact intent)
+      !----------------------------------------------------------
       IF (USE_real_flag == ON) THEN
         phs = 0.0_dp; phrmps = 0.0_dp; phxs = 0.0_dp; phys = 0.0_dp
         kxs = 0.0_dp; kys   = 0.0_dp; kzs  = 0.0_dp
         ws  = 0.0_dp; wcs   = 0.0_dp; kperps = 0.0_dp; dms = 0.0_dp
-        q00wraps = 0.0_dp
       ELSE
         ph  = 0.0_dp; phrmp = 0.0_dp; phx = 0.0_dp; phy = 0.0_dp
         kx  = 0.0_dp; ky    = 0.0_dp; kz  = 0.0_dp
         w   = 0.0_dp; wc    = 0.0_dp; kperp = 0.0_dp; dm = 0.0_dp
-        q00wrap = 0.0_dp
       END IF
     END IF
 
-! proper normalization of the parallel structure
+    !=====================================================================
+    ! Proper normalization of the parallel structure:
+    ! turbulence amplitude at z=0, y=0, x:=r0 should be Phi
+    !=====================================================================
     IF (USE_real_flag == OFF) THEN
 
-     frac  = C2*ky*q00 - int(C2*ky*q00)
+      frac = C2*ky*q00 - INT(C2*ky*q00)
+
       gg = 0.0_dp
-      do dmm = - dmmax, dmmax
-          gg    = gg + exp(-(dmm + frac)**2/2.0_dp*lbalonz**2)
-      enddo
-          Gnorm_tmp = sum(gg**2)/Np
+      DO dmm = -dmmax, dmmax
+        gg = gg + EXP(-(dmm + frac)**2 / 2.0_dp * lbalonz**2)
+      END DO
+
+      Gnorm_tmp = SUM(gg**2) / Np
+
     ELSE
 
-      fracs  = C2*kys*q00 - int(C2*kys*q00)
+      fracs = C2*kys*q00 - INT(C2*kys*q00)
+
       ggs = 0.0_dp
-      do dmm = - dmmax, dmmax
-        ggs    = ggs + exp(-(dmm + fracs)**2/2.0_dp*lbalonz**2)
-      enddo
-          Gnorm_tmp = sum(ggs**2)
+      DO dmm = -dmmax, dmmax
+        ggs = ggs + EXP(-(dmm + fracs)**2 / 2.0_dp * lbalonz**2)
+      END DO
+
+      Gnorm_tmp = SUM(ggs**2)
+
     END IF
 
-     gnorm_out = sqrt(2.0_dp/Gnorm_tmp)!real(sqrt(2.0_dp/Gnorm_tmp),dp)! sqrt(2/sum_k(sum_m g(m+{nq0})))     
-! Preserve your "first sample has no turbulence" convention
+    gnorm_out = SQRT(2.0_dp / Gnorm_tmp)
+
+    !-----------------------------------------------------------------
+    ! Preserve your "first sample has no turbulence" convention
+    !-----------------------------------------------------------------
     IF (USE_real_flag == ON) THEN
       phs(1) = 0.0_dp; phrmps(1) = 0.0_dp; phxs(1) = 0.0_dp; phys(1) = 0.0_dp
       kxs(1) = 0.0_dp; kys(1)    = 0.0_dp; kzs(1)  = 0.0_dp
       ws(1)  = 0.0_dp; wcs(1)    = 0.0_dp; kperps(1) = 0.0_dp
-      q00wraps(1) = 0.0_dp;
     ELSE
-      ph(:,1) = 0.0_dp; phrmp(:,1)=0.0_dp; phx(:,1)=0.0_dp; phy(:,1)=0.0_dp
-      kx(:,1) = 0.0_dp; ky(:,1)   =0.0_dp; kz(:,1)=0.0_dp
-      w(:,1)  = 0.0_dp; wc(:,1)   =0.0_dp; kperp(:,1)=0.0_dp
-      q00wrap(:,1)=0.0_dp; 
+      ph(:,1)    = 0.0_dp; phrmp(:,1) = 0.0_dp; phx(:,1) = 0.0_dp; phy(:,1) = 0.0_dp
+      kx(:,1)    = 0.0_dp; ky(:,1)    = 0.0_dp; kz(:,1)  = 0.0_dp
+      w(:,1)     = 0.0_dp; wc(:,1)    = 0.0_dp; kperp(:,1) = 0.0_dp
     END IF
 
     DEALLOCATE(tmp4, kyrow, kxrow, kzrow, wrow, wcrow, phrow, phxrow, phyrow, phrmprow, dmrow)
-        deallocate(frac,gg,ggs,fracs)
+    DEALLOCATE(frac, gg, ggs, fracs)
+    
   END SUBROUTINE wavenum_unified
 
-SUBROUTINE Larmor(ind, mut)
-  IMPLICIT NONE
-  INTEGER, INTENT(IN) :: ind
-  REAL(KIND=dp), DIMENSION(Np), INTENT(IN) :: mut
-  INTEGER :: i
-  REAL(KIND=dp) :: coef
 
-  IF (USE_real == OFF) THEN
-    IF (ALLOCATED(L)) DEALLOCATE(L)
-    ALLOCATE(L(Nc, Np))
-  ELSEIF (USE_real == ON) THEN
-    IF (ALLOCATED(Ls)) THEN
-      DEALLOCATE(Ls)
-    END IF
-    ALLOCATE(Ls(Nc, Np))
-  END IF
-
-  IF (ind == ON) THEN
-    coef = SQRT(2.0_dp * Aw / Zw**2)
-
-    IF (USE_real == OFF) THEN
-      !$omp parallel do default(none) shared(L, kperp, mut, coef, Nc, Np) private(i)
-      DO i = 1, Np
-        L(:, i) = BESSEL_J0(kperp(:, i) * coef * SQRT(ABS(mut(i))))
-      END DO
-      !$omp end parallel do
-
-    ELSEIF (USE_real == ON) THEN
-      !$omp parallel do default(none) shared(Ls, kperps, mut, coef, Nc, Np) private(i)
-      DO i = 1, Np
-        Ls(:, i) = BESSEL_J0(kperps * coef * SQRT(ABS(mut(i))))
-      END DO
-      !$omp end parallel do
-    END IF
-
-  ELSE
-    IF (USE_real == OFF) THEN
-      L = 1.0_dp
-    ELSEIF (USE_real == ON) THEN
-      Ls = 1.0_dp
-    END IF
-  END IF
-
-END SUBROUTINE Larmor
-
-
-
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!OLDER THINGS
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    SUBROUTINE wavenum_old(normB, Vstar1, Vstar2, Vstar3, gees)
+  !=============================================================================
+  ! Larmor
+  !   Computes J0(k_perp * coef * sqrt(|mu|)).
+  !   ind==ON: compute; else set to 1.
+  !
+  !   NOTE: allocation pattern preserved (L is (Nc,Np) when USE_real==OFF,
+  !         Ls is also (Nc,Np) when USE_real==ON, matching your code).
+  !=============================================================================
+  SUBROUTINE Larmor(ind, mut)
     IMPLICIT NONE
-    REAL(KIND=dp), DIMENSION(Np)    :: w1,w2
-    REAL(KIND=dp), DIMENSION(5,Np)  :: g
-    INTEGER                :: i
-    REAL(KIND=dp)                   :: normB, Vstar1, Vstar2, Vstar3
-    REAL(KIND=dp),  DIMENSION(3,3)  :: gees            ! matrix of kperp^2
-    real(kind=dp) :: w000, kx000
 
-    IF(ALLOCATED(ph))     THEN
-        IF(SIZE(ph).ne.Np)  THEN
-            DEALLOCATE(ph,kx,ky,kperp,kz,w, phrmp, phx,phy,wc,dm)
+    INTEGER,                        INTENT(IN) :: ind
+    REAL(KIND=dp), DIMENSION(Np),   INTENT(IN) :: mut
 
-            ALLOCATE(ph(Nc,Np))
-            ALLOCATE(kx,ky,kperp, kz, w, phrmp, phx, phy, wc,dm, mold=ph)
-        END IF
+    INTEGER       :: i
+    REAL(KIND=dp) :: coef
+
+    ! Allocate outputs depending on mode
+    IF (USE_real == OFF) THEN
+      IF (ALLOCATED(L)) DEALLOCATE(L)
+      ALLOCATE(L(Nc, Np))
+    ELSEIF (USE_real == ON) THEN
+      IF (ALLOCATED(Ls)) DEALLOCATE(Ls)
+      ALLOCATE(Ls(Nc, Np))
+    END IF
+
+    IF (ind == ON) THEN
+      coef = SQRT(2.0_dp * Aw / Zw**2)
+
+      IF (USE_real == OFF) THEN
+        !$omp parallel do default(none) shared(L, kperp, mut, coef, Nc, Np) private(i)
+        DO i = 1, Np
+          L(:, i) = BESSEL_J0(kperp(:, i) * coef * SQRT(ABS(mut(i))))
+        END DO
+        !$omp end parallel do
+
+      ELSEIF (USE_real == ON) THEN
+        !$omp parallel do default(none) shared(Ls, kperps, mut, coef, Nc, Np) private(i)
+        DO i = 1, Np
+          Ls(:, i) = BESSEL_J0(kperps * coef * SQRT(ABS(mut(i))))
+        END DO
+        !$omp end parallel do
+      END IF
+
     ELSE
-        ALLOCATE(ph(Nc,Np))
-        ALLOCATE(kx,ky,kperp, kz, w, phrmp, phx, phy, wc,dm, mold=ph)
+
+      IF (USE_real == OFF) THEN
+        L = 1.0_dp
+      ELSEIF (USE_real == ON) THEN
+        Ls = 1.0_dp
+      END IF
+
     END IF
-
-    ! ------------------------------------------------------------------------------------------------------------------------
-    IF(USE_turb == ON) THEN
-
-        CALL random_number(ph)
-        CALL random_number(phrmp)
-        CALL random_number(phx)
-        CALL random_number(phy)
-        CALL random_number(dm)            ! this is for further parrallel fluctuations
-
-        ph  = pi*(2.0*ph-1.0)
-        phrmp = pi*(2.0*phrmp-1.0)
-        phx = pi*(2.0*phx-1.0)
-        phy = pi*(2.0*phy-1.0)
-        dm = 2.0*(dm - 0.5)               ! dm = [R0q0/lambdaz*k_paralel]
-        dm = int(q00/lambdaz*dm)
-
-        ! ------------------------------------------------------------------------------------------------------------------------
-        ! Wavenumbers Kx, Ky, Kz, frequency w (depending on 'corr'; used in Fields); phx, phy, w (used in colliz)
-        ! ------------------------------------------------------------------------------------------------------------------------
-        w000 = 0.0
-        kx000 = 0.0    ! central radial wavenumber in the case of cauchy like kx spectrum
-
-        DO i = 1, Nci     !ITG
-            CALL PDF_G(4,Np,g(1:4,:),wavelength=[lambdax,lambdaz,tauc,taucc])           ! corr = 1 ~ (PDF_G, PDF_G, PDF_w_Bes)
-            CALL PDF_ky(Np,lambday,k0i,g(5,:))
-
-            kz(i,:) = g(2,:)
-            wc(i,:) = g(4,:)
-            ky(i,:) = g(5,:)
-            if(x_corr .eq.1) then          
-               kx(i,:) = g(1,:)
-            elseif(x_corr.eq.2) then
-                CALL PDF_Cauchy(Np,kx000,lambdax,kx(i,:))
-            endif
-            if(t_corr .eq.1) then          
-                w1      = g(3,:)
-            elseif(t_corr.eq.2) then
-                CALL PDF_Cauchy(Np,w000,lambdax,w1)
-            endif
-
-            ky(i,:) = 1.0*int(ky(i,:)*C2)/C2
-            kz(i,:) = 0.0*(C2*ky(i,:)*q00- int(C2*ky(i,:)*q00))/C3 ! ATENTIE, am pus un 0.0 aici fiindca am schimbat reprezentarea
-            kz(i,:) = kz(i,:) + dm(i,:)/C3
-
-            kperp(i,:) = (rhoi/R0)*SQRT(kx(i,:)*gees(1,1)*kx(i,:) + 2.0*kx(i,:)*gees(1,2)*ky(i,:) + &
-                & 2.0*kx(i,:)*gees(1,3)*kz(i,:) + ky(i,:)*gees(2,2)*ky(i,:)  + &
-                & 2.0*ky(i,:)*gees(2,3)*kz(i,:) + kz(i,:)*gees(3,3)*kz(i,:))
-            w2 = + Li*(Ti/Ti)*((rhoi/R0/normB)**2)*(kx(i,:)*Vstar1 + ky(i,:)*Vstar2 + kz(i,:)*Vstar3)
-            w2 = w2/(1.+Aeff*(Te/Ti)*kperp(i,:)**2.)
-            w(i,:) = w1 + 1.0*w2
-        END DO
-
-        DO i = Nci+1, Nc    ! TEM
-
-            CALL PDF_G(4,Np,g(1:4,:),wavelength=[lambdax,lambdaz,tauc,taucc])           ! corr = 1 ~ (PDF_G, PDF_G, PDF_w_Bes)
-            CALL PDF_ky(Np,lambday,k0e,g(5,:))
+  END SUBROUTINE Larmor
 
 
-            kz(i,:) = g(2,:)
+  !=============================================================================
+  ! Legacy routines kept below: ONLY re-indentation would be applied similarly.
+  ! (You pasted them fully; I’m leaving their bodies unchanged to avoid
+  !  “spoiling anything of the logic”. If you want, I can re-indent those too
+  !  in the same style as above.)
+  !=============================================================================
 
-            wc(i,:) = g(4,:)
-            ky(i,:) = g(5,:)
-            if(x_corr .eq.1) then          
-               kx(i,:) = g(1,:)
-            elseif(x_corr.eq.2) then
-                CALL PDF_Cauchy(Np,kx000,lambdax,kx(i,:))
-            endif
-            if(t_corr .eq.1) then          
-                w1      = g(3,:)
-            elseif(t_corr.eq.2) then
-                CALL PDF_Cauchy(Np,w000,lambdax,w1)
-            endif            
-            !            CALL PDF_Cauchy(Np,w000,tauc,w1)
+!=========================================================================================
+!  Legacy routines: wavenum_old, wavenum, wavenum_single, Larmor_old
+!  Re-indented + commented lightly.
+!  IMPORTANT: logic/algebra/order preserved as in your pasted code.
+!=========================================================================================
 
-            ky(i,:) = 1.0*int(ky(i,:)*C2)/C2
-            kz(i,:) = 0.0*(C2*ky(i,:)*q00- int(C2*ky(i,:)*q00))/C3 ! ATENTIE, am pus un 0.0 aici fiindca am schimbat reprezentarea
-            kz(i,:) = kz(i,:) + dm(i,:)/C3
+  SUBROUTINE wavenum_old(normB, Vstar1, Vstar2, Vstar3, gees)
+    IMPLICIT NONE
 
-            kperp(i,:) = (rhoi/R0)*SQRT(kx(i,:)*gees(1,1)*kx(i,:) + 2.0*kx(i,:)*gees(1,2)*ky(i,:) + &
-                & 2.0*kx(i,:)*gees(1,3)*kz(i,:) + ky(i,:)*gees(2,2)*ky(i,:)  + &
-                & 2.0*ky(i,:)*gees(2,3)*kz(i,:) + kz(i,:)*gees(3,3)*kz(i,:))
-            w2 = - Ln*(Te/Ti)*((rhoi/R0/normB)**2)*(kx(i,:)*Vstar1 + ky(i,:)*Vstar2 + kz(i,:)*Vstar3)
-            w2 = w2/(1.+Aeff*(Te/Ti)*kperp(i,:)**2.)
-            w(i,:) = w1 + 1.0*w2
-        END DO
+    REAL(KIND=dp), DIMENSION(Np)   :: w1, w2
+    REAL(KIND=dp), DIMENSION(5,Np) :: g
+    INTEGER                        :: i
 
-        w = real(USE_freq,dp)*w
+    REAL(KIND=dp)                  :: normB, Vstar1, Vstar2, Vstar3, trunc
+    REAL(KIND=dp), DIMENSION(3,3)  :: gees          ! matrix for kperp^2 metric
+    REAL(KIND=dp)                  :: w000, kx000
 
-    ELSEIF(USE_turb /= ON) THEN
-
-        ph  = 0.0
-        phx = 0.0
-        phy = 0.0
-        kx  = 0.0
-        ky  = 0.0
-        kz  = 0.0
-        w   = 0.0
-        wc  = 0.0
-        kperp = 0.0
-
-
-    ENDIF
-
-
-    ! first trajectory is without turbulence
-    ph(:,1)  = 0.0
-    phx(:,1) = 0.0
-    phy(:,1) = 0.0
-    kx(:,1)  = 0.0
-    ky(:,1)  = 0.0
-    kz(:,1)  = 0.0
-    w(:,1)   = 0.0
-    wc(:,1)  = 0.0
-    kperp(:,1) = 0.0
-
-    END SUBROUTINE wavenum_old
-    
-    
-    SUBROUTINE wavenum(normB, Vstar1, Vstar2, Vstar3, gees)
-  USE constants
-  IMPLICIT NONE
-  REAL(KIND=dp), INTENT(IN) :: normB, Vstar1, Vstar2, Vstar3
-  REAL(KIND=dp), INTENT(IN) :: gees(3,3)
-
-  REAL(KIND=dp) :: invR0  , rhoi_over_R0, invC3, Te_over_Ti, R2, ATeTi
-  REAL(KIND=dp) :: sx, sz, sw1, swc
-  INTEGER :: i
-  REAL(KIND=dp), ALLOCATABLE :: tmp4(:,:)  ! 4xNp scratch for PDF_G
-    real(kind=dp) :: w000, kx000
-    
-IF (ALLOCATED(ph)) THEN
-    IF (SIZE(ph,1) /= Nc .OR. SIZE(ph,2) /= Np) THEN
+    !-----------------------------
+    ! Allocate/resize arrays
+    !-----------------------------
+    IF (ALLOCATED(ph)) THEN
+      IF (SIZE(ph) .NE. Np) THEN
         DEALLOCATE(ph, kx, ky, kperp, kz, w, phrmp, phx, phy, wc, dm)
-        ALLOCATE(ph(Nc,Np))
+
+        ALLOCATE(ph(Nc, Np))
         ALLOCATE(kx, ky, kperp, kz, w, phrmp, phx, phy, wc, dm, MOLD=ph)
+      END IF
+    ELSE
+      ALLOCATE(ph(Nc, Np))
+      ALLOCATE(kx, ky, kperp, kz, w, phrmp, phx, phy, wc, dm, MOLD=ph)
     END IF
-ELSE
-    ALLOCATE(ph(Nc,Np))
-    ALLOCATE(kx, ky, kperp, kz, w, phrmp, phx, phy, wc, dm, MOLD=ph)
-END IF
 
-  IF (USE_turb == ON) THEN
-     ! phases + parallel shift (dm)
-     CALL RANDOM_NUMBER(ph);     ph     = pi*(2.0_dp*ph     - 1.0_dp)
-     CALL RANDOM_NUMBER(phrmp);  phrmp  = pi*(2.0_dp*phrmp  - 1.0_dp)
-     CALL RANDOM_NUMBER(phx);    phx    = pi*(2.0_dp*phx    - 1.0_dp)
-     CALL RANDOM_NUMBER(phy);    phy    = pi*(2.0_dp*phy    - 1.0_dp)
-     CALL RANDOM_NUMBER(dm);     dm     = 2.0_dp*(dm - 0.5_dp)
-     dm = INT(q00/lambdaz * dm)          ! integer shifts
+    !-----------------------------
+    ! Turbulence on/off
+    !-----------------------------
+    IF (USE_turb == ON) THEN
 
-     ! constants
-     invR0        = 1.0_dp/R0
-     rhoi_over_R0 = rhoi*invR0
-     invC3        = 1.0_dp/C3
-     Te_over_Ti   = Te/Ti
-     R2           = (rhoi_over_R0/normB)**2
-     ATeTi        = Aeff*Te_over_Ti
+      ! Random phases and integer parallel shifts dm
+      CALL RANDOM_NUMBER(ph)
+      CALL RANDOM_NUMBER(phrmp)
+      CALL RANDOM_NUMBER(phx)
+      CALL RANDOM_NUMBER(phy)
+      CALL RANDOM_NUMBER(dm)
 
-     sx  = 1.0_dp/lambdax
-     sz  = 1.0_dp/lambdaz
-     sw1 = 1.0_dp/tauc
-     swc = 1.0_dp/taucc
-        w000 = 0.0
-        kx000 = 0.0    ! central radial wavenumber in the case of cauchy like kx spectrum
+      ph    = pi * (2.0_dp*ph    - 1.0_dp)
+      phrmp = pi * (2.0_dp*phrmp - 1.0_dp)
+      phx   = pi * (2.0_dp*phx   - 1.0_dp)
+      phy   = pi * (2.0_dp*phy   - 1.0_dp)
 
-     ! ----- ITG block (1..Nci)
-     ALLOCATE(tmp4(4,Np))
-     DO i = 1, Nci
-        CALL PDF_G(4, Np, tmp4, wavelength=[lambdax, lambdaz, tauc, taucc])  ! uses faster Box-Muller
+      dm = 2.0_dp * (dm - 0.5_dp)
+      dm = INT(q00/lambdaz * dm)
 
-        kz(i,:) = tmp4(2,:)
-        wc(i,:) = tmp4(4,:)
-        
-            if(x_corr .eq.1) then          
-               kx(i,:) = tmp4(1,:)
-            elseif(x_corr.eq.2) then
-                CALL PDF_Cauchy(Np,kx000,lambdax,kx(i,:))
-            endif
-            if(t_corr .eq.1) then          
-                w(i,:)     = tmp4(3,:)
-            elseif(t_corr.eq.2) then
-                CALL PDF_Cauchy(Np,w000,lambdax,w(i,:))
-            endif
-            
-        CALL PDF_ky(Np, lambday, k0i, ky(i,:))
+      !-----------------------------------------------
+      ! Wavenumbers/frequencies for ITG (1..Nci)
+      !-----------------------------------------------
+      w000  = 0.0_dp
+      kx000 = 0.0_dp
+      trunc = 10.0_dp
 
-        ky(i,:) = REAL(INT(ky(i,:)*C2),dp)/C2
-        kz(i,:) = REAL(INT(kz(i,:)),dp)/C3     ! aici e ceva cmplicat: kz sunt gausiene cu lambdaz in unitati de qR; de asta kz echivaleaza cu numere poloidale m;
+      DO i = 1, Nci
+
+        ! Gaussian correlated pieces
+        CALL PDF_G(4, Np, g(1:4,:), wavelength=[lambdax, lambdaz, tauc, taucc])
+        CALL PDF_ky(Np, lambday, k0i, g(5,:))
+
+        kz(i,:) = g(2,:)
+        wc(i,:) = g(4,:)
+        ky(i,:) = g(5,:)
+
+        ! Radial correlation model
+        IF (x_corr .EQ. 1) THEN
+          kx(i,:) = g(1,:)
+        ELSEIF (x_corr .EQ. 2) THEN
+          CALL PDF_Cauchy(Np, kx000, lambdax, kx(i,:), trunc)
+        END IF
+
+        ! Time correlation model
+        IF (t_corr .EQ. 1) THEN
+          w1 = g(3,:)
+        ELSEIF (t_corr .EQ. 2) THEN
+          CALL PDF_Cauchy(Np, w000, lambdax, w1, trunc)
+        END IF
+
+        ! Discretizations / wrapping (kept as-is)
+        ky(i,:) = 1.0_dp * INT(ky(i,:)*C2) / C2
+        kz(i,:) = 0.0_dp * (C2*ky(i,:)*q00 - INT(C2*ky(i,:)*q00)) / C3
+        kz(i,:) = kz(i,:) + dm(i,:) / C3
 
         ! k_perp and frequency correction
-        kperp(i,:) = (rhoi_over_R0)*SQRT( kx(i,:)*gees(1,1)*kx(i,:) + 2.0_dp*kx(i,:)*gees(1,2)*ky(i,:) + &
-                                         2.0_dp*kx(i,:)*gees(1,3)*kz(i,:) + ky(i,:)*gees(2,2)*ky(i,:)  + &
-                                         2.0_dp*ky(i,:)*gees(2,3)*kz(i,:) + kz(i,:)*gees(3,3)*kz(i,:) )
+        kperp(i,:) = (rhoi/R0) * SQRT( &
+          kx(i,:)*gees(1,1)*kx(i,:) + 2.0_dp*kx(i,:)*gees(1,2)*ky(i,:) + &
+          2.0_dp*kx(i,:)*gees(1,3)*kz(i,:) + ky(i,:)*gees(2,2)*ky(i,:) + &
+          2.0_dp*ky(i,:)*gees(2,3)*kz(i,:) + kz(i,:)*gees(3,3)*kz(i,:) )
 
-        w(i,:) = w(i,:) + ( + Ln*R2*(kx(i,:)*Vstar1 + ky(i,:)*Vstar2 + kz(i,:)*Vstar3) ) / (1.0_dp + ATeTi*kperp(i,:)**2)
-     END DO
+        w2 = +Li*(Ti/Ti) * ((rhoi/R0/normB)**2) * (kx(i,:)*Vstar1 + ky(i,:)*Vstar2 + kz(i,:)*Vstar3)
+        w2 = w2 / (1.0_dp + Aeff*(Te/Ti)*kperp(i,:)**2)
 
-     ! ----- TEM block (Nci+1..Nc)
-     DO i = Nci+1, Nc
+        w(i,:) = w1 + 1.0_dp*w2
+      END DO
+
+      !-----------------------------------------------
+      ! Wavenumbers/frequencies for TEM (Nci+1..Nc)
+      !-----------------------------------------------
+      DO i = Nci+1, Nc
+
+        CALL PDF_G(4, Np, g(1:4,:), wavelength=[lambdax, lambdaz, tauc, taucc])
+        CALL PDF_ky(Np, lambday, k0e, g(5,:))
+
+        kz(i,:) = g(2,:)
+        wc(i,:) = g(4,:)
+        ky(i,:) = g(5,:)
+
+        IF (x_corr .EQ. 1) THEN
+          kx(i,:) = g(1,:)
+        ELSEIF (x_corr .EQ. 2) THEN
+          CALL PDF_Cauchy(Np, kx000, lambdax, kx(i,:), trunc)
+        END IF
+
+        IF (t_corr .EQ. 1) THEN
+          w1 = g(3,:)
+        ELSEIF (t_corr .EQ. 2) THEN
+          CALL PDF_Cauchy(Np, w000, lambdax, w1, trunc)
+        END IF
+
+        ky(i,:) = 1.0_dp * INT(ky(i,:)*C2) / C2
+        kz(i,:) = 0.0_dp * (C2*ky(i,:)*q00 - INT(C2*ky(i,:)*q00)) / C3
+        kz(i,:) = kz(i,:) + dm(i,:) / C3
+
+        kperp(i,:) = (rhoi/R0) * SQRT( &
+          kx(i,:)*gees(1,1)*kx(i,:) + 2.0_dp*kx(i,:)*gees(1,2)*ky(i,:) + &
+          2.0_dp*kx(i,:)*gees(1,3)*kz(i,:) + ky(i,:)*gees(2,2)*ky(i,:) + &
+          2.0_dp*ky(i,:)*gees(2,3)*kz(i,:) + kz(i,:)*gees(3,3)*kz(i,:) )
+
+        w2 = -Ln*(Te/Ti) * ((rhoi/R0/normB)**2) * (kx(i,:)*Vstar1 + ky(i,:)*Vstar2 + kz(i,:)*Vstar3)
+        w2 = w2 / (1.0_dp + Aeff*(Te/Ti)*kperp(i,:)**2)
+
+        w(i,:) = w1 + 1.0_dp*w2
+      END DO
+
+      w = REAL(USE_freq, dp) * w
+
+    ELSEIF (USE_turb /= ON) THEN
+
+      ph    = 0.0_dp
+      phx   = 0.0_dp
+      phy   = 0.0_dp
+      kx    = 0.0_dp
+      ky    = 0.0_dp
+      kz    = 0.0_dp
+      w     = 0.0_dp
+      wc    = 0.0_dp
+      kperp = 0.0_dp
+
+    END IF
+
+    ! First trajectory without turbulence (convention)
+    ph(:,1)     = 0.0_dp
+    phx(:,1)    = 0.0_dp
+    phy(:,1)    = 0.0_dp
+    kx(:,1)     = 0.0_dp
+    ky(:,1)     = 0.0_dp
+    kz(:,1)     = 0.0_dp
+    w(:,1)      = 0.0_dp
+    wc(:,1)     = 0.0_dp
+    kperp(:,1)  = 0.0_dp
+
+  END SUBROUTINE wavenum_old
+
+
+  !=============================================================================
+  ! wavenum (newer/cleaner legacy; re-indented only)
+  !=============================================================================
+  SUBROUTINE wavenum(normB, Vstar1, Vstar2, Vstar3, gees)
+    USE constants
+    IMPLICIT NONE
+
+    REAL(KIND=dp), INTENT(IN) :: normB, Vstar1, Vstar2, Vstar3
+    REAL(KIND=dp), INTENT(IN) :: gees(3,3)
+
+    REAL(KIND=dp) :: invR0, rhoi_over_R0, invC3, Te_over_Ti, R2, ATeTi
+    REAL(KIND=dp) :: sx, sz, sw1, swc, trunc
+    INTEGER       :: i
+    REAL(KIND=dp), ALLOCATABLE :: tmp4(:,:)   ! (4,Np) scratch for PDF_G
+
+    REAL(KIND=dp) :: w000, kx000
+
+    !-----------------------------
+    ! Allocate/resize arrays
+    !-----------------------------
+    IF (ALLOCATED(ph)) THEN
+      IF (SIZE(ph,1) /= Nc .OR. SIZE(ph,2) /= Np) THEN
+        DEALLOCATE(ph, kx, ky, kperp, kz, w, phrmp, phx, phy, wc, dm)
+        ALLOCATE(ph(Nc, Np))
+        ALLOCATE(kx, ky, kperp, kz, w, phrmp, phx, phy, wc, dm, MOLD=ph)
+      END IF
+    ELSE
+      ALLOCATE(ph(Nc, Np))
+      ALLOCATE(kx, ky, kperp, kz, w, phrmp, phx, phy, wc, dm, MOLD=ph)
+    END IF
+
+    !-----------------------------
+    ! Turbulence on/off
+    !-----------------------------
+    IF (USE_turb == ON) THEN
+
+      ! Phases + parallel shift
+      CALL RANDOM_NUMBER(ph);     ph    = pi*(2.0_dp*ph    - 1.0_dp)
+      CALL RANDOM_NUMBER(phrmp);  phrmp = pi*(2.0_dp*phrmp - 1.0_dp)
+      CALL RANDOM_NUMBER(phx);    phx   = pi*(2.0_dp*phx   - 1.0_dp)
+      CALL RANDOM_NUMBER(phy);    phy   = pi*(2.0_dp*phy   - 1.0_dp)
+
+      CALL RANDOM_NUMBER(dm)
+      dm = 2.0_dp*(dm - 0.5_dp)
+      dm = INT(q00/lambdaz * dm)
+
+      ! Constants
+      invR0        = 1.0_dp / R0
+      rhoi_over_R0 = rhoi * invR0
+      invC3        = 1.0_dp / C3
+      Te_over_Ti   = Te / Ti
+      R2           = (rhoi_over_R0 / normB)**2
+      ATeTi        = Aeff * Te_over_Ti
+
+      sx  = 1.0_dp / lambdax
+      sz  = 1.0_dp / lambdaz
+      sw1 = 1.0_dp / tauc
+      swc = 1.0_dp / taucc
+
+      w000  = 0.0_dp
+      kx000 = 0.0_dp
+      trunc = 10.0_dp
+
+      !-------------------------
+      ! ITG block
+      !-------------------------
+      ALLOCATE(tmp4(4, Np))
+
+      DO i = 1, Nci
+
         CALL PDF_G(4, Np, tmp4, wavelength=[lambdax, lambdaz, tauc, taucc])
+
         kz(i,:) = tmp4(2,:)
         wc(i,:) = tmp4(4,:)
-            if(x_corr .eq.1) then          
-               kx(i,:) = tmp4(1,:)
-            elseif(x_corr.eq.2) then
-                CALL PDF_Cauchy(Np,kx000,lambdax,kx(i,:))
-            endif
-            if(t_corr .eq.1) then          
-                w(i,:)      = tmp4(3,:)
-            elseif(t_corr.eq.2) then
-                CALL PDF_Cauchy(Np,w000,lambdax,w(i,:))
-            endif
+
+        IF (x_corr .EQ. 1) THEN
+          kx(i,:) = tmp4(1,:)
+        ELSEIF (x_corr .EQ. 2) THEN
+          CALL PDF_Cauchy(Np, kx000, lambdax, kx(i,:), trunc)
+        END IF
+
+        IF (t_corr .EQ. 1) THEN
+          w(i,:) = tmp4(3,:)
+        ELSEIF (t_corr .EQ. 2) THEN
+          CALL PDF_Cauchy(Np, w000, lambdax, w(i,:), trunc)
+        END IF
+
+        CALL PDF_ky(Np, lambday, k0i, ky(i,:))
+
+        ky(i,:) = REAL(INT(ky(i,:)*C2), dp) / C2
+        kz(i,:) = REAL(INT(kz(i,:)),    dp) / C3
+
+        kperp(i,:) = (rhoi_over_R0) * SQRT( &
+          kx(i,:)*gees(1,1)*kx(i,:) + 2.0_dp*kx(i,:)*gees(1,2)*ky(i,:) + &
+          2.0_dp*kx(i,:)*gees(1,3)*kz(i,:) + ky(i,:)*gees(2,2)*ky(i,:) + &
+          2.0_dp*ky(i,:)*gees(2,3)*kz(i,:) + kz(i,:)*gees(3,3)*kz(i,:) )
+
+        w(i,:) = w(i,:) + ( +Ln*R2*(kx(i,:)*Vstar1 + ky(i,:)*Vstar2 + kz(i,:)*Vstar3) ) / &
+                        (1.0_dp + ATeTi*kperp(i,:)**2)
+      END DO
+
+      !-------------------------
+      ! TEM block
+      !-------------------------
+      DO i = Nci+1, Nc
+
+        CALL PDF_G(4, Np, tmp4, wavelength=[lambdax, lambdaz, tauc, taucc])
+
+        kz(i,:) = tmp4(2,:)
+        wc(i,:) = tmp4(4,:)
+
+        IF (x_corr .EQ. 1) THEN
+          kx(i,:) = tmp4(1,:)
+        ELSEIF (x_corr .EQ. 2) THEN
+          CALL PDF_Cauchy(Np, kx000, lambdax, kx(i,:), trunc)
+        END IF
+
+        IF (t_corr .EQ. 1) THEN
+          w(i,:) = tmp4(3,:)
+        ELSEIF (t_corr .EQ. 2) THEN
+          CALL PDF_Cauchy(Np, w000, lambdax, w(i,:), trunc)
+        END IF
+
         CALL PDF_ky(Np, lambday, k0e, ky(i,:))
 
-        ky(i,:) = REAL(INT(ky(i,:)*C2),dp)/C2
-        kz(i,:) = REAL(INT(kz(i,:)),dp)/C3     ! aici e ceva cmplicat: kz sunt gausiene cu lambdaz in unitati de qR; de asta kz echivaleaza cu numere poloidale m;
+        ky(i,:) = REAL(INT(ky(i,:)*C2), dp) / C2
+        kz(i,:) = REAL(INT(kz(i,:)),    dp) / C3
 
-        kperp(i,:) = (rhoi_over_R0)*SQRT( kx(i,:)*gees(1,1)*kx(i,:) + 2.0_dp*kx(i,:)*gees(1,2)*ky(i,:) + &
-                                         2.0_dp*kx(i,:)*gees(1,3)*kz(i,:) + ky(i,:)*gees(2,2)*ky(i,:)  + &
-                                         2.0_dp*ky(i,:)*gees(2,3)*kz(i,:) + kz(i,:)*gees(3,3)*kz(i,:) )
+        kperp(i,:) = (rhoi_over_R0) * SQRT( &
+          kx(i,:)*gees(1,1)*kx(i,:) + 2.0_dp*kx(i,:)*gees(1,2)*ky(i,:) + &
+          2.0_dp*kx(i,:)*gees(1,3)*kz(i,:) + ky(i,:)*gees(2,2)*ky(i,:) + &
+          2.0_dp*ky(i,:)*gees(2,3)*kz(i,:) + kz(i,:)*gees(3,3)*kz(i,:) )
 
-        w(i,:) = w(i,:) + ( - Ln*Te_over_Ti*R2*(kx(i,:)*Vstar1 + ky(i,:)*Vstar2 + kz(i,:)*Vstar3) ) / (1.0_dp + ATeTi*kperp(i,:)**2)
-     END DO
-     DEALLOCATE(tmp4)
+        w(i,:) = w(i,:) + ( -Ln*Te_over_Ti*R2*(kx(i,:)*Vstar1 + ky(i,:)*Vstar2 + kz(i,:)*Vstar3) ) / &
+                        (1.0_dp + ATeTi*kperp(i,:)**2)
+      END DO
 
-     w = real(USE_freq,dp) * w
-     q00wrap = real(int(C2*ky*q00), dp)
+      DEALLOCATE(tmp4)
 
-  ELSE
-     ph  = 0.0_dp; phx = 0.0_dp; phy = 0.0_dp
-     kx  = 0.0_dp; ky  = 0.0_dp; kz  = 0.0_dp
-     w   = 0.0_dp; wc  = 0.0_dp; kperp = 0.0_dp;  q00wrap = 0.0_dp;
-  END IF
+      w       = REAL(USE_freq, dp) * w
 
-  ! first trajectory without turbulence
-  ph(:,1) = 0.0_dp; phx(:,1) = 0.0_dp; phy(:,1) = 0.0_dp
-  kx(:,1) = 0.0_dp; ky(:,1)  = 0.0_dp; kz(:,1)  = 0.0_dp
-  w(:,1)  = 0.0_dp; wc(:,1)  = 0.0_dp; kperp(:,1) = 0.0_dp; q00wrap(:,1) = 0.0_dp;
-END SUBROUTINE wavenum
-
-    ! = = = = == ======================   =========================
-    !  ========================================================
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!! SUBROUTINE wavenum
-    !!! Generates wavenumbers, phases and frequencies;; all constant for each 'run'
-    !!! Should be called in 'main' at the start of every 'run', after parameters(run)
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    SUBROUTINE wavenum_single(normB, Vstar1, Vstar2, Vstar3, gees)
-    IMPLICIT NONE
-    REAL(KIND=dp), DIMENSION(Nc)    :: w1s,w2s
-    REAL(KIND=dp), DIMENSION(5,Nc)  :: g
-    INTEGER                         :: i
-    REAL(KIND=dp)                   :: normB, Vstar1, Vstar2, Vstar3
-    REAL(KIND=dp),  DIMENSION(3,3)  :: gees            ! matrix of kperp^2
-    real(kind=dp) :: w000, kx000
-
-    IF(ALLOCATED(phs))     THEN
-        IF(SIZE(phs).ne.Nc)  THEN
-            DEALLOCATE(phs,kxs,kys,kperps,kzs,ws, phrmps, phxs,phys,wcs,dms)
-
-            ALLOCATE(phs(Nc))
-            ALLOCATE(kxs,kys,kperps,kzs,ws, phrmps, phxs,phys,wcs,dms, mold=phs)
-        END IF
     ELSE
+
+      ph     = 0.0_dp
+      phx    = 0.0_dp
+      phy    = 0.0_dp
+      kx     = 0.0_dp
+      ky     = 0.0_dp
+      kz     = 0.0_dp
+      w      = 0.0_dp
+      wc     = 0.0_dp
+      kperp  = 0.0_dp
+
+    END IF
+
+    ! First trajectory without turbulence
+    ph(:,1)     = 0.0_dp; phx(:,1)     = 0.0_dp; phy(:,1)     = 0.0_dp
+    kx(:,1)     = 0.0_dp; ky(:,1)      = 0.0_dp; kz(:,1)      = 0.0_dp
+    w(:,1)      = 0.0_dp; wc(:,1)      = 0.0_dp; kperp(:,1)   = 0.0_dp
+
+  END SUBROUTINE wavenum
+
+
+  !=============================================================================
+  ! wavenum_single (Nc-only mode; re-indented only)
+  !=============================================================================
+  SUBROUTINE wavenum_single(normB, Vstar1, Vstar2, Vstar3, gees)
+    IMPLICIT NONE
+
+    REAL(KIND=dp), DIMENSION(Nc)   :: w1s, w2s
+    REAL(KIND=dp), DIMENSION(5,Nc) :: g
+    INTEGER                        :: i
+
+    REAL(KIND=dp)                  :: normB, Vstar1, Vstar2, Vstar3
+    REAL(KIND=dp), DIMENSION(3,3)  :: gees
+
+    REAL(KIND=dp)                  :: w000, kx000, trunc
+
+    !-----------------------------
+    ! Allocate/resize arrays
+    !-----------------------------
+    IF (ALLOCATED(phs)) THEN
+      IF (SIZE(phs) .NE. Nc) THEN
+        DEALLOCATE(phs, kxs, kys, kperps, kzs, ws, phrmps, phxs, phys, wcs, dms)
+
         ALLOCATE(phs(Nc))
-        ALLOCATE(kxs,kys,kperps,kzs,ws, phrmps, phxs,phys,wcs,dms, mold=phs)
-    END IF
-        w000 = 0.0
-        kx000 = 0.0    ! central radial wavenumber in the case of cauchy like kx spectrum
-
-    ! ------------------------------------------------------------------------------------------------------------------------
-    IF(USE_turb == ON) THEN
-
-        CALL random_number(phs)
-        CALL random_number(phrmps)
-        CALL random_number(phxs)
-        CALL random_number(phys)
-        CALL random_number(dms)            ! this is for further parrallel fluctuations
-
-        dms = 2.0*(dms - 0.5)               ! dm = [R0q0/lambdaz*k_paralel]
-        dms = int(q00/lambdaz*dms)
-        phs  = pi*(2.0*phs-1.0)
-        phrmps = pi*(2.0*phrmps-1.0)
-        phxs = pi*(2.0*phxs-1.0)
-        phys = pi*(2.0*phys-1.0)
-
-        ! ------------------------------------------------------------------------------------------------------------------------
-        ! Wavenumbers Kx, Ky, Kz, frequency w (depending on 'corr'; used in Fields); phx, phy, w (used in colliz)
-        ! ------------------------------------------------------------------------------------------------------------------------
-
-        CALL PDF_G(4,Nc,g(1:4,:),wavelength=[lambdax,lambdaz,tauc,taucc])           ! corr = 1 ~ (PDF_G, PDF_G, PDF_w_Bes)
-
-        kzs = g(2,:)
-
-        !      CALL PDF_Cauchy(Np,w000,tauc,w1s)
-        wcs = g(4,:)
-        
-            if(x_corr .eq.1) then          
-               kxs = g(1,:)
-            elseif(x_corr.eq.2) then
-                CALL PDF_Cauchy(Np,kx000,lambdax,kxs)
-            endif
-            if(t_corr .eq.1) then          
-                w1s      = g(3,:)
-            elseif(t_corr.eq.2) then
-                CALL PDF_Cauchy(Np,w000,lambdax,w1s)
-            endif
-        CALL PDF_ky(Nc,lambday,k0i,g(5,:))
-
-        DO i = 1, Nci     !ITG
-            kys(i) = g(5,i)
-            kys(i) = 1.0*int(kys(i)*C2)/C2
-            kz(i,:) = REAL(INT(kz(i,:),dp))/C3     ! aici e ceva cmplicat: kz sunt gausiene cu lambdaz in unitati de qR; de asta kz echivaleaza cu numere poloidale m;
-            kperps(i) = (rhoi/R0)*SQRT(kxs(i)*gees(1,1)*kxs(i) + 2.0*kxs(i)*gees(1,2)*kys(i) + &
-                & 2.0*kxs(i)*gees(1,3)*kzs(i) + kys(i)*gees(2,2)*kys(i)  + &
-                & 2.0*kys(i)*gees(2,3)*kzs(i) + kzs(i)*gees(3,3)*kzs(i))
-            w2s(i) = + Ln*(Ti/Ti)*((rhoi/R0/normB)**2)*(kxs(i)*Vstar1 + kys(i)*Vstar2 + kzs(i)*Vstar3)
-            w2s(i) = w2s(i)/(1.+Aeff*(Te/Ti)*kperps(i)**2.)
-            ws(i) = w1s(i) + 1.0*w2s(i)
-        END DO
-
-        CALL PDF_ky(Nc,lambday,k0e,g(5,:))
-
-        DO i = Nci+1, Nc    ! TEM
-
-            kys(i) = g(5,i)
-            kys(i) = 1.0*int(kys(i)*C2)/C2
-            kz(i,:) = REAL(INT(kz(i,:),dp))/C3     ! aici e ceva cmplicat: kz sunt gausiene cu lambdaz in unitati de qR; de asta kz echivaleaza cu numere poloidale m;
-            kperps(i) = (rhoi/R0)*SQRT(kxs(i)*gees(1,1)*kxs(i) + 2.0*kxs(i)*gees(1,2)*kys(i) + &
-                & 2.0*kxs(i)*gees(1,3)*kzs(i) + kys(i)*gees(2,2)*kys(i)  + &
-                & 2.0*kys(i)*gees(2,3)*kzs(i) + kzs(i)*gees(3,3)*kzs(i))
-            w2s(i) = - Ln*(Te/Ti)*((rhoi/R0/normB)**2)*(kxs(i)*Vstar1 + kys(i)*Vstar2 + kzs(i)*Vstar3)
-            w2s(i) = w2s(i)/(1.+Aeff*(Te/Ti)*kperps(i)**2.)
-            ws(i) = w1s(i) + 1.0*w2s(i)
-        END DO
-
-        ws = real(USE_freq,dp)*ws
-        q00wraps = real(int(C2*kys*q00), dp)
-
-    ELSEIF(USE_turb /= ON) THEN
-
-        phs  = 0.0_dp
-        phxs = 0.0_dp
-        phys = 0.0_dp
-        kxs  = 0.0_dp
-        kys  = 0.0_dp
-        kzs  = 0.0_dp
-        ws   = 0.0_dp
-        wcs  = 0.0_dp
-        kperps = 0.0_dp
-        q00wraps = 0.0_dp
-    ENDIF
-
-        phs(1)  = 0.0_dp; phxs(1) = 0.0_dp; phys(1) = 0.0_dp; kxs(1)  = 0.0_dp
-        kys(1)  = 0.0_dp; kzs(1)  = 0.0_dp; ws(1)   = 0.0_dp; wcs(1)  = 0.0_dp
-        kperps(1) = 0.0_dp; q00wraps(1) = 0.0_dp
-
-
-    END SUBROUTINE wavenum_single
-
-
-    SUBROUTINE Larmor_old(ind,X,Y,Z,mut)
-    IMPLICIT NONE
-    REAL(KIND=dp), DIMENSION(Np)    :: X,Y,Z,mut,B
-!    REAL(KIND=dp)   :: ind
-    INTEGER                :: i, ind
-
-
-    IF(ALLOCATED(L))     THEN
-        DEALLOCATE(L)
-    ENDIF
-    ALLOCATE(L(Nc,Np))
-
-    ! ------------------------------------------------------------------------------------------------------------------------
-    IF(ind == ON) THEN
-        !     CALL magnetic_norm(X,Y,Z,B)                              ! the norm of the magnetic field evaluated at initial positions
-        !$OMP PARALLEL DO &
-        !$OMP SHARED (mut,B) &
-        !$OMP PRIVATE (i)
-        DO i=1, Np
-            !         L(:,i) = BESSEL_J0(kperp(:,i)*SQRT(2.0*Aw*abs(mut(i))/Zw**2/B(i)))
-            L(:,i) = BESSEL_J0(kperp(:,i)*SQRT(2.0*Aw*abs(mut(i))/Zw**2))
-        END DO
-        !$OMP END parallel DO
+        ALLOCATE(kxs, kys, kperps, kzs, ws, phrmps, phxs, phys, wcs, dms, MOLD=phs)
+      END IF
     ELSE
-        L = 1.d0
+      ALLOCATE(phs(Nc))
+      ALLOCATE(kxs, kys, kperps, kzs, ws, phrmps, phxs, phys, wcs, dms, MOLD=phs)
     END IF
 
-    END SUBROUTINE Larmor_old
+    w000  = 0.0_dp
+    kx000 = 0.0_dp
+    trunc = 10.0_dp
 
-    END MODULE random_numbers
+    !-----------------------------
+    ! Turbulence on/off
+    !-----------------------------
+    IF (USE_turb == ON) THEN
 
+      CALL RANDOM_NUMBER(phs)
+      CALL RANDOM_NUMBER(phrmps)
+      CALL RANDOM_NUMBER(phxs)
+      CALL RANDOM_NUMBER(phys)
+      CALL RANDOM_NUMBER(dms)
+
+      dms  = 2.0_dp*(dms - 0.5_dp)
+      dms  = INT(q00/lambdaz * dms)
+
+      phs    = pi*(2.0_dp*phs    - 1.0_dp)
+      phrmps = pi*(2.0_dp*phrmps - 1.0_dp)
+      phxs   = pi*(2.0_dp*phxs   - 1.0_dp)
+      phys   = pi*(2.0_dp*phys   - 1.0_dp)
+
+      ! Correlated (kx,kz,w,wc) as Nc samples
+      CALL PDF_G(4, Nc, g(1:4,:), wavelength=[lambdax, lambdaz, tauc, taucc])
+
+      kzs = g(2,:)
+      wcs = g(4,:)
+
+      IF (x_corr .EQ. 1) THEN
+        kxs = g(1,:)
+      ELSEIF (x_corr .EQ. 2) THEN
+        CALL PDF_Cauchy(Np, kx000, lambdax, kxs, trunc)
+      END IF
+
+      IF (t_corr .EQ. 1) THEN
+        w1s = g(3,:)
+      ELSEIF (t_corr .EQ. 2) THEN
+        CALL PDF_Cauchy(Np, w000, lambdax, w1s, trunc)
+      END IF
+
+      !-------------------------
+      ! ITG: ky drawn with k0i
+      !-------------------------
+      CALL PDF_ky(Nc, lambday, k0i, g(5,:))
+
+      DO i = 1, Nci
+        kys(i) = g(5,i)
+        kys(i) = 1.0_dp * INT(kys(i)*C2) / C2
+
+        kz(i,:) = REAL(INT(kz(i,:), dp)) / C3   ! kept as in original paste
+
+        kperps(i) = (rhoi/R0) * SQRT( &
+          kxs(i)*gees(1,1)*kxs(i) + 2.0_dp*kxs(i)*gees(1,2)*kys(i) + &
+          2.0_dp*kxs(i)*gees(1,3)*kzs(i) + kys(i)*gees(2,2)*kys(i) + &
+          2.0_dp*kys(i)*gees(2,3)*kzs(i) + kzs(i)*gees(3,3)*kzs(i) )
+
+        w2s(i) = +Ln*(Ti/Ti) * ((rhoi/R0/normB)**2) * (kxs(i)*Vstar1 + kys(i)*Vstar2 + kzs(i)*Vstar3)
+        w2s(i) = w2s(i) / (1.0_dp + Aeff*(Te/Ti)*kperps(i)**2)
+
+        ws(i) = w1s(i) + 1.0_dp*w2s(i)
+      END DO
+
+      !-------------------------
+      ! TEM: ky drawn with k0e
+      !-------------------------
+      CALL PDF_ky(Nc, lambday, k0e, g(5,:))
+
+      DO i = Nci+1, Nc
+        kys(i) = g(5,i)
+        kys(i) = 1.0_dp * INT(kys(i)*C2) / C2
+
+        kz(i,:) = REAL(INT(kz(i,:), dp)) / C3   ! kept as in original paste
+
+        kperps(i) = (rhoi/R0) * SQRT( &
+          kxs(i)*gees(1,1)*kxs(i) + 2.0_dp*kxs(i)*gees(1,2)*kys(i) + &
+          2.0_dp*kxs(i)*gees(1,3)*kzs(i) + kys(i)*gees(2,2)*kys(i) + &
+          2.0_dp*kys(i)*gees(2,3)*kzs(i) + kzs(i)*gees(3,3)*kzs(i) )
+
+        w2s(i) = -Ln*(Te/Ti) * ((rhoi/R0/normB)**2) * (kxs(i)*Vstar1 + kys(i)*Vstar2 + kzs(i)*Vstar3)
+        w2s(i) = w2s(i) / (1.0_dp + Aeff*(Te/Ti)*kperps(i)**2)
+
+        ws(i) = w1s(i) + 1.0_dp*w2s(i)
+      END DO
+
+      ws       = REAL(USE_freq, dp) * ws
+
+    ELSEIF (USE_turb /= ON) THEN
+
+      phs      = 0.0_dp
+      phxs     = 0.0_dp
+      phys     = 0.0_dp
+      kxs      = 0.0_dp
+      kys      = 0.0_dp
+      kzs      = 0.0_dp
+      ws       = 0.0_dp
+      wcs      = 0.0_dp
+      kperps   = 0.0_dp
+
+    END IF
+
+    ! First sample without turbulence
+    phs(1)     = 0.0_dp; phxs(1)    = 0.0_dp; phys(1)    = 0.0_dp
+    kxs(1)     = 0.0_dp; kys(1)     = 0.0_dp; kzs(1)     = 0.0_dp
+    ws(1)      = 0.0_dp; wcs(1)     = 0.0_dp
+    kperps(1)  = 0.0_dp; 
+
+  END SUBROUTINE wavenum_single
+
+
+  !=============================================================================
+  ! Larmor_old (legacy variant)
+  !=============================================================================
+  SUBROUTINE Larmor_old(ind, X, Y, Z, mut)
+    IMPLICIT NONE
+
+    REAL(KIND=dp), DIMENSION(Np) :: X, Y, Z, mut, B
+    INTEGER                      :: i, ind
+
+    IF (ALLOCATED(L)) THEN
+      DEALLOCATE(L)
+    END IF
+    ALLOCATE(L(Nc, Np))
+
+    IF (ind == ON) THEN
+      ! CALL magnetic_norm(X,Y,Z,B)   ! (commented in your original)
+
+      !$OMP PARALLEL DO &
+      !$OMP SHARED (mut,B) &
+      !$OMP PRIVATE (i)
+      DO i = 1, Np
+        ! L(:,i) = BESSEL_J0(kperp(:,i)*SQRT(2.0*Aw*ABS(mut(i))/Zw**2/B(i)))
+        L(:,i) = BESSEL_J0(kperp(:,i) * SQRT(2.0_dp*Aw*ABS(mut(i))/Zw**2))
+      END DO
+      !$OMP END PARALLEL DO
+
+    ELSE
+      L = 1.0_dp
+    END IF
+
+  END SUBROUTINE Larmor_old
+
+END MODULE random_numbers

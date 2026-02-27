@@ -39,10 +39,10 @@ parameters:
 
   - name: Nc
     kind: int
-    default: 100
+    default: 50
     min: 1
     group: Numerics
-    help: Number of Fourier modes used in the representation of turbulent fields
+    help: Number of Fourier modes used in the representation of turbulent fields (a few dozens is acceptable, the non-gaussianity goes like 1/Nc)
 
   - name: Nloop
     kind: int
@@ -289,7 +289,7 @@ parameters:
     units: q0*R0
     default: 10.0
     group: Turbulence
-    help: Parallel correlation length for ballooning envelope (0 -> high localization of the turbulence at the LFS; generally >1);
+    help: Parallel correlation length for ballooning envelope (0 -> high localization of the turbulence at the LFS; generally >1 for good numerical convergence; also <100 for numerical reasons);
 
   - name: tauc
     kind: float

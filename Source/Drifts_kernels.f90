@@ -1,14 +1,13 @@
 module drift_kernels
    use constants
-!  use random_numbers, only: gnorm000.1414213732144890000000-
    implicit none
 
 contains
 
    pure subroutine Drift2(dt, xi, yi, zi, vpi, mui, q1, q2, q3, time, &
                           vx, vy, vz, ap, vm, Hi,Pc, B, Vtx, Vty, check_1, check_2, check_3, &
-                          Qx1, Qy1, Qz1, Qw1, Qph1, QL1, Q0wrp1,anormal)
-      !$omp declare simd(Drift2) uniform(dt,anormal,time,Qx1,Qy1,Qz1,Qw1,Qph1,QL1,Q0wrp1) notinbranch
+                          Qx1, Qy1, Qz1, Qw1, Qph1, QL1, anormal)
+      !$omp declare simd(Drift2) uniform(dt,anormal,time,Qx1,Qy1,Qz1,Qw1,Qph1,QL1) notinbranch
 
       !---------------------------------------------------------------------------------
       ! Arguments
@@ -16,8 +15,8 @@ contains
       real(dp), intent(in)  :: dt, xi, yi, zi, vpi, mui, time, anormal
 !      real(dp), value, intent(in) :: 
       real(dp), intent(out) :: q1, q2, q3, vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3
-      real(dp), intent(in), contiguous :: Qx1(:), Qy1(:), Qz1(:), Qw1(:), Qph1(:), QL1(:), Q0wrp1(:)
-
+      real(dp), intent(in), contiguous :: Qx1(:), Qy1(:), Qz1(:), Qw1(:), Qph1(:), QL1(:)
+      real(dp) ::  Q0wrp1
       !---------------------------------------------------------------------------------
       ! Locals
       !---------------------------------------------------------------------------------
@@ -29,7 +28,7 @@ contains
       real(dp) :: rotbx, rotby, rotbz
       real(dp) :: rotux, rotuy, rotuz
       real(dp) :: grad_u2_x, grad_u2_y, grad_u2_z, omega, R02avrg
-      real(dp) :: phi0x, phi0y, phi0z_nc, phi0z
+      real(dp) :: phi0x, phi0y, phi0z
 
       ! Geometry
       real(dp) :: hx, hy, hz, hx2, hy2, hz2
@@ -46,10 +45,10 @@ contains
       real(dp) :: phi0, phix, phiy, phiz, phixt, phiyt, phizt
       real(dp) :: Tprofile, faza, zintc, zints, gpar, gprim
       ! --- hoisted invariants ---
-	real(dp) :: env, env2
-	real(dp) :: dqpsi, ge_t
+	real(dp) :: env1, env2
+	real(dp) :: ge_t
 	! --- SIMD-loop temporaries ---
-	real(dp) :: amplu, qq, wfac, keff_x,keff_y,keff_z, frac, gg
+	real(dp) :: amplu, wfac, keff_x,keff_y,keff_z, frac, gg
 	integer  ::ddm
 
       ! Numerics / helpers
@@ -359,9 +358,6 @@ contains
       !---------------------------------------------------------------------------------
       phi0  = 0.0_dp; phix  = 0.0_dp; phiy  = 0.0_dp; phiz  = 0.0_dp
       phixt = 0.0_dp; phiyt = 0.0_dp; phizt = 0.0_dp
-      env2 = anormal!
-
-      ! Normalization (outside the loop)
      
       ! turbulence must be ON and must have started
       if ( (USE_turb == ON) .and. (time > tt) ) then
@@ -369,23 +365,25 @@ contains
         ! Defaults (kept as in your original snippet)
         gpar    = exp((cos(q3/C3)-1.0_dp)/lbalonz**2)*balloon   ! this must be periodic
         gprim   = -sin(q3/C3)/lbalonz**2/C3*balloon ! note that this is g'/g
-        env     = noballoon + gpar             ! ballooning envelope multiplier
         ge_t    = gamma_E * time
+        env1    = noballoon + gpar             ! ballooning envelope multiplier
+        env2    = anormal ! This is for normalization (outside the nc loop)
      
          if(turb_model == 1) then     
-         !$omp simd private(faza,zintc,zints,amplu,wfac,keff_x,keff_y,keff_z) &
+         !$omp simd private(faza,zintc,zints,amplu,wfac,keff_x,keff_y,keff_z,Q0wrp1) &
          !$omp& reduction(+:phi0,phix,phiy,phiz,phixt,phiyt,phizt)
          do n = 1, Nc
 
             amplu = norm * QL1(n)
             wfac  = Qw1(n) + Qy1(n)*gamma_E*delta_q1
+            Q0wrp1  = REAL(INT(C2*Qy1(n)*q00), dp)
 
             ! Common x-derivative factor used in phix and phixt
             keff_x    = Qx1(n) + Qy1(n)*(q3/C3*usetilt*(C2*qprim/C1) - ge_t)
             keff_y    = Qy1(n)
-            keff_z    = Qz1(n) + usetilt*(C2*Qy1(n)*qpsi - Q0wrp1(n))/C3
+            keff_z    = Qz1(n) + usetilt*(C2*Qy1(n)*qpsi - Q0wrp1)/C3
             
-            faza  = Qx1(n)*q1 + Qy1(n)*q2 + Qz1(n)*q3 - wfac*time + q3/C3*usetilt*(C2*Qy1(n)*qpsi - Q0wrp1(n)) + Qph1(n)
+            faza  = Qx1(n)*q1 + Qy1(n)*q2 + Qz1(n)*q3 - wfac*time + q3/C3*usetilt*(C2*Qy1(n)*qpsi - Q0wrp1) + Qph1(n)
 	           
             ! ifx is typically good at fusing sin/cos, but paired calls are still fine
             zintc = cos(faza)
@@ -405,16 +403,15 @@ contains
          end do
 
          ! Apply the ballooning envelope once
-         phi0  = env*phi0
-         phix  = env*phix
-         phiy  = env*phiy
-         phiz  = env*phiz
-         phixt = env*phixt
-         phiyt = env*phiyt
-         phizt = env*phizt
+         phi0  = env1*phi0
+         phix  = env1*phix
+         phiy  = env1*phiy
+         phiz  = env1*phiz
+         phixt = env1*phixt
+         phiyt = env1*phiyt
+         phizt = env1*phizt
 
          elseif(turb_model == 2) then     
-!         env = anormal
 ! precompute once per call (or keep cached in a module if dmmax is fixed)
 		do i = -dmmax, dmmax
 		  cos_ddm(i) = cos(q3 / C3 * real(i,dp))
@@ -436,7 +433,7 @@ contains
 
 		  do ddm = -dmmax, dmmax
 		    frac  = frac0 + ddm
-		    gg    = exp(-frac**2 / (2.0_dp*lbalonz**2))
+		    gg    = exp(-frac**2*lbalonz**2/2.0_dp)
 		    amplu = gg * QL1(n)
 
 		    keff_z = Qz1(n) + frac/C3
@@ -519,7 +516,7 @@ contains
 !     Hi = Aw*vpi*ap + mui*dBdt! - Aw u^2/2.0
      Hi = Aw*vpi*vpi*0.5_dp + mui*B - Aw*xi2*Omega*Omega*0.5_dp + Zw*xi2*Omega*Omega*0.5_dp*tau*(1.0_dp - R02avrg/xi2) + Zw*Phi*phi0!- (1.0_dp - tau)*Aw*(Omgt02*xi2)*0.5_dp + Zw*Phi*phi0
      Pc = psi - Aw/Zw*rhoi/R0*Fpsi/B*(vpi + 1.0_dp*Fpsi/B*Omega)
-     check_1 = phi0
+     check_1 = phix
      check_2 = phix
      check_3 = phiy
       

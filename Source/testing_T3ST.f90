@@ -64,7 +64,7 @@ contains
     ! Controls (hard-coded here)
     ! -------------------------
     Np_partial = 16000
-    Nt_partial = 50
+    Nt_partial = 2
 
     np_avail   = size(X)
     Np_partial = min(Np_partial, np_avail)
@@ -183,7 +183,7 @@ contains
 
     call rk4_propagation(X, Y, Z, Vp, mu, pb, dt, Nt_partial, Np_partial, &
                          Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtx, Vty)
-
+                         
     nstep_eff = max(1, Nt_partial - 1)
     T         = dt * real(nstep_eff, dp)
 
@@ -282,7 +282,7 @@ contains
     real(dp), intent(out) :: Xh(:,:), Yh(:,:), Zh(:,:), Vph(:,:), muh(:,:)
     real(dp), intent(out) :: Hh(:,:), Pch(:,:), c1h(:,:), c2h(:,:), c3h(:,:), Vtxall(:,:), Vtyall(:,:)
 
-    real(dp), pointer, contiguous :: Qx(:), Qy(:), Qz(:), Qw(:), Qph(:), QL(:), Q0wrp(:)
+    real(dp), pointer, contiguous :: Qx(:), Qy(:), Qz(:), Qw(:), Qph(:), QL(:)
 
     real(dp) :: xi, yi, zi, mui, vpi, pbi
     real(dp) :: vx, vy, vz, vm, ap
@@ -303,7 +303,6 @@ contains
         Qw    => w(:,  ias)
         Qph   => ph(:, ias)
         QL    => L(:,  ias)
-        Q0wrp => q00wrap(:, ias)
       else
         Qx    => kxs
         Qy    => kys
@@ -311,7 +310,6 @@ contains
         Qw    => ws
         Qph   => phs
         QL    => Ls(:, ias)
-        Q0wrp => q00wraps
       end if
 
       xi  = X(ias)
@@ -328,7 +326,7 @@ contains
 
         call Drift2(dt, xi, yi, zi, vpi, mui, q1, q2, q3, time,                 &
                     vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty,                    &
-                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp,gnorm_local)
+                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, gnorm_local)
 
         Xh(k, ias)  = xi
         Yh(k, ias)  = yi
@@ -353,7 +351,7 @@ contains
                     vpi + ap*dt/2.0_dp, mui + vm*dt/2.0_dp, q1, q2, q3,         &
                     time + dt/2.0_dp,                                           &
                     vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty,                    &
-                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp,gnorm_local)
+                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL,gnorm_local)
 
         Wx = Wx + vx / 3.0_dp
         Wy = Wy + vy / 3.0_dp
@@ -365,7 +363,7 @@ contains
                     vpi + ap*dt/2.0_dp, mui + vm*dt/2.0_dp, q1, q2, q3,         &
                     time + dt/2.0_dp,                                           &
                     vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty,                    &
-                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp,gnorm_local)
+                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL,gnorm_local)
 
         Wx = Wx + vx / 3.0_dp
         Wy = Wy + vy / 3.0_dp
@@ -376,7 +374,7 @@ contains
         call Drift2(dt, xi + vx*dt, yi + vy*dt, zi + vz*dt,                      &
                     vpi + ap*dt, mui + vm*dt, q1, q2, q3, time + dt,            &
                     vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty,                    &
-                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp,gnorm_local)
+                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL,gnorm_local)
 
         Wx = Wx + vx / 6.0_dp
         Wy = Wy + vy / 6.0_dp
@@ -589,12 +587,12 @@ contains
 
     m2_ref(1) = 1.0_dp / (lambdax*lambdax)
     m2_ref(2) = 3.0_dp / (lambday*lambday) + k0i*k0i
-    m2_ref(3) = 1.0_dp / (lambdaz*lambdaz)
+    m2_ref(3) = (erfc(lambdaz/sqrt(2.0_dp)) + 3.0_dp*erfc(lambdaz*sqrt(2.0_dp)))/C3**2!1.0_dp / (lambdaz*lambdaz) ! erfc(lambdaz/sqrt(2.0_dp))
     m2_ref(5) = (pii*pii) / 3.0_dp
 
     m4_ref(1) = 3.0_dp * (m2_ref(1)**2)
     m4_ref(2) = (15.0_dp/(lambday**4) + 10.0_dp*k0i**2/(lambday**2) + k0i**4)
-    m4_ref(3) = 3.0_dp * (m2_ref(3)**2)
+    m4_ref(3) = (erfc(lambdaz/sqrt(2.0_dp)) + 15.0_dp*erfc(lambdaz*sqrt(2.0_dp)) + 65.0_dp*erfc(lambdaz*3.0_dp/sqrt(2.0_dp)))/C3**4
     m4_ref(5) = (pii**4) / 5.0_dp
 
     t_m2_ky = m2_ref(2)

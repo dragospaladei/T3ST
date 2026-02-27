@@ -86,7 +86,7 @@ PROGRAM T3ST
    REAL(KIND=dp), ALLOCATABLE                :: Lagr_ref(:)     ! Vtx at k=1, per particle
    REAL(KIND=dp), ALLOCATABLE                :: Lagr_corr(:)    ! correlation vs time, size Nt+1
 
-   REAL(dp), POINTER, CONTIGUOUS             :: Qx(:), Qy(:), Qz(:), Qw(:), Qph(:), QL(:), Q0wrp(:)
+   REAL(dp), POINTER, CONTIGUOUS             :: Qx(:), Qy(:), Qz(:), Qw(:), Qph(:), QL(:)
 real(dp) :: gnorm_local
 
 !========================================================================================================
@@ -208,7 +208,6 @@ real(dp) :: gnorm_local
       Lagr_ref  = 0.0_dp
       Lagr_corr = 0.0_dp
 
-
 !========================================================================================================
 ! REALIZATIONS LOOP
 !========================================================================================================
@@ -241,7 +240,7 @@ real(dp) :: gnorm_local
                quan21 = 0.0_dp; quan22 = 0.0_dp; quan23 = 0.0_dp; quan24 = 0.0_dp; quanVtxCorr = 0.0_dp
                !$omp end single
 
-               !$omp do schedule(static) private(Qx,Qy,Qz,Qw,Qph,QL,Q0wrp) &
+               !$omp do schedule(static) private(Qx,Qy,Qz,Qw,Qph,QL) &
                !$omp   reduction(+: quan11,quan12,quan13,quan14, quan21,quan22,quan23,quan24,quanVtxCorr)
                DO i = 1, Np
                   BLOCK
@@ -253,10 +252,10 @@ real(dp) :: gnorm_local
                      ! Select per-particle or single-spectrum arrays
                      IF (USE_real == OFF) THEN
                         Qx  => kx(:, i);   Qy  => ky(:, i);   Qz  => kz(:, i);   
-                        Qw  => w(:, i);    Qph => ph(:, i);   QL  => L(:, i);    Q0wrp => q00wrap(:,i)
+                        Qw  => w(:, i);    Qph => ph(:, i);   QL  => L(:, i);   
 		     ELSEIF (USE_real == ON) THEN
                         Qx  => kxs;        Qy  => kys;        Qz  => kzs;       
-                        Qw  => ws;         Qph => phs;        QL  => Ls(:, i);   Q0wrp => q00wraps
+                        Qw  => ws;         Qph => phs;        QL  => Ls(:, i);  
                      END IF
 
 
@@ -270,7 +269,7 @@ real(dp) :: gnorm_local
                         sm1 = rng_uniform()
                         sm2 = rng_uniform()
                         CALL Drift2(dt, xi, yi, zi, vpi, mui, q1, q2, q3, t(k), &
-                                    vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp,gnorm_local)
+                                    vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL,gnorm_local)
                         CALL collisions_1_MP(sm1, sm2, dt_half, xi, yi, zi, vpi, mui, B, vx, vy, vz, vm, ap)
 
                         xi  = xi  + dt_half*vx
@@ -282,7 +281,7 @@ real(dp) :: gnorm_local
 
                      ! RK4 stage 1
                      CALL Drift2(dt, xi, yi, zi, vpi, mui, q1, q2, q3, t(k), &
-                                 vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp,gnorm_local)
+                                 vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL,gnorm_local)
                      ! store reference Vtx at k=1 (per particle)
                      IF (k == 1) Lagr_ref(i) = Vtx
 
@@ -313,21 +312,21 @@ real(dp) :: gnorm_local
                      ! RK4 stage 2
                      CALL Drift2(dt, xi+vx*dt/2.0_dp, yi+vy*dt/2.0_dp, zi+vz*dt/2.0_dp, &
                                  vpi+ap*dt/2.0_dp, mui+vm*dt/2.0_dp, q1, q2, q3, t(k)+dt/2.0_dp, &
-                                 vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp,gnorm_local)
+                                 vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL,gnorm_local)
                      Wx = Wx + vx/3.0_dp; Wy = Wy + vy/3.0_dp; Wz = Wz + vz/3.0_dp
                      Wm = Wm + vm/3.0_dp; Wp = Wp + ap/3.0_dp
 
                              ! RK4 stage 3
                      CALL Drift2(dt, xi+vx*dt/2.0_dp, yi+vy*dt/2.0_dp, zi+vz*dt/2.0_dp, &
                                  vpi+ap*dt/2.0_dp, mui+vm*dt/2.0_dp, q1, q2, q3, t(k)+dt/2.0_dp, &
-                                 vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp,gnorm_local)
+                                 vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, gnorm_local)
                      Wx = Wx + vx/3.0_dp; Wy = Wy + vy/3.0_dp; Wz = Wz + vz/3.0_dp
                      Wm = Wm + vm/3.0_dp; Wp = Wp + ap/3.0_dp
 
                      ! RK4 stage 4
                      CALL Drift2(dt, xi+vx*dt, yi+vy*dt, zi+vz*dt, vpi+ap*dt, mui+vm*dt, &
                                  q1, q2, q3, t(k)+dt, vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, &
-                                 Qx, Qy, Qz, Qw, Qph, QL, Q0wrp, gnorm_local)
+                                 Qx, Qy, Qz, Qw, Qph, QL, gnorm_local)
                      Wx = Wx + vx/6.0_dp; Wy = Wy + vy/6.0_dp; Wz = Wz + vz/6.0_dp
                      Wm = Wm + vm/6.0_dp; Wp = Wp + ap/6.0_dp
 
@@ -355,7 +354,7 @@ real(dp) :: gnorm_local
                         sm1 = rng_uniform()
                         sm2 = rng_uniform()
                         CALL Drift2(dt, xi, yi, zi, vpi, mui, q1, q2, q3, t(k), &
-                                    vx, vy, vz, ap, vm, Hi,Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, Q0wrp,gnorm_local)
+                                    vx, vy, vz, ap, vm, Hi,Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, gnorm_local)
                         CALL collisions_1_MP(sm1, sm2, dt_half, xi, yi, zi, vpi, mui, B, vx, vy, vz, vm, ap)
 
                         X(i)  = X(i)  + dt_half*vx
