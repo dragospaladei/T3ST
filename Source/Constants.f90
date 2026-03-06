@@ -428,6 +428,10 @@ CONTAINS
 !      dmmax = max(1,int(4.0_dp/lbalonz))
 !      dmmax = int(4.0_dp/lbalonz)
 dmmax = 2
+
+Nt = 2*Nt
+Np= 4*Np
+
    END SUBROUTINE parameters
 
 END MODULE constants

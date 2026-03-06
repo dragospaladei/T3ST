@@ -87,7 +87,7 @@ PROGRAM T3ST
    REAL(KIND=dp), ALLOCATABLE                :: Lagr_corr(:)    ! correlation vs time, size Nt+1
 
    REAL(dp), POINTER, CONTIGUOUS             :: Qx(:), Qy(:), Qz(:), Qw(:), Qph(:), QL(:)
-real(dp) :: gnorm_local
+   real(dp) :: gnorm_local
 
 !========================================================================================================
 ! ADDRESS DECLARATION FOR EXPORTING DATA
@@ -220,7 +220,7 @@ real(dp) :: gnorm_local
             CALL Larmor(USE_larmor, mu)
 
     	    IF(USE_testing == ON) then
-	       CALL testing_T3ST(X,Y,Z,Vp,mu,pb,Vstar1,Vstar2,Vstar3, eror_flag)
+	       CALL testing_T3ST(X,Y,Z,Vp,mu,pb,Vstar1,Vstar2,Vstar3, eror_flag, gnorm_local)
 	       STOP
 	    END IF
 

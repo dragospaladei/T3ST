@@ -43,13 +43,13 @@ contains
   !=============================================================================
   ! Main entry point
   !=============================================================================
-  subroutine testing_T3ST(X, Y, Z, Vp, mu, pb, Vstar1, Vstar2, Vstar3, no_errors)
+  subroutine testing_T3ST(X, Y, Z, Vp, mu, pb, Vstar1, Vstar2, Vstar3, no_errors, gnorm_local)
     real(dp), intent(in)  :: X(:), Y(:), Z(:), Vp(:), mu(:), pb(:)
     real(dp), intent(in)  :: Vstar1, Vstar2, Vstar3
     integer,  intent(out) :: no_errors
 
     integer  :: Np_partial, Nt_partial, np_avail
-    real(dp) :: dt, ratio32
+    real(dp) :: dt, ratio32,  gnorm_local
 
     real(dp), allocatable :: Xh(:,:), Yh(:,:), Zh(:,:), Vph(:,:), muh(:,:)
     real(dp), allocatable :: Hh(:,:), Pch(:,:), c1h(:,:), c2h(:,:), c3h(:,:),  Vtx(:,:),  Vty(:,:)
@@ -63,9 +63,8 @@ contains
     ! -------------------------
     ! Controls (hard-coded here)
     ! -------------------------
-    Np_partial = 16000
-    Nt_partial = 2
-
+    Np_partial = 10000
+    Nt_partial = 200
     np_avail   = size(X)
     Np_partial = min(Np_partial, np_avail)
     dt         = real(tmax / Nt, dp)   ! base dt used by rk4_propagation below
@@ -129,7 +128,7 @@ contains
     ! Vstar checks
     ! -------------------------
     call section("Vstar checks")
-    call log_vals3("[INFO]", "Vstar1 Vstar2 Vstar3", Vstar1, Vstar2, Vstar3)
+    call log_vals3("[INFO ]", "Vstar1 Vstar2 Vstar3", Vstar1, Vstar2, Vstar3)
 
     if (abs(Vstar1) > 1.0e-9_dp) then
       no_errors = no_errors + 1
@@ -143,7 +142,7 @@ contains
       call log_alert("Vstar2 ~ 0 (cannot evaluate Vstar3/Vstar2)")
     else
       ratio32 = Vstar3 / Vstar2
-      call log_ratio("[INFO]", "Vstar3/Vstar2", abs(ratio32), 0.1_dp)
+      call log_ratio("[INFO ]", "Vstar3/Vstar2", abs(ratio32), 0.1_dp)
 
       if (abs(ratio32) > 0.1_dp) then
         no_errors = no_errors + 1
@@ -177,11 +176,12 @@ contains
     ! Drift / RK4 propagation
     ! =====================================================================
     call section("RK4 propagation")
-    call log_val("[INFO]", "Np_partial", real(Np_partial, dp))
-    call log_val("[INFO]", "Nt_partial", real(Nt_partial, dp))
-    call log_val("[INFO]", "dt", dt)
+    call log_val("[INFO ]", "Np_partial", real(Np_partial, dp))
+    call log_val("[INFO ]", "Nt_partial", real(Nt_partial, dp))
+    call log_val("[INFO ]", "dt", dt)
 
-    call rk4_propagation(X, Y, Z, Vp, mu, pb, dt, Nt_partial, Np_partial, &
+
+    call rk4_propagation(gnorm_local, X, Y, Z, Vp, mu, pb, dt, Nt_partial, Np_partial, &
                          Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtx, Vty)
                          
     nstep_eff = max(1, Nt_partial - 1)
@@ -204,6 +204,7 @@ contains
     ! =====================================================================
     call section("Gaussianity summary: all times x particles (kurt/3 = 1 for Gaussian)")
     compare = 1.0_dp
+    
     call print_gaussianity_block("phi",  c1h, Np_partial, Nt_partial, no_errors, compare)
         compare = 1.0_dp
     call print_gaussianity_block("phix", c2h, Np_partial, Nt_partial, no_errors, compare)
@@ -235,7 +236,7 @@ contains
  
     call print_gaussianity_slice("phiy", c3h, 1, Np_partial, no_errors, compare)
 
-    call rk4_propagation(Xaux, Yaux, Zaux, Vpaux, muaux, pb, dt, 1, Np_partial, &
+    call rk4_propagation(gnorm_local, Xaux, Yaux, Zaux, Vpaux, muaux, pb, dt, 1, Np_partial, &
                          Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtx, Vty)
 
     if (USE_real.eq.OFF) then
@@ -272,7 +273,7 @@ contains
   !=============================================================================
   ! RK4 propagation (unchanged numerics; formatting/indent only)
   !=============================================================================
-  subroutine rk4_propagation(X, Y, Z, Vp, mu, pb, dt, Nt_partial, Np_partial, &
+  subroutine rk4_propagation(gnorm_local, X, Y, Z, Vp, mu, pb, dt, Nt_partial, Np_partial, &
                              Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtxall, Vtyall)
 
     real(dp), intent(in) :: X(:), Y(:), Z(:), Vp(:), mu(:), pb(:)
@@ -291,7 +292,6 @@ contains
     real(dp) :: Hi, B, Vtx, Vty, Pc
     real(dp) :: check_1, check_2, check_3, time
     integer  :: ias, k
-
 
     do ias = 1, Np_partial
 
@@ -390,7 +390,6 @@ contains
 
       end do
     end do
-
   end subroutine rk4_propagation
 
 
@@ -436,7 +435,7 @@ contains
   subroutine section(title)
     character(len=*), intent(in) :: title
     call log_raw(" ")
-    call log_line("[INFO]", repeat("-", 1) // " " // trim(title) // " " // repeat("-", max(0, WSEC - 9 - len_trim(title))))
+    call log_line("[INFO ]", repeat("-", 1) // " " // trim(title) // " " // repeat("-", max(0, WSEC - 9 - len_trim(title))))
   end subroutine section
 
 
@@ -454,7 +453,7 @@ contains
     integer, intent(in) :: no_errors
     character(len=256) :: tmp2
     call log_raw(repeat("-", WSEC))
-    write(tmp2,'(a,1x,'//FINT//')') "[INFO] Total number of alerts:", no_errors
+    write(tmp2,'(a,1x,'//FINT//')') "[INFO ] Total number of alerts:", no_errors
     call log_raw(tmp2)
     call log_raw(repeat("=", WSEC))
   end subroutine banner_end
@@ -479,12 +478,12 @@ contains
       call log_alert("Input arrays have inconsistent sizes")
       write(TMP,'(a,1x,a,": X=",1x,'//FINT//',", Y=",1x,'//FINT//',", Z=",1x,'//FINT//', &
                    ", Vp=",1x,'//FINT//',", mu=",1x,'//FINT//',", pb=",1x,'//FINT//')') &
-        "[INFO]", pad_label("sizes"), size(X), size(Y), size(Z), size(Vp), size(mu), size(pb)
+        "[INFO ]", pad_label("sizes"), size(X), size(Y), size(Z), size(Vp), size(mu), size(pb)
       call log_raw(TMP)
       return
     else
       call log_ok("All input arrays have consistent size")
-      write(TMP,'(a,1x,a,":",1x,'//FINT//')') "[INFO]", pad_label("n"), n
+      write(TMP,'(a,1x,a,":",1x,'//FINT//')') "[INFO ]", pad_label("n"), n
       call log_raw(TMP)
     end if
 
@@ -537,12 +536,12 @@ contains
     if (abs(mean_pb - 1.0_dp) > tol) then
       no_errors = no_errors + 1
       call log_alert("Condition failed: mean(pb) must be 1")
-      call log_val("[INFO]", "mean(pb)", mean_pb)
-      call log_val("[INFO]", "tol",      tol)
+      call log_val("[INFO ]", "mean(pb)", mean_pb)
+      call log_val("[INFO ]", "tol",      tol)
     else
       call log_ok("mean(pb) = 1 within tolerance")
-      call log_val("[INFO]", "mean(pb)", mean_pb)
-      call log_val("[INFO]", "tol",      tol)
+      call log_val("[INFO ]", "mean(pb)", mean_pb)
+      call log_val("[INFO ]", "tol",      tol)
     end if
 
     nbad = count(sqrt((X - 1.0_dp)**2 + Y**2) >= a1)
@@ -550,10 +549,10 @@ contains
       no_errors = no_errors + 1
       call log_alert("Condition failed: sqrt((X-1)^2 + Y^2) < a0")
       call log_count("violations", nbad, n)
-      call log_val("[INFO]", "a0", a1)
+      call log_val("[INFO ]", "a0", a1)
     else
       call log_ok("sqrt((X-1)^2 + Y^2) < a0 everywhere")
-      call log_val("[INFO]", "a0", a1)
+      call log_val("[INFO ]", "a0", a1)
     end if
 
   end subroutine check_inputs
@@ -585,12 +584,29 @@ contains
     tol_m2   = 0.05_dp
     tol_m4   = 0.10_dp
 
-    m2_ref(1) = 1.0_dp / (lambdax*lambdax)
+
     m2_ref(2) = 3.0_dp / (lambday*lambday) + k0i*k0i
     m2_ref(3) = (erfc(lambdaz/sqrt(2.0_dp)) + 3.0_dp*erfc(lambdaz*sqrt(2.0_dp)))/C3**2!1.0_dp / (lambdaz*lambdaz) ! erfc(lambdaz/sqrt(2.0_dp))
     m2_ref(5) = (pii*pii) / 3.0_dp
 
-    m4_ref(1) = 3.0_dp * (m2_ref(1)**2)
+        ! Radial spectrum selection
+        IF (x_corr == 1) THEN
+            m2_ref(1) = 1.0_dp / (lambdax**2)
+            m4_ref(1) = 3.0_dp / (lambdax**4)
+        ELSEIF (x_corr == 2) THEN
+            m2_ref(1) = (10.0_dp / atan(10.0_dp)-1.0_dp)/ (lambdax**2)
+            m4_ref(1) = (1.0_dp + 10.0_dp*(10.0_dp**2-3)/3.0_dp/atan(10.0_dp))/ (lambdax**4)
+        END IF
+
+        ! Temporal spectrum selection
+        IF (t_corr == 1) THEN
+            m2_ref(4) = 1.0_dp / (tauc**2)
+            m4_ref(4) = 3.0_dp / (tauc**4)
+        ELSEIF (t_corr == 2) THEN
+            m2_ref(4) = (10.0_dp / atan(10.0_dp)-1.0_dp)/ (tauc**2)
+            m4_ref(4) = (1.0_dp + 10.0_dp*(10.0_dp**2-3)/3.0_dp/atan(10.0_dp))/ (tauc**4)
+        END IF
+
     m4_ref(2) = (15.0_dp/(lambday**4) + 10.0_dp*k0i**2/(lambday**2) + k0i**4)
     m4_ref(3) = (erfc(lambdaz/sqrt(2.0_dp)) + 15.0_dp*erfc(lambdaz*sqrt(2.0_dp)) + 65.0_dp*erfc(lambdaz*3.0_dp/sqrt(2.0_dp)))/C3**4
     m4_ref(5) = (pii**4) / 5.0_dp
@@ -602,7 +618,7 @@ contains
 
     fac = (Ln*(rhoi/R0)**2)
 
-    m2_ref(4) = 1.0_dp/(tauc*tauc) + (fac**2) * (Vstar2**2*t_m2_ky + Vstar3**2*t_m2_kz)
+    m2_ref(4) = m2_ref(4) + (fac**2) * (Vstar2**2*t_m2_ky + Vstar3**2*t_m2_kz)
 
     m4_ref(4) = 3.0_dp/(tauc**4)                                                         &
               + (fac**4) * (Vstar2**4*t_m4_ky + Vstar3**4*t_m4_kz                         &
@@ -659,7 +675,7 @@ contains
       no_errors = no_errors + 1
       call log_moment("[ALERT]", label, val, ref, relerr, tol)
     else
-      call log_moment("[ OK ]", label, val, ref, relerr, tol)
+      call log_moment("[  OK ]", label, val, ref, relerr, tol)
     end if
   end subroutine check_moment
 
@@ -740,14 +756,14 @@ contains
     maxabs_v  = maxval(abs(v))
     meanabs_v = sum(abs(v)) / real(Np, dp)
 
-    call log_val("[INFO]", "mean (H(tf)/H(ti)-1)/(tf-ti)",    mean_v)
-    call log_val("[INFO]", "rms  (H(tf)/H(ti)-1)/(tf-ti)",    rms_v)
-    call log_val("[INFO]", "std  (H(tf)/H(ti)-1)/(tf-ti)",    std_v)
-    call log_val("[INFO]", "max |(H(tf)/H(ti)-1)/(tf-ti)|",   maxabs_v)
-    call log_val("[INFO]", "mean|(H(tf)/H(ti)-1)/(tf-ti)|",   meanabs_v)
+    call log_val("[INFO ]", "mean (H(tf)/H(ti)-1)/(tf-ti)",    mean_v)
+    call log_val("[INFO ]", "rms  (H(tf)/H(ti)-1)/(tf-ti)",    rms_v)
+    call log_val("[INFO ]", "std  (H(tf)/H(ti)-1)/(tf-ti)",    std_v)
+    call log_val("[INFO ]", "max |(H(tf)/H(ti)-1)/(tf-ti)|",   maxabs_v)
+    call log_val("[INFO ]", "mean|(H(tf)/H(ti)-1)/(tf-ti)|",   meanabs_v)
 
     imax = maxloc(abs(v))
-    write(TMP,'(a,1x,a,":",1x,'//FINT//')') "[INFO]", pad_label("argmax |(H(tf)/H(ti)-1)/(tf-ti)| (particle index)"), imax(1)
+    write(TMP,'(a,1x,a,":",1x,'//FINT//')') "[INFO ]", pad_label("argmax |(H(tf)/H(ti)-1)/(tf-ti)| (particle index)"), imax(1)
     call log_raw(TMP)
 
     if (maxabs_v > 1.0e-1_dp) then
@@ -782,14 +798,14 @@ contains
     maxabs_v  = maxval(abs(v))
     meanabs_v = sum(abs(v)) / real(Np, dp)
 
-    call log_val("[INFO]", "mean (Pc(tf)/Pc(ti)-1)/(tf-ti)" ,    mean_v)
-    call log_val("[INFO]", "rms  (Pc(tf)/Pc(ti)-1)/(tf-ti)",    rms_v)
-    call log_val("[INFO]", "std  (Pc(tf)/Pc(ti)-1)/(tf-ti)",    std_v)
-    call log_val("[INFO]", "max |(Pc(tf)/Pc(ti)-1)/(tf-ti)|",  maxabs_v)
-    call log_val("[INFO]", "mean|(Pc(tf)/Pc(ti)-1)/(tf-ti)|",   meanabs_v)
+    call log_val("[INFO ]", "mean (Pc(tf)/Pc(ti)-1)/(tf-ti)" ,    mean_v)
+    call log_val("[INFO ]", "rms  (Pc(tf)/Pc(ti)-1)/(tf-ti)",    rms_v)
+    call log_val("[INFO ]", "std  (Pc(tf)/Pc(ti)-1)/(tf-ti)",    std_v)
+    call log_val("[INFO ]", "max |(Pc(tf)/Pc(ti)-1)/(tf-ti)|",  maxabs_v)
+    call log_val("[INFO ]", "mean|(Pc(tf)/Pc(ti)-1)/(tf-ti)|",   meanabs_v)
 
     imax = maxloc(abs(v))
-    write(TMP,'(a,1x,a,":",1x,'//FINT//')') "[INFO]", pad_label("argmax |(Pc(tf)/Pc(ti)-1)/(tf-ti)| (particle index)"), imax(1)
+    write(TMP,'(a,1x,a,":",1x,'//FINT//')') "[INFO ]", pad_label("argmax |(Pc(tf)/Pc(ti)-1)/(tf-ti)| (particle index)"), imax(1)
     call log_raw(TMP)
 
     if (maxabs_v > 1.0e-1_dp) then
@@ -859,7 +875,7 @@ contains
       no_errors = no_errors + 1
       call alerts_add("Gaussianity: " // trim(name) // " kurt/3 out of tol")
     else
-      tag = "[INFO]"
+      tag = "[INFO ]"
     end if
 
     write(TMP,'(a,1x,a,": E[x]=",1x,'//FVAL//',", E[x^2]=",1x,'//FVAL//', &
@@ -881,7 +897,7 @@ contains
       no_errors = no_errors + 1
       call log_ratio("[ALERT]", trim(label), ratio, tol)
     else
-      call log_ratio("[ OK ]", trim(label), ratio, tol)
+      call log_ratio("[  OK ]", trim(label), ratio, tol)
     end if
   end subroutine check_ratio
 
@@ -891,7 +907,7 @@ contains
   !=============================================================================
   subroutine log_ok(msg)
     character(len=*), intent(in) :: msg
-    call log_line("[ OK ]", msg)
+    call log_line("[  OK ]", msg)
   end subroutine log_ok
 
   subroutine log_alert(msg)
@@ -907,7 +923,7 @@ contains
 
   subroutine log_info(msg)
     character(len=*), intent(in) :: msg
-    call log_line("[INFO]", msg)
+    call log_line("[INFO ]", msg)
   end subroutine log_info
 
   subroutine log_line(tag, msg)
@@ -943,7 +959,7 @@ contains
   subroutine log_count(label, nbad, n)
     character(len=*), intent(in) :: label
     integer,          intent(in) :: nbad, n
-    write(TMP,'(a,1x,a,":",1x,'//FINT//',a,1x,'//FINT//')') "[INFO]", pad_label(label), nbad, " /", n
+    write(TMP,'(a,1x,a,":",1x,'//FINT//',a,1x,'//FINT//')') "[INFO ]", pad_label(label), nbad, " /", n
     call log_raw(TMP)
   end subroutine log_count
 
@@ -1036,8 +1052,8 @@ contains
       LOGU = -1
     else
       LOG_TO_FILE = .true.
-      write(output_unit,'(a,1x,a)') "[INFO]", "Logging to file: " // trim(LOGFILE)
-      write(LOGU,'(a,1x,a)') "[INFO]", "Logging started"
+      write(output_unit,'(a,1x,a)') "[INFO ]", "Logging to file: " // trim(LOGFILE)
+      write(LOGU,'(a,1x,a)') "[INFO ]", "Logging started"
     end if
   end subroutine log_open
 
@@ -1049,7 +1065,7 @@ contains
     if (.not. LOG_TO_FILE) return
 
     write(LOGU,'(a)') " "
-    write(LOGU,'(a,1x,a)') "[INFO]", "Logging ended"
+    write(LOGU,'(a,1x,a)') "[INFO ]", "Logging ended"
     close(LOGU, iostat=ios)
 
     if (ios /= 0) then

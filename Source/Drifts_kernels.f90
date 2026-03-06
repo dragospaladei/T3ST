@@ -516,7 +516,7 @@ contains
 !     Hi = Aw*vpi*ap + mui*dBdt! - Aw u^2/2.0
      Hi = Aw*vpi*vpi*0.5_dp + mui*B - Aw*xi2*Omega*Omega*0.5_dp + Zw*xi2*Omega*Omega*0.5_dp*tau*(1.0_dp - R02avrg/xi2) + Zw*Phi*phi0!- (1.0_dp - tau)*Aw*(Omgt02*xi2)*0.5_dp + Zw*Phi*phi0
      Pc = psi - Aw/Zw*rhoi/R0*Fpsi/B*(vpi + 1.0_dp*Fpsi/B*Omega)
-     check_1 = phix
+     check_1 = phi0
      check_2 = phix
      check_3 = phiy
       
