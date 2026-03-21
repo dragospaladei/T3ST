@@ -88,7 +88,7 @@ contains
       a02    = a0*a0
       Omgt02 = Omgt0*Omgt0
       tau    = Aeff*Te / (Ti + Te)
-      s_star = (Aw/Zw) * (rhoi/R0)
+      s_star = (As/Zs) * (rhoi/R0)
 
       ! Metric (cylindrical-like)
       hx = 1.0_dp;  hy = 1.0_dp;  hz = xi
@@ -317,9 +317,9 @@ contains
       Bsp    = (Bsx*Bx*hx2 + Bsy*By*hy2 + Bsz*Bz*hz2) * invB
       invBsp = 1.0_dp / max(Bsp, eps_Bsp)
 
-      Esx = -(phi0x + mui/Zw*gradBx - Aw/Zw*grad_u2_x)
-      Esy = -(phi0y + mui/Zw*gradBy - Aw/Zw*grad_u2_y)
-      Esz = -(phi0z + mui/Zw*gradBz - Aw/Zw*grad_u2_z)
+      Esx = -(phi0x + mui/Zs*gradBx - As/Zs*grad_u2_x)
+      Esy = -(phi0y + mui/Zs*gradBy - As/Zs*grad_u2_y)
+      Esz = -(phi0z + mui/Zs*gradBz - As/Zs*grad_u2_z)
 
       ! Baseline (neoclassical) copy for turbulent-only extraction later
       Etx = Esx
@@ -374,7 +374,6 @@ contains
          !$omp& reduction(+:phi0,phix,phiy,phiz,phixt,phiyt,phizt)
          do n = 1, Nc
 
-            amplu = norm * QL1(n)
             wfac  = Qw1(n) + Qy1(n)*gamma_E*delta_q1
             Q0wrp1  = REAL(INT(C2*Qy1(n)*q00), dp)
 
@@ -384,6 +383,12 @@ contains
             keff_z    = Qz1(n) + usetilt*(C2*Qy1(n)*qpsi - Q0wrp1)/C3
             
             faza  = Qx1(n)*q1 + Qy1(n)*q2 + Qz1(n)*q3 - wfac*time + q3/C3*usetilt*(C2*Qy1(n)*qpsi - Q0wrp1) + Qph1(n)
+
+!            amplu = norm * QL1(n)
+!            amplu = sqrt(2.0_dp*abs(mui)*As/Zs**2*(keff_x**2+keff_y**2)/B)
+!	    amplu = norm*Bessel_J0(amplu)
+	            amplu = 2.0_dp*abs(mui)*As/Zs**2*(keff_x**2+keff_y**2)/B
+	            amplu = norm*QL1(n)*exp(-amplu/20_dp)
 	           
             ! ifx is typically good at fusing sin/cos, but paired calls are still fine
             zintc = cos(faza)
@@ -431,10 +436,15 @@ contains
 		  zintc0 = cos(faza0)
 		  zints0 = sin(faza0)
 
+!		    amplu = QL1(n)
+	            amplu = 2.0_dp*abs(mui)*As/Zs**2*(keff_x**2+keff_y**2)/B
+	            amplu = QL1(n)*exp(-amplu/20_dp)
+!	            amplu = Bessel_J0(amplu)
+	            
 		  do ddm = -dmmax, dmmax
 		    frac  = frac0 + ddm
 		    gg    = exp(-frac**2*lbalonz**2/2.0_dp)
-		    amplu = gg * QL1(n)
+		    amplu = amplu*gg
 
 		    keff_z = Qz1(n) + frac/C3
 
@@ -480,7 +490,7 @@ contains
       Esz = Esz - tsc*(G(3, 1)*phix + G(3, 2)*phiy + G(3, 3)*phiz)
 
       IF (USE_turb == ON) THEN
-	      msc = tsc*(Aw/Zw)*(rhoi/R0)
+	      msc = tsc*(As/Zs)*(rhoi/R0)
 
 	      Esx = Esx + (msc*(M(1, 1)*phixt + M(1, 2)*phiyt + M(1, 3)*phizt))*invB
 	      Esy = Esy + (msc*(M(2, 1)*phixt + M(2, 2)*phiyt + M(2, 3)*phizt))*invB
@@ -498,7 +508,7 @@ contains
       vy = vpi*Bsy*invBsp + (rhoi/R0)*invBsp*(F(2, 1)*Esx + F(2, 2)*Esy + F(2, 3)*Esz)
       vz = vpi*Bsz*invBsp + (rhoi/R0)*invBsp*(F(3, 1)*Esx + F(3, 2)*Esy + F(3, 3)*Esz)
 
-      ap = (Zw/Aw) * (Esx*Bsx + Esy*Bsy + Esz*Bsz) * invBsp
+      ap = (Zs/As) * (Esx*Bsx + Esy*Bsy + Esz*Bsz) * invBsp
 
       Vtx = (rhoi/R0)*invBsp*(F(1, 1)*Etx + F(1, 2)*Ety + F(1, 3)*Etz)
       Vty = (rhoi/R0)*invBsp*(F(2, 1)*Etx + F(2, 2)*Ety + F(2, 3)*Etz)
@@ -513,9 +523,9 @@ contains
       ! Energy (Hamiltonian)
       !---------------------------------------------------------------------------------
 !     dBdt = gradBx*vx*hx2 + gradBy*vy*hy2 + gradBz*vz*hz2   ! if that’s your consistent “physical dot”
-!     Hi = Aw*vpi*ap + mui*dBdt! - Aw u^2/2.0
-     Hi = Aw*vpi*vpi*0.5_dp + mui*B - Aw*xi2*Omega*Omega*0.5_dp + Zw*xi2*Omega*Omega*0.5_dp*tau*(1.0_dp - R02avrg/xi2) + Zw*Phi*phi0!- (1.0_dp - tau)*Aw*(Omgt02*xi2)*0.5_dp + Zw*Phi*phi0
-     Pc = psi - Aw/Zw*rhoi/R0*Fpsi/B*(vpi + 1.0_dp*Fpsi/B*Omega)
+!     Hi = As*vpi*ap + mui*dBdt! - As u^2/2.0
+     Hi = As*vpi*vpi*0.5_dp + mui*B - As*xi2*Omega*Omega*0.5_dp + Zs*xi2*Omega*Omega*0.5_dp*tau*(1.0_dp - R02avrg/xi2) + Zs*Phi*phi0!- (1.0_dp - tau)*As*(Omgt02*xi2)*0.5_dp + Zs*Phi*phi0
+     Pc = psi - As/Zs*rhoi/R0*Fpsi/B*(vpi + 1.0_dp*Fpsi/B*Omega)
      check_1 = phi0
      check_2 = phix
      check_3 = phiy
@@ -553,25 +563,25 @@ end subroutine Drift2
       !---------------------------------------------------------------------------------
       ! Collisions
       !---------------------------------------------------------------------------------
-      ene  = Aw/2.0_dp*vpi**2 + B*abs(mui)
-      v    = sqrt(2.0_dp*abs(ene)/Aw)
+      ene  = As/2.0_dp*vpi**2 + B*abs(mui)
+      v    = sqrt(2.0_dp*abs(ene)/As)
       zeta = vpi / v
 
-      xx   = sqrt(abs(ene)) * sqrt(Aeff) / sqrt(Aw)
+      xx   = sqrt(abs(ene)) * sqrt(Aeff) / sqrt(As)
       Fphi = erf(xx)
       Fpsi = (Fphi - 2.0_dp*xx*exp(-xx**2)/sqrt(pi)) / (2.0_dp*xx**2)
 
-      gg       = (16.0_dp*R0*c0) / (vth**4 * (2.0_dp/Aw)**1.5_dp)
+      gg       = (16.0_dp*R0*c0) / (vth**4 * (2.0_dp/As)**1.5_dp)
       nub1     = (gg/4.0_dp) / ene**1.5_dp * (Fphi - Fpsi)
       nue1     = gg / ene**1.5_dp * Fpsi
-      nueprim1 = gg*sqrt(Aeff/Aw/pi) * exp(-ene*Aeff/Aw) / ene**2 - 2.5_dp*nue1/ene
+      nueprim1 = gg*sqrt(Aeff/As/pi) * exp(-ene*Aeff/As) / ene**2 - 2.5_dp*nue1/ene
 
       d  = delta
-      ce = 1.0_dp / (1.0_dp + d*ene**(-1.0_dp)*(Aw/2.0_dp))
+      ce = 1.0_dp / (1.0_dp + d*ene**(-1.0_dp)*(As/2.0_dp))
 
       nub     = nub1*ce
       nue     = nue1*ce
-      nueprim = nueprim1*ce + nue1*2.0_dp*Aw*d / ((Aw*d + 2.0_dp*ene)**2.0_dp)
+      nueprim = nueprim1*ce + nue1*2.0_dp*As*d / ((As*d + 2.0_dp*ene)**2.0_dp)
 
       sm   = 1.0_dp * sign(1.0_dp, sm1 - 0.5_dp)
       zeta = zeta*(1.0_dp - 1.0_dp*nub*dt_local) + sm*sqrt(dt_local*nub*(1.0_dp - zeta**2))
@@ -580,7 +590,7 @@ end subroutine Drift2
       ene2 = ene - 1.0_dp*nue*dt_local*(ene - (1.5_dp + ene/(nue + 0.000001_dp)*nueprim)) + 2.0_dp*sm*sqrt(ene*nue*dt_local)
       ene  = abs(ene2)
 
-      v     = sqrt(2.0_dp*abs(ene)/Aw)
+      v     = sqrt(2.0_dp*abs(ene)/As)
 
       !---------------------------------------------------------------------------------
       ! Defaults

@@ -7,11 +7,11 @@ CycloneBaseZhang:
   tc: -1
   tt: -1
   tmax: 60
-  Np: 50000
+  Nt: 1200
+  Nreal: 1
   Nc: 50
   Nloop: 2
-  Nreal: 1
-  Nt: 1200
+  Np: 50000
   ntraj: 10
   Ti: 0.5
   Te: 0.5
@@ -35,7 +35,10 @@ CycloneBaseZhang:
   shotslice: 6
   Omgt0: 0
   Omgtprim: 0
-  turb_model : 2
+  turb_model: 2
+  x_corr: 2
+  y_corr: 1
+  t_corr: 2
   Phi: 0.011
   turbprof: 5.0
   Ai: 1.0
@@ -47,16 +50,14 @@ CycloneBaseZhang:
   k0i: 0.05
   k0e: 0.05
   gamma_ZF: 0.0
-  x_corr: 2
-  t_corr: 2
   X0: 2.022
   Y0: 0.0
   Z0: 0
-  Tw: 1.0
-  Ew: 1.0
+  Ts: 1.0
+  Es: 1.0
   pitch: 0.3
-  Aw: 1.0
-  Zw: 1.0
+  As: 1.0
+  Zs: 1.0
   position_type: 2
   pitch_type: 2
   energy_type: 2
@@ -78,11 +79,11 @@ MAST-U:
   tc: -1
   tt: -1
   tmax: 100
-  Np: 20000
+  Nt: 1000
+  Nreal: 1
   Nc: 50
   Nloop: 1
-  Nreal: 1
-  Nt: 1000
+  Np: 20000
   ntraj: 10
   Ti: 0.45
   Te: 0.35
@@ -96,7 +97,7 @@ MAST-U:
   B0: 0.7
   R0: 0.9
   a0: 0.47
-  s1: 1.
+  s1: 1.0
   s2: 0.0
   s3: 5.0
   amp: 1.1
@@ -106,7 +107,10 @@ MAST-U:
   shotslice: 600
   Omgt0: 50
   Omgtprim: 0
-  turb_model : 2
+  turb_model: 2
+  x_corr: 2
+  y_corr: 1
+  t_corr: 2
   Phi: 0.04
   turbprof: 5.0
   Ai: 0.8
@@ -118,16 +122,14 @@ MAST-U:
   k0i: 0.1
   k0e: 0.1
   gamma_ZF: 0.0
-  x_corr: 2
-  t_corr: 2
   X0: 1.2
   Y0: 0
   Z0: 0
-  Tw: 1.0
-  Ew: 1.0
+  Ts: 1.0
+  Es: 1.0
   pitch: 0.0
-  Aw: 2.0
-  Zw: 1.0
+  As: 2.0
+  Zs: 1.0
   position_type: 2
   pitch_type: 2
   energy_type: 2
@@ -149,11 +151,11 @@ TCV:
   tc: -1
   tt: -1
   tmax: 100
-  Np: 200000
+  Nt: 2000
+  Nreal: 1
   Nc: 50
   Nloop: 1
-  Nreal: 1
-  Nt: 2000
+  Np: 200000
   ntraj: 10
   Ti: 0.5
   Te: 5.0
@@ -177,7 +179,10 @@ TCV:
   shotslice: 2
   Omgt0: 0.0
   Omgtprim: 0.0
-  turb_model : 2
+  turb_model: 2
+  x_corr: 2
+  y_corr: 1
+  t_corr: 2
   Phi: 0.005
   turbprof: 5.0
   Ai: 0.0
@@ -189,16 +194,14 @@ TCV:
   k0i: 0.1
   k0e: 0.1
   gamma_ZF: 0.0
-  x_corr: 2
-  t_corr: 2
   X0: 1.03
   Y0: 0
   Z0: 0
-  Tw: 1.0
-  Ew: 1.0
+  Ts: 1.0
+  Es: 1.0
   pitch: 0.0
-  Aw: 2.0
-  Zw: 1.0
+  As: 2.0
+  Zs: 1.0
   position_type: 2
   pitch_type: 2
   energy_type: 2
@@ -220,11 +223,11 @@ WEST:
   tc: -1
   tt: -1
   tmax: 60
-  Np: 10000
+  Nt: 1500
+  Nreal: 1
   Nc: 50
   Nloop: 1
-  Nreal: 1
-  Nt: 1500
+  Np: 10000
   ntraj: 10
   Ti: 0.8
   Te: 1.5
@@ -248,7 +251,10 @@ WEST:
   shotslice: 6
   Omgt0: 0
   Omgtprim: 0
-  turb_model : 2
+  turb_model: 2
+  x_corr: 2
+  y_corr: 1
+  t_corr: 2
   Phi: 0.002
   turbprof: 5.0
   Ai: 0.99
@@ -260,16 +266,14 @@ WEST:
   k0i: 0.1
   k0e: 0.1
   gamma_ZF: 0.0
-  x_corr: 2
-  t_corr: 2
   X0: 2.75
   Y0: 0
   Z0: 0
-  Tw: 1.0
-  Ew: 0.001
+  Ts: 1.0
+  Es: 0.001
   pitch: 0.4
-  Aw: 1.0
-  Zw: 1.0
+  As: 1.0
+  Zs: 1.0
   position_type: 2
   pitch_type: 2
   energy_type: 2
@@ -291,11 +295,11 @@ CycloneBaseCase:
   tc: -1
   tt: -1
   tmax: 60
-  Np: 50000
+  Nt: 1200
+  Nreal: 1
   Nc: 50
   Nloop: 1
-  Nreal: 1
-  Nt: 1200
+  Np: 5000
   ntraj: 10
   Ti: 3.0
   Te: 3.0
@@ -319,7 +323,10 @@ CycloneBaseCase:
   shotslice: 6
   Omgt0: 0
   Omgtprim: 0
-  turb_model : 2
+  turb_model: 2
+  x_corr: 2
+  y_corr: 1
+  t_corr: 2
   Phi: 0.01
   turbprof: 5.0
   Ai: 1.0
@@ -331,16 +338,14 @@ CycloneBaseCase:
   k0i: 0.05
   k0e: 0.05
   gamma_ZF: 0.0
-  x_corr: 2
-  t_corr: 2
   X0: 1.95
   Y0: 0
   Z0: 0
-  Tw: 1.0
-  Ew: 1.0e-01
+  Ts: 1.0
+  Es: 1.0e-01
   pitch: 0.4
-  Aw: 1.0
-  Zw: 1.0
+  As: 1.0
+  Zs: 1.0
   position_type: 2
   pitch_type: 2
   energy_type: 2
@@ -357,5 +362,4 @@ CycloneBaseCase:
   USE_tilt: 1
   USE_testing: 0
 
-Personal scenario: {}
-
+Personal defaults: {}

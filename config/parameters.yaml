@@ -1,89 +1,90 @@
 schema_version: 2
 
 parameters:
-  # --- Time / iteration ---
+  # --- Numerics time / iterations etc ---
   - name: t0
     kind: float
-    units: R0/vth
+    units: "R0/vth"
     default: 0
-    group: Time
+    group: Numerics
     help: Starting time of the simulation
 
   - name: tc
     kind: float
-    units: R0/vth
+    units: "R0/vth"
     default: -1
-    group: Time
+    group: Numerics
     help: Starting time of collisional processes
 
   - name: tt
     kind: float
-    units: R0/vth
+    units: "R0/vth"
     default: -1
-    group: Time
+    group: Numerics
     help: Starting time of turbulence processes
 
   - name: tmax
     kind: float
-    units: R0/vth
+    units: "R0/vth"
     default: 100
-    group: Time
+    min: 0
+    group: Numerics
     help: Final time of the simulation
 
-  - name: Np
+  - name: Nt
     kind: int
-    default: 100000
+    units: "tmax/dt"
+    default: 1000
     min: 1
     group: Numerics
-    help: Number of test-particles per loop and realization
-
-  - name: Nc
-    kind: int
-    default: 50
-    min: 1
-    group: Numerics
-    help: Number of Fourier modes used in the representation of turbulent fields (a few dozens is acceptable, the non-gaussianity goes like 1/Nc)
-
-  - name: Nloop
-    kind: int
-    default: 1
-    min: 1
-    group: Numerics
-    help: Number of loops
+    help: Number of time steps per simulation
 
   - name: Nreal
     kind: int
     default: 1
     min: 1
     group: Numerics
-    help: Number of field realizations
+    help: Number of field realizations (if USE_real=ON, all Np particles are propagated in a single realization; if USE_real=OFF, this is equivalent to an additional Nloop)
 
-  - name: Nt
+  - name: Nc
     kind: int
-    units: tmax/dt
-    default: 1000
+    default: 50
     min: 1
     group: Numerics
-    help: Number of time steps per simulation
+    help: Number of Fourier modes used in the representation of turbulent fields (a few dozen is acceptable; the non-Gaussianity scales like 1/Nc)
+
+  - name: Nloop
+    kind: int
+    default: 1
+    min: 1
+    group: Numerics
+    help: Number of loops (a loop is equivalent to a batch of Np particles)
+
+  - name: Np
+    kind: int
+    default: 50000
+    min: 1
+    group: Numerics
+    help: Number of test particles per loop and per realization
 
   - name: ntraj
     kind: int
     default: 10
     min: 0
     group: Numerics
-    help: Number of trajectories to be saved/exported in full
+    help: Number of trajectories to be saved/exported with full time history (per loop and per realization)
 
   # --- Plasma / normalization ---
   - name: Ti
     kind: float
-    units: keV
+    units: "keV"
     default: 1
     group: Plasma
-    help: Local H ion temperature (also used as normalization quantity)
+    help: Local H ion temperature (also used as the normalization quantity; note that "ions" can mean proton, deuterium, or even tritium)
 
   - name: Te
     kind: float
-    units: keV
+    units: "keV"
     default: 1
     group: Plasma
     help: Local electron temperature
@@ -93,40 +94,40 @@ parameters:
     units: "|e|"
     default: 1
     group: Plasma
-    help: Bulk plasma effective charge
+    help: Bulk plasma effective charge (used only for the collision frequency calculation)
 
   - name: Aeff
     kind: float
-    units: mH
+    units: "mH"
     default: 2
     group: Plasma
-    help: Bulk plasma effective mass
+    help: Bulk plasma effective mass (used only for the collision frequency calculation)
 
   - name: ndens
     kind: float
-    units: 1e19 #/m3
+    units: "1e19 m^-3"
     default: 4
     group: Plasma
-    help: Local plasma density
+    help: Local plasma density (used only for the collision frequency calculation)
 
   # --- Gradients / drives ---
   - name: Ln
     kind: float
     default: 2.2
     group: Plasma
-    help: R/Ln (for ITG/TEM)
+    help: R0/Ln (for ITG/TEM)
 
   - name: Li
     kind: float
     default: 6.9
     group: Plasma
-    help: R/LTi (for ITG)
+    help: R0/LTi (right now, it's useless)
 
   - name: Le
     kind: float
     default: 6.9
     group: Plasma
-    help: R/LTe (for TEM)
+    help: R0/LTe (right now, it's useless)
 
   # --- Geometry / equilibrium ---
   - name: magnetic_model
@@ -146,21 +147,21 @@ parameters:
 
   - name: B0
     kind: float
-    units: T
+    units: "T"
     default: 1
     group: Equilibrium
-    help: Major axis magnetic field
+    help: Major-axis magnetic field
 
   - name: R0
     kind: float
-    units: m
+    units: "m"
     default: 1
     group: Equilibrium
     help: Major radius
 
   - name: a0
     kind: float
-    units: m
+    units: "m"
     default: 0.5
     group: Equilibrium
     help: Minor radius
@@ -169,30 +170,30 @@ parameters:
     kind: float
     default: 0.8
     group: Equilibrium
-    help: Magnetic axis safety factor (s1) in the model qpsi(rhot)=s1+s2*rhot+s3*rhot^2
+    help: Safety-factor coefficient s1 in the model qpsi(rhot)=s1+s2*rhot+s3*rhot^2
 
   - name: s2
     kind: float
     default: 0.0
     group: Equilibrium
-    help: Magnetic axis safety factor  derivative (s2) in the model qpsi(rhot)=s1+s2*rhot+s3*rhot^2
+    help: Safety-factor coefficient s2 in the model qpsi(rhot)=s1+s2*rhot+s3*rhot^2
 
   - name: s3
     kind: float
     default: 2.2
     group: Equilibrium
-    help: Magnetic axis safety factor 2nd derivative (s3) in the model qpsi(rhot)=s1+s2*rhot+s3*rhot^2
+    help: Safety-factor coefficient s3 in the model qpsi(rhot)=s1+s2*rhot+s3*rhot^2
 
   - name: amp
     kind: float
-    units: ??
+    units: "arb."
     group: Equilibrium
-    help: Flux surface amplitude (for Solovev only)
+    help: Flux-surface amplitude (Solovev only)
 
   - name: elong
     kind: float
     group: Equilibrium
-    help: Elongation of flux surfaces (for Solovev only)
+    help: Flux-surface elongation (Solovev only)
 
   - name: device
     kind: enum
@@ -209,41 +210,73 @@ parameters:
   - name: shot
     kind: int
     group: Equilibrium
-    help: Shot number (for data import)
+    help: Shot number for equilibrium import
 
   - name: shotslice
     kind: int
-#    units: ??
     group: Equilibrium
-    help: Time slice where equilibrium is evaluated
+    help: Time slice at which the equilibrium is evaluated
 
   # --- Rotation ---
   - name: Omgt0
     kind: float
-    units: 1e3 Hz
+    units: "1e3 Hz"
     default: 0
     group: Equilibrium
     help: Local toroidal angular frequency
 
   - name: Omgtprim
     kind: float
-#    units: 
     default: 0
     group: Equilibrium
-    help: Psi length scale of toroidal rotation (dlnOmgt/drhot)
+    help: Rhot scale length of toroidal rotation, dlnOmgt/drhot
 
   # --- Turbulence model ---
-  
   - name: turb_model
     kind: enum
     default: 2
     group: Turbulence
-    help: Choices of functional turbulence spectrum construction (1=old, no real tilting, 2=new, better)
+    help: Choice of functional turbulence spectrum construction (1=old, no real tilting; 2=new, improved)
     choices:
       - value: 1
         label: old
       - value: 2
         label: new
+
+  - name: x_corr
+    kind: enum
+    default: 1
+    group: Turbulence
+    help: Choice of x spectrum/correlation (1=Gaussian, 2=Cauchy, 3=alaGENE)
+    choices:
+      - value: 1
+        label: Gaussian correlation
+      - value: 2
+        label: Exp correlation (Cauchy spectrum)
+      - value: 3
+        label: A la GENE correlation (Cauchy-like spectrum)
+
+  - name: y_corr
+    kind: enum
+    default: 1
+    group: Turbulence
+    help: Choice of y spectrum/correlation (1=alaMadi, 2=alaGENE)
+    choices:
+      - value: 1
+        label: alaMadi
+      - value: 2
+        label: A la GENE correlation (Cauchy-like spectrum)
+
+  - name: t_corr
+    kind: enum
+    default: 2
+    group: Turbulence
+    help: Choice of t spectrum/correlation (1=Gaussian, 2=Cauchy)
+    choices:
+      - value: 1
+        label: Gaussian correlation
+      - value: 2
+        label: Exp correlation (Cauchy spectrum)
 
   - name: Phi
     kind: float
@@ -265,145 +298,122 @@ parameters:
 
   - name: lambdax
     kind: float
-    units: rhoi
+    units: "rhoi"
     default: 5
     group: Turbulence
-    help: Radial correlation length
+    help: Radial correlation length (along the field-aligned x direction)
 
   - name: lambday
     kind: float
-    units: rhoi
+    units: "rhoi"
     default: 5
     group: Turbulence
-    help: Poloidal correlation length
+    help: Poloidal correlation length (along the field-aligned y direction)
 
   - name: lambdaz
     kind: float
-    units: q0*R0
+    units: "q0*R0"
     default: 10.0
     group: Turbulence
     help: Parallel correlation length for saturated decoherent fluctuations
 
   - name: lbalonz
     kind: float
-    units: q0*R0
+    units: "q0*R0"
     default: 10.0
     group: Turbulence
-    help: Parallel correlation length for ballooning envelope (0 -> high localization of the turbulence at the LFS; generally >1 for good numerical convergence; also <100 for numerical reasons);
+    help: Parallel correlation length for the ballooning envelope (0 gives strong localization of the turbulence at the LFS; generally >1 for good numerical convergence and <100 for numerical stability)
 
   - name: tauc
     kind: float
-    units: R0/vth
+    units: "R0/vth"
     default: 10
     group: Turbulence
     help: Decorrelation time
 
   - name: k0i
     kind: float
-    units: 1/rhoi
+    units: "1/rhoi"
     default: 0.1
     group: Turbulence
     help: Dominant wavenumber for ITG
 
   - name: k0e
     kind: float
-    units: 1/rhoi
+    units: "1/rhoi"
     default: 0.1
     group: Turbulence
     help: Dominant wavenumber for TEM
 
   - name: gamma_ZF
     kind: float
-    units: 1/t0
+    units: "vth/R0"
     default: 0.0
     group: Turbulence
-    help: Zonal flow shearing rate
-    
-  - name: x_corr
-    kind: enum
-    default: 2
-    group: Turbulence
-    help: Choices of x spectrum/correlation (1=Gaussian, 2=Exp corr equiv. Cauchy spectrum)
-    choices:
-      - value: 1
-        label: Gaussian correlation
-      - value: 2
-        label: Exp correlation (Cauchy spectrum)
+    help: Zonal-flow shearing rate
 
-  - name: t_corr
-    kind: enum
-    default: 2
-    group: Turbulence
-    help: Choices of t spectrum/correlation (1=Gaussian, 2=Exp corr equiv. Cauchy spectrum)
-    choices:
-      - value: 1
-        label: Gaussian correlation
-      - value: 2
-        label: Exp correlation (Cauchy spectrum)
-
-
-# --- Particle Initial Conditions / markers ---
+  # --- Particle Initial Conditions / markers ---
   - name: X0
     kind: float
-    units: m
-    default: 1.3
-    group: Particle Initial Conditions
-    help: R (cylindrical) reference position
+    units: "m"
+    default: 1.95
+    group: "Particle Initial Conditions"
+    help: Cylindrical R reference position
 
   - name: Y0
     kind: float
-    units: m
+    units: "m"
     default: 0.0
-    group: Particle Initial Conditions
-    help: Z (cylindrical) reference position
+    group: "Particle Initial Conditions"
+    help: Cylindrical Z reference position
 
   - name: Z0
     kind: float
-    units: rad
+    units: "rad"
     default: 0.0
-    group: Particle Initial Conditions
-    help: phi (cylindrical) reference position
+    group: "Particle Initial Conditions"
+    help: Cylindrical phi reference position
 
-  - name: Tw
+  - name: Ts
     kind: float
-    units: Ti
+    units: "Ti"
     default: 1.0
-    group: Particle Initial Conditions
-    help: Local species temperature (normalized to Ti); relevant only if MB distributed
+    group: "Particle Initial Conditions"
+    help: Local species temperature (normalized to Ti); relevant only for a Maxwell-Boltzmann distribution
 
-  - name: Ew
+  - name: Es
     kind: float
-    units: Ti
+    units: "Ti"
     default: 1.0
-    group: Particle Initial Conditions
-    help: Local species energy (normalized to Ti); relevant only if single energy distributed
+    group: "Particle Initial Conditions"
+    help: Local species energy (normalized to Ti); relevant only for a single-energy distribution
 
   - name: pitch
     kind: float
     min: -1
     max: 1
     default: 0.5
-    group: Particle Initial Conditions
-    help: Reference pitch angle; relevant only if fixed pitch distributed
+    group: "Particle Initial Conditions"
+    help: Reference pitch angle; relevant only for a fixed-pitch distribution
 
-  - name: Aw
+  - name: As
     kind: float
-    units: mH
+    units: "mH"
     default: 1
-    group: Particle Initial Conditions
+    group: "Particle Initial Conditions"
     help: Species mass
 
-  - name: Zw
+  - name: Zs
     kind: float
     units: "|e|"
     default: 1
-    group: Particle Initial Conditions
+    group: "Particle Initial Conditions"
     help: Species charge
 
   - name: position_type
     kind: enum
     default: 2
-    group: Particle Initial Conditions
+    group: "Particle Initial Conditions"
     help: Initial position distribution
     choices:
       - value: 1
@@ -416,7 +426,7 @@ parameters:
   - name: pitch_type
     kind: enum
     default: 2
-    group: Particle Initial Conditions
+    group: "Particle Initial Conditions"
     help: Initial pitch distribution
     choices:
       - value: 1
@@ -427,7 +437,7 @@ parameters:
   - name: energy_type
     kind: enum
     default: 2
-    group: Particle Initial Conditions
+    group: "Particle Initial Conditions"
     help: Initial energy distribution
     choices:
       - value: 1
@@ -443,7 +453,7 @@ parameters:
     default: 0
     ui: checkbox
     group: Switches
-    help: FiniteLarmorRadius effects [J0] (1=yes, 0=no)
+    help: Finite-Larmor-radius effects [J0] (1=yes, 0=no)
 
   - name: USE_coll
     kind: int
@@ -488,7 +498,7 @@ parameters:
     default: 0
     ui: checkbox
     group: Switches
-    help: Polarization drift effects (1=yes, 0=no)
+    help: Polarization-drift effects (1=yes, 0=no)
 
   - name: USE_PC
     kind: int
@@ -497,7 +507,7 @@ parameters:
     default: 0
     ui: checkbox
     group: Switches
-    help: Canonical Momentum flux tube (1=yes, 0=no)
+    help: Canonical-momentum flux tube (1=yes, 0=no)
 
   - name: USE_real
     kind: int
@@ -506,7 +516,7 @@ parameters:
     default: 0
     ui: checkbox
     group: Switches
-    help: Field realizations (1=yes = a single realization, 0=no = a field to each particle)
+    help: Field realizations (1=yes - a single realization; 0=no - one field realization per particle)
 
   - name: USE_corr
     kind: int
@@ -524,7 +534,7 @@ parameters:
     default: 0
     ui: checkbox
     group: Switches
-    help: Ballooning effects [g(z) = exp(cos(z)lbalonz**2?)] (1=yes, 0=no)
+    help: Ballooning effects [g(z) = exp(cos(z)*lbalonz**2?)] (1=yes, 0=no)
 
   - name: USE_tilt
     kind: int
@@ -534,7 +544,7 @@ parameters:
     ui: checkbox
     group: Switches
     help: Tilting effects ~ s ky z (1=yes, 0=no)
-    
+
   - name: USE_testing
     kind: int
     min: 0
@@ -542,4 +552,4 @@ parameters:
     default: 0
     ui: checkbox
     group: Switches
-    help: TDo the damn tests (1=yes, 0=no)
+    help: Run test routines (1=yes, 0=no)

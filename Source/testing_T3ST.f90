@@ -616,11 +616,11 @@ contains
     t_m4_ky = m4_ref(2)
     t_m4_kz = m4_ref(3)
 
-    fac = (Ln*(rhoi/R0)**2)
+    fac = (Ln*(rhoi/R0/(1.0_dp+r00))**2)
 
     m2_ref(4) = m2_ref(4) + (fac**2) * (Vstar2**2*t_m2_ky + Vstar3**2*t_m2_kz)
 
-    m4_ref(4) = 3.0_dp/(tauc**4)                                                         &
+    m4_ref(4) = m4_ref(4)                                                        &
               + (fac**4) * (Vstar2**4*t_m4_ky + Vstar3**4*t_m4_kz                         &
               + 2.0_dp*Vstar2**2*Vstar3**2*t_m2_kz*t_m2_ky)                               &
               + 2.0_dp/(tauc**2) * (fac**2) * (Vstar2**2*t_m2_ky + Vstar3**2*t_m2_kz)

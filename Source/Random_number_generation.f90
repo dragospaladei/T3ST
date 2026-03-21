@@ -212,10 +212,186 @@ CONTAINS
     DEALLOCATE(x1, x2, y1, y2, keep)
   END SUBROUTINE PDF_Boltz
 
+!=============================================================================
+! PDF_abcap_2piece
+!
+! Generates x from
+!   p(x) ∝ (|x|*lambda)^a / (1 + (|x|*lambda)^b),   with |x|*lambda <= L
+!
+! Works in z = |x|*lambda, z in [0,L], using a two-piece proposal:
+!
+!   g(z) ∝ z^a       on [0, min(1,L)]
+!   g(z) ∝ z^(a-b)   on [1, L]         (if L > 1)
+!
+! This is efficient because acceptance is >= 1/2 everywhere.
+!
+! Requirements:
+!   a > -1
+!   b > 0
+!   lambda > 0
+!   L > 0
+!
+! Strongly preferred:
+!   b - a > 1
+! so that the second-piece integral is well behaved and cheap.
+!=============================================================================
+SUBROUTINE PDF_abcap(n, zlam, za, zb, zL, xf)
+  USE constants, ONLY: dp
+  IMPLICIT NONE
 
-  !=============================================================================
+  INTEGER, INTENT(IN) :: n
+  REAL(KIND=dp), INTENT(IN) :: zlam, za, zb, zL
+  REAL(KIND=dp), INTENT(OUT) :: xf(n)
+
+  INTEGER, PARAMETER :: CHUNK = 65536
+
+  INTEGER :: out, m, j
+  REAL(KIND=dp) :: zsplit
+  REAL(KIND=dp) :: I1, I2, Itot, p1
+  REAL(KIND=dp) :: ap1, q, qp1
+  REAL(KIND=dp), ALLOCATABLE :: u0(:), u1(:), u2(:), u3(:), z(:), pacc(:)
+  LOGICAL, ALLOCATABLE :: keep(:), leftpiece(:)
+
+  IF (n < 1) THEN
+     PRINT *, 'ERROR: n must be >= 1 ~ PDF_abcap_2piece'
+     STOP
+  END IF
+
+  IF (zlam <= 0.0_dp) THEN
+     PRINT *, 'ERROR: lambda must be > 0 ~ PDF_abcap_2piece'
+     STOP
+  END IF
+
+  IF (zL <= 0.0_dp) THEN
+     PRINT *, 'ERROR: L must be > 0 ~ PDF_abcap_2piece'
+     STOP
+  END IF
+
+  IF (za <= -1.0_dp) THEN
+     PRINT *, 'ERROR: need a > -1 ~ PDF_abcap_2piece'
+     STOP
+  END IF
+
+  IF (zb <= 0.0_dp) THEN
+     PRINT *, 'ERROR: need b > 0 ~ PDF_abcap_2piece'
+     STOP
+  END IF
+
+  ap1 = za + 1.0_dp
+  zsplit = MIN(1.0_dp, zL)
+
+  ! Integral of first piece: int_0^{min(1,L)} z^a dz
+  I1 = zsplit**ap1 / ap1
+
+  ! Integral of second piece: int_1^L z^(a-b) dz, only if L>1
+  I2 = 0.0_dp
+  IF (zL > 1.0_dp) THEN
+     q   = za - zb
+     qp1 = q + 1.0_dp   ! = a - b + 1
+
+     IF (ABS(qp1) < 1.0e-12_dp) THEN
+        ! Special case a-b = -1  <=> b-a = 1
+        I2 = LOG(zL)
+     ELSE
+        I2 = (zL**qp1 - 1.0_dp) / qp1
+     END IF
+  END IF
+
+  Itot = I1 + I2
+  p1   = I1 / Itot
+
+  ALLOCATE(u0(CHUNK), u1(CHUNK), u2(CHUNK), u3(CHUNK), &
+           z(CHUNK), pacc(CHUNK), keep(CHUNK), leftpiece(CHUNK))
+
+  out = 0
+
+  DO WHILE (out < n)
+
+     m = MIN(CHUNK, n - out)
+
+     ! u0 : choose proposal piece
+     ! u1 : sample inside chosen piece
+     ! u2 : accept/reject
+     ! u3 : sign
+     CALL RANDOM_NUMBER(u0(1:m))
+     CALL RANDOM_NUMBER(u1(1:m))
+     CALL RANDOM_NUMBER(u2(1:m))
+     CALL RANDOM_NUMBER(u3(1:m))
+
+     leftpiece(1:m) = (u0(1:m) <= p1)
+
+     DO j = 1, m
+
+        IF (leftpiece(j)) THEN
+           !----------------------------------------------------------
+           ! Left piece: g1(z) ∝ z^a on [0, zsplit]
+           !
+           ! CDF inversion:
+           !   z = zsplit * U^(1/(a+1))
+           !----------------------------------------------------------
+           z(j) = zsplit * u1(j)**(1.0_dp/ap1)
+
+           ! Acceptance:
+           !   f / g1 = 1 / (1 + z^b)
+           pacc(j) = 1.0_dp / (1.0_dp + z(j)**zb)
+
+        ELSE
+           !----------------------------------------------------------
+           ! Right piece: g2(z) ∝ z^(a-b) on [1, L]
+           !----------------------------------------------------------
+           IF (zL <= 1.0_dp) THEN
+              ! Should not happen since p1=1 in that case, but keep safe
+              z(j)    = zsplit * u1(j)**(1.0_dp/ap1)
+              pacc(j) = 1.0_dp / (1.0_dp + z(j)**zb)
+           ELSE
+              q   = za - zb
+              qp1 = q + 1.0_dp
+
+              IF (ABS(qp1) < 1.0e-12_dp) THEN
+                 ! g2(z) ∝ z^(-1), CDF inversion:
+                 !   z = exp( U * log(L) )
+                 z(j) = EXP( u1(j) * LOG(zL) )
+              ELSE
+                 ! CDF inversion for power law on [1,L]:
+                 !   z = [ 1 + U*(L^(q+1)-1) ]^(1/(q+1))
+                 z(j) = ( 1.0_dp + u1(j) * (zL**qp1 - 1.0_dp) )**(1.0_dp/qp1)
+              END IF
+
+              ! Acceptance:
+              !   f / g2 = z^b / (1 + z^b)
+              !
+              ! Numerically nicer form for large z:
+              !   1 / (1 + z^(-b))
+              pacc(j) = 1.0_dp / (1.0_dp + z(j)**(-zb))
+           END IF
+
+        END IF
+
+     END DO
+
+     keep(1:m) = (u2(1:m) <= pacc(1:m))
+
+     DO j = 1, m
+        IF (keep(j)) THEN
+           out = out + 1
+
+           IF (u3(j) < 0.5_dp) THEN
+              xf(out) = -z(j) / zlam
+           ELSE
+              xf(out) =  z(j) / zlam
+           END IF
+
+           IF (out == n) EXIT
+        END IF
+     END DO
+
+  END DO
+
+  DEALLOCATE(u0, u1, u2, u3, z, pacc, keep, leftpiece)
+
+END SUBROUTINE PDF_abcap  !=============================================================================
   ! PDF_Cauchy
-  !   Truncated + double-symmetric (centered at +/-w00) Cauchy-like draw.
+  !   Truncated + double-sbymmetric (centered at +/-w00) Cauchy-like draw.
   !
   !   NOTE: This keeps your exact algebra:
   !     x2 = TAN((2u-1)*atan(trunc))
@@ -647,14 +823,17 @@ CONTAINS
           kxrow = tmp4(1,:)
         ELSEIF (x_corr == 2) THEN
           CALL PDF_Cauchy(npts, kx000, lambdax, kxrow, trunc)
+        ELSEIF (x_corr == 3) THEN
+          CALL PDF_abcap(npts, lambdax, 0.0001_dp, 1.36_dp, 10.0_dp, kxrow)
         END IF
 
-        ! Temporal spectrum selection
+! Temporal spectrum selection
         IF (t_corr == 1) THEN
           wrow = tmp4(3,:)
         ELSEIF (t_corr == 2) THEN
-          CALL PDF_Cauchy(npts, w000, lambdax, wrow, trunc)
+          CALL PDF_Cauchy(npts, w000, tauc, wrow, trunc)
         END IF
+        
 
         !-------------------------
         ! ky depends on ITG/TEM block
@@ -667,7 +846,13 @@ CONTAINS
           sgn = -Te_over_Ti
         END IF
 
-        CALL PDF_ky(npts, lambday, k0, kyrow)
+
+        ! Radial spectrum selection
+        IF (y_corr == 1) THEN
+          CALL PDF_ky(npts, lambday, k0, kyrow)
+        ELSEIF (y_corr == 2) THEN
+          CALL PDF_abcap(npts, lambday, 0.8_dp, 2.3_dp, 10.0_dp, kyrow)
+        END IF
 
         !-------------------------
         ! Integer wrapping (as in your original)
@@ -821,7 +1006,7 @@ CONTAINS
     END IF
 
     IF (ind == ON) THEN
-      coef = SQRT(2.0_dp * Aw / Zw**2)
+      coef = SQRT(2.0_dp * As / Zs**2)
 
       IF (USE_real == OFF) THEN
         !$omp parallel do default(none) shared(L, kperp, mut, coef, Nc, Np) private(i)
@@ -1351,7 +1536,7 @@ CONTAINS
       !$OMP PRIVATE (i)
       DO i = 1, Np
         ! L(:,i) = BESSEL_J0(kperp(:,i)*SQRT(2.0*Aw*ABS(mut(i))/Zw**2/B(i)))
-        L(:,i) = BESSEL_J0(kperp(:,i) * SQRT(2.0_dp*Aw*ABS(mut(i))/Zw**2))
+        L(:,i) = BESSEL_J0(kperp(:,i) * SQRT(2.0_dp*As*ABS(mut(i))/Zs**2))
       END DO
       !$OMP END PARALLEL DO
 

@@ -135,7 +135,7 @@ SUBROUTINE psisurf_circ_old(X, Y, Vp)
             ( atanh( sqrt(1.0 - aux3**2) / sqrt(1.0 + a0**2*s1/s3) ) - &
               atanh( 1.0 / sqrt(1.0 + a0**2*s1/s3) ) )
 
-      ioc = minloc(abs(psi/psi0 - real(USE_PC,dp)*rhoi/R0*Aw/Zw*F/normB*Vp(k)/psi0 - 1.0), 1)
+      ioc = minloc(abs(psi/psi0 - real(USE_PC,dp)*rhoi/R0*As/Zs*F/normB*Vp(k)/psi0 - 1.0), 1)
 
       X(k) = 1.0 + aux1(ioc)
       Y(k) = aux2(ioc)
@@ -186,7 +186,7 @@ SUBROUTINE psisurf_circ(X, Y, Vp)
    CALL random_number(th)
    th = pi*(2.0_dp*th - 1.0_dp)
 
-   alpha = real(USE_PC,dp)*rhoi/R0*Aw/Zw/psi0   ! F=1 ⇒ K/psi0
+   alpha = real(USE_PC,dp)*rhoi/R0*As/Zs/psi0   ! F=1 ⇒ K/psi0
 
    ! Main loop over particles
    DO k = 1, Np

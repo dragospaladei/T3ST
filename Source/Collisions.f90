@@ -36,10 +36,10 @@
        betx = Bx*hx/B
        bety = By*hy/B
        betz = Bz*hz/B
-       Omega = B/Aw*wi*R0/vth
+       Omega = B/As*wi*R0/vth
 
-       ene = Aw/2.0*Vp**2 + B*abs(mut)
-       v = sqrt(2.0*abs(ene)/Aw)
+       ene = As/2.0*Vp**2 + B*abs(mut)
+       v = sqrt(2.0*abs(ene)/As)
        zeta = Vp/v
        alf = ene/(v*B)
        xx = v/sqrt(2.0)/Sqrt(Aeff)
@@ -75,7 +75,7 @@
 
        ratio = 1.0
        vcolp = ratio*(-nuf*Vp + zeta*(2.0*(Dpar - Dperp)/v + Dparprim))*1.0 + 1.0*(Spp*Wp + Spm*Wm)
-       vcolm = ratio*(-2.0*nuf*mut + Aw*mut/ene*(v*Dparprim + 3.0*(Dpar - Dperp)) + 2.0*Aw*Dperp/B)*1.0 + 1.0*(Smp*Wp + Smm*Wm)
+       vcolm = ratio*(-2.0*nuf*mut + As*mut/ene*(v*Dparprim + 3.0*(Dpar - Dperp)) + 2.0*As*Dperp/B)*1.0 + 1.0*(Smp*Wp + Smm*Wm)
        vcolx = ratio*sqrt(2.0*DifR)*(Wx - Wx*betx*betx - Wy*bety*betx - Wz*betz*betx)/hx
        vcoly = ratio*sqrt(2.0*DifR)*(Wy - Wx*betx*bety - Wy*bety*bety - Wz*betz*bety)/hy
        vcolz = ratio*sqrt(2.0*DifR)*(Wz - Wx*betx*betz - Wy*bety*betz - Wz*betz*betz)/hz
@@ -102,26 +102,26 @@
 
        logical :: contains_nan
 
-       ene = Aw/2.0*Vp**2 + B*abs(mut) !good
-       v = sqrt(2.0*abs(ene)/Aw)      !good
+       ene = As/2.0*Vp**2 + B*abs(mut) !good
+       v = sqrt(2.0*abs(ene)/As)      !good
        zeta = Vp/v                       !good
 
-       xx = sqrt(abs(ene))*sqrt(Aeff)/sqrt(Aw)                 ! v_24.03
+       xx = sqrt(abs(ene))*sqrt(Aeff)/sqrt(As)                 ! v_24.03
        Fphi = erf(xx)                                           ! v_24.03
        Fpsi = (Fphi - 2.0*xx*exp(-xx**2)/sqrt(pi))/2.0/xx**2      ! v_24.03
 
        !       v_25.03
-       gg = (16.0*R0*c0)/(vth**4*(2/Aw)**1.5)
+       gg = (16.0*R0*c0)/(vth**4*(2/As)**1.5)
        nub1 = (gg/4.0)/ene**1.5*(Fphi - Fpsi)
        nue1 = gg/ene**1.5*Fpsi
-       nueprim1 = gg*sqrt(Aeff/Aw/pi)*exp(-ene*Aeff/Aw)/ene**2 - 2.5*nue1/ene
+       nueprim1 = gg*sqrt(Aeff/As/pi)*exp(-ene*Aeff/As)/ene**2 - 2.5*nue1/ene
 
-       d = delta! = 5.0*4./3./sqrt(pi)*(tmax-t0)/Nt*R0*2*logL*ndens*(Zeff*Zw*q0**2)**2/(pi*eps**2*mi**2*Aw**2*vth**4*sqrt(2.0/Aeff)**3)
+       d = delta! = 5.0*4./3./sqrt(pi)*(tmax-t0)/Nt*R0*2*logL*ndens*(Zeff*Zs*q0**2)**2/(pi*eps**2*mi**2*As**2*vth**4*sqrt(2.0/Aeff)**3)
 
-       ce = 1.0/(1.0 + d*ene**(-1.0)*(Aw/2.0))
+       ce = 1.0/(1.0 + d*ene**(-1.0)*(As/2.0))
        nub = nub1*ce
        nue = nue1*ce
-       nueprim = nueprim1*ce + nue1*2.0*Aw*d/((Aw*d + 2.0*ene)**2.0)
+       nueprim = nueprim1*ce + nue1*2.0*As*d/((As*d + 2.0*ene)**2.0)
 
        call random_number(sm)
        sm = 1.0*sign(1.0, sm - 0.5)
@@ -131,7 +131,7 @@
        ene2 = ene - 2.0*nue*dt*(ene - (1.5 + ene/(nue + 0.000001)*nueprim)) + 2.0*sm*sqrt(ene*nue*dt)
        ene = abs(ene2)
 
-       v = sqrt(2.0*abs(ene)/Aw)
+       v = sqrt(2.0*abs(ene)/As)
        Vp = v*zeta
        mut = ene/B*(1.0 - zeta**2)
 
@@ -162,26 +162,26 @@
 
        logical :: contains_nan
 
-       ene = Aw/2.0*Vp**2 + B*abs(mut) !good
-       v = sqrt(2.0*abs(ene)/Aw)      !good
+       ene = As/2.0*Vp**2 + B*abs(mut) !good
+       v = sqrt(2.0*abs(ene)/As)      !good
        zeta = Vp/v                       !good
 
-       xx = sqrt(abs(ene))*sqrt(Aeff)/sqrt(Aw)                 ! v_24.03
+       xx = sqrt(abs(ene))*sqrt(Aeff)/sqrt(As)                 ! v_24.03
        Fphi = erf(xx)                                           ! v_24.03
        Fpsi = (Fphi - 2.0*xx*exp(-xx**2)/sqrt(pi))/2.0/xx**2      ! v_24.03
 
     !! v_25.03
-       gg = (16.0*R0*c0)/(vth**4*(2/Aw)**1.5)
+       gg = (16.0*R0*c0)/(vth**4*(2/As)**1.5)
        nub1 = (gg/4.0)/ene**1.5*(Fphi - Fpsi)
        nue1 = gg/ene**1.5*Fpsi
-       nueprim1 = gg*sqrt(Aeff/Aw/pi)*exp(-ene*Aeff/Aw)/ene**2 - 2.5*nue1/ene
+       nueprim1 = gg*sqrt(Aeff/As/pi)*exp(-ene*Aeff/As)/ene**2 - 2.5*nue1/ene
 
-       d = delta! = 5.0*4./3./sqrt(pi)*(tmax-t0)/Nt*R0*2*logL*ndens*(Zeff*Zw*q0**2)**2/(pi*eps**2*mi**2*Aw**2*vth**4*sqrt(2.0/Aeff)**3)
+       d = delta! = 5.0*4./3./sqrt(pi)*(tmax-t0)/Nt*R0*2*logL*ndens*(Zeff*Zs*q0**2)**2/(pi*eps**2*mi**2*As**2*vth**4*sqrt(2.0/Aeff)**3)
 
-       ce = 1.0/(1.0 + d*ene**(-1.0)*(Aw/2.0))
+       ce = 1.0/(1.0 + d*ene**(-1.0)*(As/2.0))
        nub = nub1*ce
        nue = nue1*ce
-       nueprim = nueprim1*ce + nue1*2.0*Aw*d/((Aw*d + 2.0*ene)**2.0)
+       nueprim = nueprim1*ce + nue1*2.0*As*d/((As*d + 2.0*ene)**2.0)
 
        CALL random_number(sm)
        sm = 1.0*sign(1.0, sm - 0.5)
@@ -190,7 +190,7 @@
        sm = 1.0*sign(1.0, sm - 0.5)
        ene2 = ene - 2.0*nue*dt*(ene - (1.5 + ene/(nue + 0.000001)*nueprim)) + 2.0*sm*sqrt(ene*nue*dt)
        ene = abs(ene2)
-       v = sqrt(2.0*abs(ene)/Aw)
+       v = sqrt(2.0*abs(ene)/As)
 
        vcolx = 0.0
        vcoly = 0.0

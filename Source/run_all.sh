@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for val in {1..15}; do
+for val in {2..13}; do
     echo "====================================="
     echo "🚀 RUNNING SIMULATION NO. : $val"
     echo "📁 Using script: run_all.sh"

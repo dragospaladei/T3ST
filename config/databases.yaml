@@ -1,0 +1,100 @@
+databases:
+  - name: "Test_small"
+    description: "Small 3D database for testing"
+    base_scenario: "CycloneBaseCase"
+
+    varying_parameters:
+      - name: "Ln"
+        mode: "linspace"
+        min: 0.0
+        max: 10.0
+        nvals: 10
+
+      - name: "Phi"
+        mode: "linspace"
+        min: 0.0
+        max: 0.05
+        nvals: 10
+
+      - name: "Ai"
+        mode: "linspace"
+        min: 0.0
+        max: 1.0
+        nvals: 10
+
+  - name: "Full_database"
+    description: "Full_database"
+    base_scenario: "CycloneBaseCase"
+
+    varying_parameters:
+      - name: "Ln"
+        mode: "linspace"
+        min: 0.0
+        max: 10.0
+        nvals: 11
+
+      - name: "Phi"
+        mode: "linspace"
+        min: 0.0
+        max: 0.05
+        nvals: 11
+
+      - name: "Ai"
+        mode: "linspace"
+        min: 0.0
+        max: 1.0
+        nvals: 11
+
+      - name: "lambdax"
+        mode: "linspace"
+        min: 1.0
+        max: 10.0
+        nvals: 11
+
+      - name: "lambday"
+        mode: "linspace"
+        min: 1.0
+        max: 10.0
+        nvals: 11
+
+      - name: "lambdaz"
+        mode: "linspace"
+        min: 0.4
+        max: 10.0
+        nvals: 11
+
+      - name: "lbalonz"
+        mode: "linspace"
+        min: 0.4
+        max: 4.0
+        nvals: 11
+
+      - name: "tauc"
+        mode: "linspace"
+        min: 0.5
+        max: 20.0
+        nvals: 11
+
+      - name: "gamma_ZF"
+        mode: "linspace"
+        min: -1.0
+        max: 1.0
+        nvals: 11
+
+      - name: "As"
+        mode: "linspace"
+        min: 1.0
+        max: 5.0
+        nvals: 11
+
+      - name: "Zs"
+        mode: "linspace"
+        min: 0.0
+        max: 5.0
+        nvals: 11
+
+      - name: "Ts"
+        mode: "linspace"
+        min: 0.0
+        max: 4.0
+        nvals: 11

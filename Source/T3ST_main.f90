@@ -181,24 +181,38 @@ PROGRAM T3ST
 !========================================================================================================
 ! EXPORT SOME PARAMETERS (names & values) OF THIS RUN
 !========================================================================================================
-      WRITE(11,*) [ CHARACTER(LEN=15) :: "t0", "tc", "tt", "tmax", "Np", "Nc", "Nloop", "Nreal", "Nt", "ntraj", &
-                   "Nci", "Nce", "Ti", "Te", "B0", "vth", "rhoi", "R0", "Ln", "Li", "Le", "Zeff", "Aeff", "ndens", &
-                   "a0", "Omgt0", "Omgtprim", "wi", "C1", "C2", "C3", "s1", "s2", "s3", &
-                   "amp", "elong", "device", "shot", "shotslice", "NgridR", "NgridZ", "Phi", "turbprof", "Ai", &
-                   "Ae", "lambdax", "lambday", "lambdaz", "lbalonz", "tauc", "k0i", "k0e", "gamma_ZF", "gamma_E","x_corr","t_corr", "X0", "Y0", "Z0", "r00", "q00", &
-                   "psi0", "Tw", "Ew", "pitch", "Aw", "Zw", "taucc", "magnetic_model", "turb_model", "USE_larmor", "position_type", &
-                   "pitch_type", "energy_type", "USE_coll", "USE_turb", "USE_magnturb", "USE_freq", "USE_polar", &
-                   "USE_PC", "USE_real", "USE_corr", "USE_balloon", "USE_tilt", "USE_testing"]
+      WRITE(11,*) [ CHARACTER(LEN=15) :: &
+                   "t0", "tc", "tt", "tmax", "Nt", "Nreal", "Nc", "Nloop", "Np", "ntraj", &
+                   "Nci", "Nce", &
+                   "Ti", "Te", "Zeff", "Aeff", "ndens", "vth", "rhoi", "wi", &
+                   "Ln", "Li", "Le", &
+                   "magnetic_model", "B0", "R0", "a0", "s1", "s2", "s3", "q00", "r00", "psi0", &
+                   "amp", "elong", "device", "shot", "shotslice", "NgridR", "NgridZ", &
+                   "Omgt0", "Omgtprim", &
+                   "turb_model", "x_corr", "y_corr", "t_corr", "Phi", "turbprof", "Ai", "Ae", &
+                   "lambdax", "lambday", "lambdaz", "lbalonz", "tauc", "k0i", "k0e", "gamma_ZF", "gamma_E", &
+                   "X0", "Y0", "Z0", "Ts", "Es", "pitch", "As", "Zs", "taucc", &
+                   "position_type", "pitch_type", "energy_type", &
+                   "USE_larmor", "USE_coll", "USE_turb", "USE_magnturb", "USE_freq", "USE_polar", &
+                   "USE_PC", "USE_real", "USE_corr", "USE_balloon", "USE_tilt", "USE_testing", &
+                   "C1", "C2", "C3" ]
 
-      WRITE(11,*) [ t0, tc, tt, tmax, REAL(Np,dp), REAL(Nc,dp), REAL(Nloop,dp), REAL(Nreal,dp), REAL(Nt,dp), &
-                   REAL(ntraj,dp), REAL(Nci,dp), REAL(Nce,dp), Ti, Te, B0, vth, rhoi, R0, Ln, Li, Le, Zeff, Aeff, ndens, &
-                   a0, Omgt0, Omgtprim, wi, C1, C2, C3, s1, s2, s3, amp, elong, REAL(device,dp), &
-                   REAL(shot,dp), REAL(shotslice,dp), REAL(NgridR,dp), REAL(NgridZ,dp), Phi, turbprof, Ai, Ae, &
-                   lambdax, lambday, lambdaz, lbalonz, tauc, k0i, k0e, gamma_ZF, gamma_E, REAL(x_corr,dp), REAL(t_corr,dp), X0, Y0, Z0, r00, q00, psi0, Tw, Ew, pitch, Aw, Zw, &
-                   taucc, REAL(magnetic_model, dp), REAL(turb_model, dp), REAL(USE_larmor, dp), REAL(position_type, dp), REAL(pitch_type, dp), &
-                   REAL(energy_type, dp), REAL(USE_coll, dp), REAL(USE_turb, dp), REAL(USE_magnturb, dp), REAL(USE_freq, dp), &
-                   REAL(USE_polar, dp), REAL(USE_PC, dp), REAL(USE_real, dp), REAL(USE_corr, dp), REAL(USE_balloon,dp), REAL(USE_tilt,dp), REAL(USE_testing,dp)]
-
+      WRITE(11,*) [ &
+                   t0, tc, tt, tmax, REAL(Nt,dp), REAL(Nreal,dp), REAL(Nc,dp), REAL(Nloop,dp), REAL(Np,dp), REAL(ntraj,dp), &
+                   REAL(Nci,dp), REAL(Nce,dp), &
+                   Ti, Te, Zeff, Aeff, ndens, vth, rhoi, wi, &
+                   Ln, Li, Le, &
+                   REAL(magnetic_model,dp), B0, R0, a0, s1, s2, s3, q00, r00, psi0, &
+                   amp, elong, REAL(device,dp), REAL(shot,dp), REAL(shotslice,dp), REAL(NgridR,dp), REAL(NgridZ,dp), &
+                   Omgt0, Omgtprim, &
+                   REAL(turb_model,dp), REAL(x_corr,dp), REAL(y_corr,dp), REAL(t_corr,dp), Phi, turbprof, Ai, Ae, &
+                   lambdax, lambday, lambdaz, lbalonz, tauc, k0i, k0e, gamma_ZF, gamma_E, &
+                   X0, Y0, Z0, Ts, Es, pitch, As, Zs, taucc, &
+                   REAL(position_type,dp), REAL(pitch_type,dp), REAL(energy_type,dp), &
+                   REAL(USE_larmor,dp), REAL(USE_coll,dp), REAL(USE_turb,dp), REAL(USE_magnturb,dp), REAL(USE_freq,dp), REAL(USE_polar,dp), &
+                   REAL(USE_PC,dp), REAL(USE_real,dp), REAL(USE_corr,dp), REAL(USE_balloon,dp), REAL(USE_tilt,dp), REAL(USE_testing,dp), &
+                   C1, C2, C3 ]
+                 
 !========================================================================================================
 ! TIME GRID
 !========================================================================================================
@@ -218,6 +232,7 @@ PROGRAM T3ST
             CALL wavenum_unified(normB, Vstar1, Vstar2, Vstar3, gees, USE_real,gnorm_local)
             CALL initial_conditions(X, Y, Z, mu, Vp, pb)
             CALL Larmor(USE_larmor, mu)
+
 
     	    IF(USE_testing == ON) then
 	       CALL testing_T3ST(X,Y,Z,Vp,mu,pb,Vstar1,Vstar2,Vstar3, eror_flag, gnorm_local)
@@ -414,11 +429,12 @@ PROGRAM T3ST
             WRITE (28) q1al
             WRITE (29) q2al
 
+if(USE_corr.eq.1) then
             WRITE (30) Vcorff
             WRITE (31) VcorTT
             WRITE (32) VcorTN
             WRITE (33) VcorNT
-
+endif
             WRITE (35) Pctr
             WRITE (36) ck1tr
             WRITE (37) ck2tr

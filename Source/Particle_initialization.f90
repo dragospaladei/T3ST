@@ -42,14 +42,14 @@
        ! ------------------------------------------------------------------------------------------------------------------------
 
        IF (energy_type == 1) THEN
-          En = Ew
+          En = Es
        ELSEIF (energy_type == 2) THEN
-          CALL PDF_Boltz(Np, Tw, En)                                ! the distribution of real kinetic energies mv^2/2
+          CALL PDF_Boltz(Np, Ts, En)                                ! the distribution of real kinetic energies mv^2/2
        ELSE
           WRITE (*, *) 'Error [initial_conditions]: unknown type for energy distribution specification'
        END IF
 
-       Vp = SQRT(2.0*En/Aw)*PA                      !SQRT(2*(En-Phi*Zw*phi0)/Aw)*COS(PA)
+       Vp = SQRT(2.0*En/As)*PA                      !SQRT(2*(En-Phi*Zw*phi0)/As)*COS(PA)
 
        ! ------------------------------------------------------------------------------------------------------------------------
        ! Initial positions
@@ -71,9 +71,9 @@
        ! Note:: the energies are shifted with the potential value directly in "mu, vp" for simplicity
 
        IF (USE_turb == ON) THEN
-          pb = E**(-Zw*(Phi*phi1 + phi2)/Tw - 0.5*(Zw*Phi/Tw)**2)
+          pb = E**(-Zs*(Phi*phi1 + phi2)/Ts- 0.5*(Zs*Phi/Ts)**2)
        ELSE
-          pb = E**(-Zw*phi2/Tw)
+          pb = E**(-Zs*phi2/Ts)
        END IF
 
        pb = pb*Np/sum(pb)

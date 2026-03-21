@@ -46,6 +46,29 @@ Parent_Folder/
 └── T3ST_GUI.py                     # Graphical User Interface
 ```
 
+## 🧠 Conceptual Model
+
+1. Parameter Schema (parameters.yaml)
+2. Scenarios (scenarios.yaml)
+3. Databases (databases.yaml)
+4. Selections (selections.yaml)
+
+---
+
+## 🔪 Slice System
+
+Free parameters:
+method: slice
+free_parameters: ["Ln"]
+
+Fixed values:
+method: slice
+fixed_values:
+  Phi: 0.01
+
+---
+
+
 ### Notes
 - A **Simulation** (`Sim_XX`) corresponds to a specific parameter scan (potentially many-dimensional, up to 3 dimensions).
 - Each **Run** (`Run_000XX`) represents one discrete set of parameters.

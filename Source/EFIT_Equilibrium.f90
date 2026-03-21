@@ -184,7 +184,7 @@ SUBROUTINE psisurf_efit_old(X, Y, Vp)
       Zvals = tan(aux(k))*(Rvals - 1.0_dp)
 
       ! Target psi along the line
-      targeta = real(USE_PC,dp)*rhoi/R0*Aw/Zw*F/normB*Vp(k) + psi0
+      targeta = real(USE_PC,dp)*rhoi/R0*As/Zs*F/normB*Vp(k) + psi0
 
       ! Mask inside plasma region
       mask = ((Rvals - 1.0_dp)**2 + Zvals**2 <= (a0**2))
@@ -251,8 +251,8 @@ SUBROUTINE psisurf_efit3(X, Y, Vp)
       END DO
    END DO
 
-   ! Constant prefactor K = (USE_PC*rhoi/R0)*(Aw/Zw)
-   Kconst = real(USE_PC,dp)*rhoi/R0*Aw/Zw
+   ! Constant prefactor K = (USE_PC*rhoi/R0)*(As/Zs)
+   Kconst = real(USE_PC,dp)*rhoi/R0*As/Zs
 
    !---------------------------------------------------------------------------------
    ! Parallel loop over particles: build phi3 and sample from phi3=0 contour intersections

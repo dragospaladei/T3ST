@@ -125,13 +125,13 @@ SUBROUTINE error_signal
       nerr = nerr + 1
    END IF
 
-   IF (Aw <= 0.0_dp .OR. Aeff <= 0.0_dp) THEN
-      WRITE(error_unit,'(A,2(1X,ES12.4))') 'Error :: Aw and Aeff must be > 0, got (Aw,Aeff)=', Aw, Aeff
+   IF (As <= 0.0_dp .OR. Aeff <= 0.0_dp) THEN
+      WRITE(error_unit,'(A,2(1X,ES12.4))') 'Error :: As and Aeff must be > 0, got (As,Aeff)=', As, Aeff
       nerr = nerr + 1
    END IF
 
-   IF (Zeff <= 0.0_dp .OR. Zw <= 0.0_dp) THEN
-      WRITE(error_unit,'(A,2(1X,ES12.4))') 'Error :: Zeff and Zw must be > 0, got (Zeff,Zw)=', Zeff, Zw
+   IF (Zeff <= 0.0_dp .OR. Zs < 0.0_dp) THEN
+      WRITE(error_unit,'(A,2(1X,ES12.4))') 'Error :: Zeff and Zs must be >= 0, got (Zeff,Zs)=', Zeff, Zs
       nerr = nerr + 1
    END IF
 
@@ -387,11 +387,11 @@ write(*,*) 'gamma_ZF', gamma_ZF
 write(*,*) 'X0', X0
 write(*,*) 'Y0', Y0
 write(*,*) 'Z0', Z0
-write(*,*) 'Tw', Tw
-write(*,*) 'Ew', Ew
+write(*,*) 'Ts', Ts
+write(*,*) 'Es', Es
 write(*,*) 'pitch', pitch
-write(*,*) 'Aw', Aw
-write(*,*) 'Zw', Zw
+write(*,*) 'As', As
+write(*,*) 'Zs', Zs
 write(*,*) 'position_type', position_type
 write(*,*) 'pitch_type', pitch_type
 write(*,*) 'energy_type', energy_type

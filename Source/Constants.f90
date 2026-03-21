@@ -34,14 +34,14 @@ MODULE constants
    REAL(KIND=dp), PARAMETER :: mu0  = 1.25663*10.0**(-6.0)    ! vacuum magnetic permeability
    REAL(KIND=dp), PARAMETER :: kB   = 1.38064*10.0**(-23.0)   ! Boltzmann constant
    REAL(KIND=dp), PARAMETER :: logL = 17.0                    ! Coulomb logarithm
-   INTEGER, PARAMETER       :: ON = 1 
-   INTEGER, PARAMETER       :: OFF = 0 
-   REAL(KIND=dp), parameter :: eps_xi   = 1.0e-15_dp
-   REAL(KIND=dp), parameter :: eps_rr   = 1.0e-15_dp
-   REAL(KIND=dp), parameter :: eps_root = 1.0e-15_dp
-   REAL(KIND=dp), parameter :: eps_B    = 1.0e-15_dp
-   REAL(KIND=dp), parameter :: eps_Bsp  = 1.0e-15_dp   
-   REAL(KIND=dp), parameter :: eps_omega= 1.0e-15_dp   
+   INTEGER, PARAMETER       :: ON = 1
+   INTEGER, PARAMETER       :: OFF = 0
+   REAL(KIND=dp), PARAMETER :: eps_xi    = 1.0e-15_dp
+   REAL(KIND=dp), PARAMETER :: eps_rr    = 1.0e-15_dp
+   REAL(KIND=dp), PARAMETER :: eps_root  = 1.0e-15_dp
+   REAL(KIND=dp), PARAMETER :: eps_B     = 1.0e-15_dp
+   REAL(KIND=dp), PARAMETER :: eps_Bsp   = 1.0e-15_dp
+   REAL(KIND=dp), PARAMETER :: eps_omega = 1.0e-15_dp
 
    !---------------------------------------------------------------------------------
    ! Numerical parameters
@@ -51,127 +51,143 @@ MODULE constants
    REAL(KIND=dp) :: tt                             ! turbulence start time        [R0/vth]
    REAL(KIND=dp) :: tmax                           ! simulation end time          [R0/vth]
 
-   INTEGER       :: Np                             ! particles per loop (total: Nloop*Np)
-   INTEGER       :: Nloop                          ! simulation loops (super-ensemble)
-   INTEGER       :: Nreal                          ! realizations of turbulent field
-   INTEGER       :: Nc                             ! number of waves (typically ~1e3)
    INTEGER       :: Nt                             ! number of time steps
+   INTEGER       :: Nreal                          ! realizations of turbulent field
+   INTEGER       :: Nc                             ! number of waves / modes
+   INTEGER       :: Nloop                          ! simulation loops (super-ensemble)
+   INTEGER       :: Np                             ! particles per loop
    INTEGER       :: ntraj                          ! number of trajectories exported
+
    INTEGER       :: Nci                            ! number of ITG partial-waves
    INTEGER       :: Nce                            ! number of TEM partial-waves
 
    !---------------------------------------------------------------------------------
-   ! Equilibrium
+   ! Plasma / normalization
    !---------------------------------------------------------------------------------
-   REAL(KIND=dp) :: Ti                             ! ion temperature @ r00         [eV]
-   REAL(KIND=dp) :: Te                             ! electron temperature @ r00    [eV]
-   REAL(KIND=dp) :: B0                             ! magnetic field @ axis         [T]
+   REAL(KIND=dp) :: Ti                             ! ion temperature @ r00
+   REAL(KIND=dp) :: Te                             ! electron temperature @ r00
+   REAL(KIND=dp) :: Zeff                           ! effective charge number
+   REAL(KIND=dp) :: Aeff                           ! effective mass number
+   REAL(KIND=dp) :: ndens                          ! ion density @ r00             [m^-3] (imported in 1e19 m^-3)
+
    REAL(KIND=dp) :: vth                            ! thermal velocity (H ions)     [m/s] @ r00
    REAL(KIND=dp) :: rhoi                           ! Larmor radius (H ions)        [m]   @ r00 (B0)
-   REAL(KIND=dp) :: R0                             ! major radius                  [m]
-   REAL(KIND=dp) :: Ln                             ! ITG grad-length               [R0*d(lnn)/dr]
-   REAL(KIND=dp) :: Li                             ! ITG grad-length               [R0*d(lnTi)/dr]
-   REAL(KIND=dp) :: Le                             ! TEM grad-length               [R0*d(lnTe)/dr]
-   REAL(KIND=dp) :: Aeff                           ! effective mass number
-   REAL(KIND=dp) :: Zeff                           ! effective charge number
-   REAL(KIND=dp) :: ndens                          ! ion density @ r00             [m^-3] (imported in 1e19 m^-3)
-   REAL(KIND=dp) :: a0                             ! minor radius                  [m]
-   REAL(KIND=dp) :: Omgt0                          ! toroidal angular frequency    [1e3 Hz] @ r00
-   REAL(KIND=dp) :: Omgtprim                       ! d ln Omgt / d rhot            [adimensional]     @ r00
    REAL(KIND=dp) :: wi                             ! Larmor frequency              [Hz]
-   REAL(KIND=dp) :: q00                            ! safety factor @ r00           [1]
+   REAL(KIND=dp) :: c0                             ! collision-related constant
+   REAL(KIND=dp) :: delta                          ! collision-related constant
+   REAL(KIND=dp) :: taucc                          ! inverse collision frequency (simplified model)
 
    !---------------------------------------------------------------------------------
-   ! Circular model parameters (indexmodel = 4): q = s1 + s2*(r/a) + s3*(r/a)^2
+   ! Gradients / drives
    !---------------------------------------------------------------------------------
-   REAL(KIND=dp) :: s1
-   REAL(KIND=dp) :: s2
-   REAL(KIND=dp) :: s3
+   REAL(KIND=dp) :: Ln                             ! density gradient length       [R0*d(lnn)/dr]
+   REAL(KIND=dp) :: Li                             ! ion temperature gradient      [R0*d(lnTi)/dr]
+   REAL(KIND=dp) :: Le                             ! electron temperature gradient [R0*d(lnTe)/dr]
 
    !---------------------------------------------------------------------------------
-   ! Solovev model parameters (indexmodel = 3)
+   ! Geometry / equilibrium
    !---------------------------------------------------------------------------------
+   INTEGER       :: magnetic_model                 ! equilibrium: 1-EFIT, 2-EFIT-sa, 3-Solovev, 4-Circular
+
+   REAL(KIND=dp) :: B0                             ! magnetic field @ axis         [T]
+   REAL(KIND=dp) :: R0                             ! major radius                  [m]
+   REAL(KIND=dp) :: a0                             ! minor radius                  [m]
+
+   REAL(KIND=dp) :: s1                             ! circular q-profile coefficient
+   REAL(KIND=dp) :: s2                             ! circular q-profile coefficient
+   REAL(KIND=dp) :: s3                             ! circular q-profile coefficient
+
    REAL(KIND=dp) :: amp                            ! Solovev flux amplitude
-   REAL(KIND=dp) :: alfa                           ! Solovev parameter (separatrix/ellipticity-related)
    REAL(KIND=dp) :: elong                          ! elongation
+
+   INTEGER       :: device                         ! (1=MAST, 2=TCV, 3=WEST, 4=JTSA)
+   INTEGER       :: shot                           ! shot number
+   INTEGER       :: shotslice                      ! time (ms) for equilibrium slice
+
+   REAL(KIND=dp) :: Omgt0                          ! toroidal angular frequency    [1e3 Hz] @ r00
+   REAL(KIND=dp) :: Omgtprim                       ! d ln Omgt / d rhot            [1] @ r00
+
+   REAL(KIND=dp) :: q00                            ! safety factor @ r00
+   REAL(KIND=dp) :: r00                            ! reference surface (for global evaluation)
+   REAL(KIND=dp) :: q10                            ! reference surface (for global evaluation)
+   REAL(KIND=dp) :: psi0                           ! poloidal flux @ r0
+
+   ! Extra equilibrium / imported-data helpers
+   REAL(KIND=dp) :: alfa                           ! Solovev parameter (separatrix/ellipticity-related)
    REAL(KIND=dp) :: gama                           ! Solovev parameter (sqrt(gama)=separatrix position)
+   CHARACTER(LEN=:), ALLOCATABLE            :: efit_file
+   REAL(KIND=dp), ALLOCATABLE, DIMENSION(:) :: Efit_data
+   INTEGER                                  :: NgridR, NgridZ, Nqua, Ngrid
+   REAL(KIND=dp)                            :: minR, maxR, minZ, maxZ
+   REAL(KIND=dp)                            :: stepR, stepZ
+   REAL(KIND=dp)                            :: triang
 
    !---------------------------------------------------------------------------------
-   ! EFIT input (indexmodel = 1,2)
+   ! Turbulence model
    !---------------------------------------------------------------------------------
-   INTEGER                                  :: device       ! (1=MAST, 2=TCV, 3=WEST, 4=JTSA)
-   INTEGER                                  :: shot         ! shot number
-   INTEGER                                  :: shotslice    ! time (ms) for equilibrium slice
-   CHARACTER(LEN=:), ALLOCATABLE            :: efit_file    ! EFIT file name
-   REAL(KIND=dp), ALLOCATABLE, DIMENSION(:) :: Efit_data    ! equilibrium grid values
+   INTEGER       :: turb_model                     ! type of turbulence model: 1=old, 2=new
+   INTEGER       :: x_corr                         ! x correlation: 1-gaussian, 2-exponential, 3-GENE-like
+   INTEGER       :: y_corr                         ! y correlation: 1-Madi, 2-GENE
+   INTEGER       :: t_corr                         ! t correlation: 1-gaussian, 2-exponential
 
-   INTEGER                                  :: NgridR, NgridZ, Nqua, Ngrid     ! EFIT grid sizes / number of quantities
-   REAL(KIND=dp)                            :: minR, maxR, minZ, maxZ          ! grid extents
-   REAL(KIND=dp)                            :: stepR, stepZ                    ! grid steps (computed)
-   REAL(KIND=dp)                            :: triang                          ! triangularity
+   REAL(KIND=dp) :: Phi                            ! turbulence amplitude [ePhi/Ti]
+   REAL(KIND=dp) :: turbprof                       ! exponent for synthetic turb. profile
+   REAL(KIND=dp) :: Ai                             ! ITG fraction
 
-   !---------------------------------------------------------------------------------
-   ! Turbulence parameters
-   !---------------------------------------------------------------------------------
-   REAL(KIND=dp) :: Phi                             ! turbulence amplitude [ePhi/Ti]
-   REAL(KIND=dp) :: turbprof                        ! exponent for synthetic turb. profile
-   REAL(KIND=dp) :: Ai                              ! ITG fraction
-   REAL(KIND=dp) :: Ae                              ! TEM fraction
-   REAL(KIND=dp) :: lambdax                         ! x correlation length [rhoi units]
-   REAL(KIND=dp) :: lambday                         ! y correlation length [rhoi units]
-   REAL(KIND=dp) :: lambdaz                         ! z correlation length due to decoherence [q0*R0 units]
-   REAL(KIND=dp) :: lbalonz                         ! z correlation length due to ballooning envelope [q0*R0 units]
-! both lambdaz, and lbalonz are basically "angle" correlation lengths since they are given in qR units;
-   REAL(KIND=dp) :: tauc                            ! time correlation [R0/vth]
-   REAL(KIND=dp) :: k0i                             ! ITG dominant ky [1/rhoi]
-   REAL(KIND=dp) :: k0e                             ! TEM dominant ky [1/rhoi]
-   REAL(KIND=dp) :: gamma_E                         ! rotational sheering [1/t0]
-   REAL(KIND=dp) :: gamma_ZF                        ! Zonal flow rotational sheering [1/t0]
-   INTEGER       :: dmmax                           ! maximal parallel number ()
+   REAL(KIND=dp) :: lambdax                        ! x correlation length [rhoi units]
+   REAL(KIND=dp) :: lambday                        ! y correlation length [rhoi units]
+   REAL(KIND=dp) :: lambdaz                        ! z correlation length due to decoherence [q0*R0 units]
+   REAL(KIND=dp) :: lbalonz                        ! z correlation length due to ballooning envelope [q0*R0 units]
+   REAL(KIND=dp) :: tauc                           ! time correlation [R0/vth]
+   REAL(KIND=dp) :: k0i                            ! ITG dominant ky [1/rhoi]
+   REAL(KIND=dp) :: k0e                            ! TEM dominant ky [1/rhoi]
+   REAL(KIND=dp) :: gamma_ZF                       ! zonal-flow shearing rate
+   REAL(KIND=dp) :: gamma_E                        ! rotational shearing rate
+
+   REAL(KIND=dp) :: Ae                             ! TEM fraction
+   INTEGER       :: dmmax                          ! maximal parallel number
 
    !---------------------------------------------------------------------------------
-   ! Particle parameters
+   ! Particle initial conditions / markers
    !---------------------------------------------------------------------------------
-   REAL(KIND=dp) :: X0, Y0, Z0                      ! starting positions
-   REAL(KIND=dp) :: r00                             ! reference surface (for global evaluation)
-   REAL(KIND=dp) :: q10                             ! reference surface (for global evaluation)
-   REAL(KIND=dp) :: Tw                              ! energy average [Ti units] @ r00
-   REAL(KIND=dp) :: Ew                              ! average ion energy [Ti units]
-   REAL(KIND=dp) :: pitch                           ! average pitch angle
-   REAL(KIND=dp) :: Aw                              ! ion mass number
-   REAL(KIND=dp) :: Zw                              ! ionization state
-   REAL(KIND=dp) :: c0                              ! collision-related constant
-   REAL(KIND=dp) :: delta                           ! collision-related constant
-   REAL(KIND=dp) :: taucc                           ! inverse collision frequency (simplified model)
-   REAL(KIND=dp) :: psi0                            ! poloidal flux @ r0
+   REAL(KIND=dp) :: X0                             ! starting position R
+   REAL(KIND=dp) :: Y0                             ! starting position Z
+   REAL(KIND=dp) :: Z0                             ! starting position phi
+
+   REAL(KIND=dp) :: Ts                             ! energy average [Ti units] @ r00
+   REAL(KIND=dp) :: Es                             ! average ion energy [Ti units]
+   REAL(KIND=dp) :: pitch                          ! average pitch angle
+   REAL(KIND=dp) :: As                             ! ion mass number
+   REAL(KIND=dp) :: Zs                             ! ionization state
+
+   INTEGER       :: position_type                  ! init position: 1-fixed point, ...
+   INTEGER       :: pitch_type                     ! init pitch: 1-fixed, 2-random uniform
+   INTEGER       :: energy_type                    ! init energy: 1-fixed, 2-Boltzmann
 
    !---------------------------------------------------------------------------------
-   ! Choices / switches
+   ! Switches
    !---------------------------------------------------------------------------------
-   INTEGER :: magnetic_model                        ! equilibrium: 1-EFIT, 2-EFIT-sa, 3-Solovev, 4-Circular
-   INTEGER :: x_corr                                ! turbulence correlation on x: 1-gaussian, 2-exponential
-   INTEGER :: t_corr                                ! turbulence correlation on x: 1-gaussian, 2-exponential
-   INTEGER :: turb_model                            ! type of turbulence model: 1 = old, 2 = new, better
-   INTEGER :: USE_larmor                            ! FLR effects: 0 = OFF, 1 = ON, else = ERROR
-   INTEGER :: position_type                         ! init position: 1-all same (X0,Y0,Z0)
-   INTEGER :: pitch_type                            ! init pitch: 1-fixed, 2-random uniform (2pi)
-   INTEGER :: energy_type                           ! init energy: 1-fixed (Ew), 2-Boltzmann
-   INTEGER :: USE_coll                              ! collisions:   0 = OFF, 1 = ON, else = ERROR
-   INTEGER :: USE_turb                              ! turbulence:   0 = OFF, 1 = ON, else = ERROR
-   INTEGER :: USE_magnturb                          ! RMP:          0 = OFF, 1 = ON, else = ERROR
-   INTEGER :: USE_freq                              ! mode freqs:   0 = frozen turbulence, 1 = real frequencies, else = ERROR
-   INTEGER :: USE_polar                             ! polar. drift: 0 = OFF, 1 = ON, else = ERROR
-   INTEGER :: USE_PC                                ! initial condition constancy psi/Pc:  0 = NO, 1 = YES, else = ERROR
-   INTEGER :: USE_real                              ! turb realizations differ/same across particles: 0 = NO, 1 = YES, else = ERROR
-   INTEGER :: USE_corr                              ! compute & export Lagrangian correlations: 0 = NO, 1 = YES, else = ERROR
-   INTEGER :: USE_balloon                           ! 0 = homogeneous parallel structure (kz); 1 = ballooning parallel structure g(z); else = ERROR
-   INTEGER :: USE_tilt                              ! ????
-   INTEGER :: USE_testing
+   INTEGER       :: USE_larmor                     ! FLR effects: 0=OFF, 1=ON
+   INTEGER       :: USE_coll                       ! collisions: 0=OFF, 1=ON
+   INTEGER       :: USE_turb                       ! turbulence: 0=OFF, 1=ON
+   INTEGER       :: USE_magnturb                   ! RMP: 0=OFF, 1=ON
+   INTEGER       :: USE_freq                       ! mode freqs: 0=frozen, 1=real frequencies
+   INTEGER       :: USE_polar                      ! polarization drift: 0=OFF, 1=ON
+   INTEGER       :: USE_PC                         ! initial condition constancy psi/Pc
+   INTEGER       :: USE_real                       ! same/different turbulence realizations across particles
+   INTEGER       :: USE_corr                       ! compute/export Lagrangian correlations
+   INTEGER       :: USE_balloon                    ! 0=homogeneous kz, 1=ballooning g(z)
+   INTEGER       :: USE_tilt                       ! tilting switch
+   INTEGER       :: USE_testing                    ! testing switch
+
    REAL(KIND=dp) :: usetilt, balloon, noballoon, norm ! helpers
 
-   REAL(KIND=dp) :: C1                              ! q1 = C1*Q1,  Q1 = rho_tor(psi)!(not anymore)psi-psi0
-   REAL(KIND=dp) :: C2                              ! q2 = C2*Q2,  Q2 = zeta-nu
-   REAL(KIND=dp) :: C3                              ! q3 = C3*Q3,  Q3 = chi, nu=qpsi*chi
+   !---------------------------------------------------------------------------------
+   ! Misc. derived helpers
+   !---------------------------------------------------------------------------------
+   REAL(KIND=dp) :: C1                             ! q1 = C1*Q1
+   REAL(KIND=dp) :: C2                             ! q2 = C2*Q2
+   REAL(KIND=dp) :: C3                             ! q3 = C3*Q3
 
 CONTAINS
 
@@ -196,85 +212,83 @@ CONTAINS
       !---------------------------------------------------------------------------------
       ! Import parameters
       !---------------------------------------------------------------------------------
-	t0       = pp(param_index("t0"))
-	tc       = pp(param_index("tc"))
-	tt       = pp(param_index("tt"))
-	tmax     = pp(param_index("tmax"))
+	t0             = pp(param_index("t0"))
+	tc             = pp(param_index("tc"))
+	tt             = pp(param_index("tt"))
+	tmax           = pp(param_index("tmax"))
+	Nt             = int(pp(param_index("Nt")))
+	Nreal          = int(pp(param_index("Nreal")))
+	Nc             = int(pp(param_index("Nc")))
+	Nloop          = int(pp(param_index("Nloop")))
+	Np             = int(pp(param_index("Np")))
+	ntraj          = int(pp(param_index("ntraj")))
 
-	Np       = INT(pp(param_index("Np")))
-	Nc       = INT(pp(param_index("Nc")))
-	Nloop    = INT(pp(param_index("Nloop")))
-	Nreal    = INT(pp(param_index("Nreal")))
-	Nt       = INT(pp(param_index("Nt")))
-	ntraj    = INT(pp(param_index("ntraj")))
+	Ti             = pp(param_index("Ti"))
+	Te             = pp(param_index("Te"))
+	Zeff           = pp(param_index("Zeff"))
+	Aeff           = pp(param_index("Aeff"))
+	ndens          = pp(param_index("ndens"))
 
-	Ti       = pp(param_index("Ti"))
-	Te       = pp(param_index("Te"))
-	B0       = pp(param_index("B0"))
-	R0       = pp(param_index("R0"))
-	Ln       = pp(param_index("Ln"))
-	Li       = pp(param_index("Li"))
-	Le       = pp(param_index("Le"))
-	Zeff     = pp(param_index("Zeff"))
-	Aeff     = pp(param_index("Aeff"))
-	ndens    = pp(param_index("ndens"))
-	a0       = pp(param_index("a0"))
+	Ln             = pp(param_index("Ln"))
+	Li             = pp(param_index("Li"))
+	Le             = pp(param_index("Le"))
 
-	Omgt0    = pp(param_index("Omgt0"))
-	Omgtprim = pp(param_index("Omgtprim"))
+	magnetic_model = int(pp(param_index("magnetic_model")))
+	B0             = pp(param_index("B0"))
+	R0             = pp(param_index("R0"))
+	a0             = pp(param_index("a0"))
+	s1             = pp(param_index("s1"))
+	s2             = pp(param_index("s2"))
+	s3             = pp(param_index("s3"))
+	amp            = pp(param_index("amp"))
+	elong          = pp(param_index("elong"))
+	device         = int(pp(param_index("device")))
+	shot           = int(pp(param_index("shot")))
+	shotslice      = int(pp(param_index("shotslice")))
 
-	s1       = pp(param_index("s1"))
-	s2       = pp(param_index("s2"))
-	s3       = pp(param_index("s3"))
+	Omgt0          = pp(param_index("Omgt0"))
+	Omgtprim       = pp(param_index("Omgtprim"))
 
-	amp      = pp(param_index("amp"))
-	elong    = pp(param_index("elong"))
+	turb_model     = int(pp(param_index("turb_model")))
+	x_corr         = int(pp(param_index("x_corr")))
+	y_corr         = int(pp(param_index("y_corr")))
+	t_corr         = int(pp(param_index("t_corr")))
+	Phi            = pp(param_index("Phi"))
+	turbprof       = pp(param_index("turbprof"))
+	Ai             = pp(param_index("Ai"))
+	lambdax        = pp(param_index("lambdax"))
+	lambday        = pp(param_index("lambday"))
+	lambdaz        = pp(param_index("lambdaz"))
+	lbalonz        = pp(param_index("lbalonz"))
+	tauc           = pp(param_index("tauc"))
+	k0i            = pp(param_index("k0i"))
+	k0e            = pp(param_index("k0e"))
+	gamma_ZF       = pp(param_index("gamma_ZF"))
 
-	device    = INT(pp(param_index("device")))
-	shot      = INT(pp(param_index("shot")))
-	shotslice = INT(pp(param_index("shotslice")))
+	X0             = pp(param_index("X0"))
+	Y0             = pp(param_index("Y0"))
+	Z0             = pp(param_index("Z0"))
+	Ts             = pp(param_index("Ts"))
+	Es             = pp(param_index("Es"))
+	pitch          = pp(param_index("pitch"))
+	As             = pp(param_index("As"))
+	Zs             = pp(param_index("Zs"))
+	position_type  = int(pp(param_index("position_type")))
+	pitch_type     = int(pp(param_index("pitch_type")))
+	energy_type    = int(pp(param_index("energy_type")))
 
-	Phi      = pp(param_index("Phi"))
-	turbprof = pp(param_index("turbprof"))
-	Ai       = pp(param_index("Ai"))
-	lambdax  = pp(param_index("lambdax"))
-	lambday  = pp(param_index("lambday"))
-	lambdaz  = pp(param_index("lambdaz"))
-	lbalonz  = pp(param_index("lbalonz"))
-	tauc     = pp(param_index("tauc"))
-	k0i      = pp(param_index("k0i"))
-	k0e      = pp(param_index("k0e"))
-	gamma_ZF = pp(param_index("gamma_ZF"))
-	x_corr    = INT(pp(param_index("x_corr")))
-	t_corr    = INT(pp(param_index("t_corr")))
-	turb_model  = INT(pp(param_index("turb_model")))
-
-	X0       = pp(param_index("X0"))
-	Y0       = pp(param_index("Y0"))
-	Z0       = pp(param_index("Z0"))
-	Tw       = pp(param_index("Tw"))
-	Ew       = pp(param_index("Ew"))
-	pitch    = pp(param_index("pitch"))
-	Aw       = pp(param_index("Aw"))
-	Zw       = pp(param_index("Zw"))
-
-	magnetic_model = INT(pp(param_index("magnetic_model")))
-	USE_larmor     = INT(pp(param_index("USE_larmor")))
-	position_type  = INT(pp(param_index("position_type")))
-	pitch_type     = INT(pp(param_index("pitch_type")))
-	energy_type    = INT(pp(param_index("energy_type")))
-	USE_coll       = INT(pp(param_index("USE_coll")))
-	USE_turb       = INT(pp(param_index("USE_turb")))
-	USE_magnturb   = INT(pp(param_index("USE_magnturb")))
-	USE_freq       = INT(pp(param_index("USE_freq")))
-	USE_polar      = INT(pp(param_index("USE_polar")))
-	USE_PC         = INT(pp(param_index("USE_PC")))
-	USE_real       = INT(pp(param_index("USE_real")))
-	USE_corr       = INT(pp(param_index("USE_corr")))
-	USE_balloon    = INT(pp(param_index("USE_balloon")))
-	USE_tilt       = INT(pp(param_index("USE_tilt")))
-	USE_testing    = INT(pp(param_index("USE_testing")))
-
+	USE_larmor     = int(pp(param_index("USE_larmor")))
+	USE_coll       = int(pp(param_index("USE_coll")))
+	USE_turb       = int(pp(param_index("USE_turb")))
+	USE_magnturb   = int(pp(param_index("USE_magnturb")))
+	USE_freq       = int(pp(param_index("USE_freq")))
+	USE_polar      = int(pp(param_index("USE_polar")))
+	USE_PC         = int(pp(param_index("USE_PC")))
+	USE_real       = int(pp(param_index("USE_real")))
+	USE_corr       = int(pp(param_index("USE_corr")))
+	USE_balloon    = int(pp(param_index("USE_balloon")))
+	USE_tilt       = int(pp(param_index("USE_tilt")))
+	USE_testing    = int(pp(param_index("USE_testing")))
       ! End of import parameters
       Nqua = 16   ! number of quantities stored on the EFIT-like grid
 
@@ -412,10 +426,10 @@ CONTAINS
 
       Ae = sqrt(1.0_dp - Ai**2)
 
-      c0 = logL*ndens/8.0_dp/pi * (Zeff*Zw*q0**2/(eps*mi*Aw))**2
+      c0 = logL*ndens/8.0_dp/pi * (Zeff*Zs*q0**2/(eps*mi*As))**2
 
-      delta = 5.0_dp*4.0_dp/3.0_dp/sqrt(pi) * (tmax - t0)/Nt * R0*2.0_dp*logL*ndens*(Zeff*Zw*q0**2)**2 / &
-              (pi*eps**2*mi**2*Aw**2*vth**4*sqrt(2.0_dp/Aeff)**3)
+      delta = 5.0_dp*4.0_dp/3.0_dp/sqrt(pi) * (tmax - t0)/Nt * R0*2.0_dp*logL*ndens*(Zeff*Zs*q0**2)**2 / &
+              (pi*eps**2*mi**2*As**2*vth**4*sqrt(2.0_dp/Aeff)**3)
 
       CALL error_signal
 
@@ -428,9 +442,6 @@ CONTAINS
 !      dmmax = max(1,int(4.0_dp/lbalonz))
 !      dmmax = int(4.0_dp/lbalonz)
 dmmax = 2
-
-Nt = 2*Nt
-Np= 4*Np
 
    END SUBROUTINE parameters
 

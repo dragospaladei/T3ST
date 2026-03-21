@@ -1,0 +1,152 @@
+selections:
+  - name: "Test_small"
+    description: "Use the full small test database."
+    database: "Test_small"
+    method: "full"
+
+  - name: "Full_db_random_99"
+    description: "Random sample of 99 runs from the maximal 12D database."
+    database: "Full_database"
+    method: "random"
+    n_samples: 99
+    seed: 42
+
+  - name: "Full_db_random_999"
+    description: "Random sample of 999 runs from the maximal 12D database."
+    database: "Full_database"
+    method: "random"
+    n_samples: 999
+    seed: 42
+
+  - name: "Slice_3d_Ln_lx_ly"
+    description: "3D slice where only Ln, lambdax, and lambday vary."
+    database: "Full_database"
+    method: "slice"
+    fixed_indices:
+      Phi: 0.01   
+      Ai: 1.0
+      lambdaz: 5.0
+      lbalonz: 5.0
+      tauc: 10.0
+      gamma_ZF: 0.0
+      As: 1.0
+      Zs: 1.0
+      Ts: 1.0
+
+  - name: "Slice_2d_Ln_gZF"
+    description: "2D slice where only Ln and gamma_ZF vary."
+    database: "Full_database"
+    method: "slice"
+    fixed_indices:
+      Phi: 0.01
+      Ai: 1.0
+      lambdax: 5.0
+      lambday: 5.0
+      lambdaz: 5.0
+      lbalonz: 5.0
+      tauc: 10.0
+      As: 1.0
+      Zs: 1.0
+      Ts: 1.0
+
+  - name: "coarse_scan_all_stride2"
+    description: "Take every second point along every axis of the maximal database."
+    database: "Full_database"
+    method: "stride"
+    strides:
+      Ln: 2
+      Phi: 2
+      Ai: 2
+      lambdax: 2
+      lambday: 2
+      lambdaz: 2
+      lbalonz: 2
+      tauc: 2
+      gamma_ZF: 2
+      As: 2
+      Zs: 2
+      Ts: 2
+
+  - name: "coarse_scan_focus_main"
+    description: "Coarse scan on selected axes; unspecific axes default to stride 1."
+    database: "Full_database"
+    method: "stride"
+    strides:
+      Ln: 2
+      Phi: 2
+      Ai: 2
+      gamma_ZF: 2
+      As: 2
+      Zs: 2
+
+  - name: "Vary_Ln_only"
+    description: "1D slice: vary Ln only; all other axes fixed to base_scenario values."
+    database: "Full_database"
+    method: "slice"
+    free_parameters: ["Ln"]
+
+  - name: "Vary_Phi_only"
+    description: "1D slice: vary Phi only; all other axes fixed to base_scenario values."
+    database: "Full_database"
+    method: "slice"
+    free_parameters: ["Phi"]
+
+  - name: "Vary_Ai_only"
+    description: "1D slice: vary Ai only; all other axes fixed to base_scenario values."
+    database: "Full_database"
+    method: "slice"
+    free_parameters: ["Ai"]
+    
+  - name: "Vary_lambdax_only"
+    description: "1D slice: vary lambdax only; all other axes fixed to base_scenario values."
+    database: "Full_database"
+    method: "slice"
+    free_parameters: ["lambdax"]
+
+  - name: "Vary_lambday_only"
+    description: "1D slice: vary lambday only; all other axes fixed to base_scenario values."
+    database: "Full_database"
+    method: "slice"
+    free_parameters: ["lambday"]
+
+  - name: "Vary_lambdaz_only"
+    description: "1D slice: vary lambdaz only; all other axes fixed to base_scenario values."
+    database: "Full_database"
+    method: "slice"
+    free_parameters: ["lambdaz"]
+    
+  - name: "Vary_lbalonz_only"
+    description: "1D slice: vary lbalonz only; all other axes fixed to base_scenario values."
+    database: "Full_database"
+    method: "slice"
+    free_parameters: ["lbalonz"]
+
+  - name: "Vary_tauc_only"
+    description: "1D slice: vary tauc only; all other axes fixed to base_scenario values."
+    database: "Full_database"
+    method: "slice"
+    free_parameters: ["tauc"]
+
+  - name: "Vary_gamma_ZF_only"
+    description: "1D slice: vary gamma_ZF only; all other axes fixed to base_scenario values."
+    database: "Full_database"
+    method: "slice"
+    free_parameters: ["gamma_ZF"]
+    
+  - name: "Vary_As_only"
+    description: "1D slice: vary As only; all other axes fixed to base_scenario values."
+    database: "Full_database"
+    method: "slice"
+    free_parameters: ["As"]
+    
+  - name: "Vary_Zs_only"
+    description: "1D slice: vary Zs only; all other axes fixed to base_scenario values."
+    database: "Full_database"
+    method: "slice"
+    free_parameters: ["Zs"]
+    
+  - name: "Vary_Ts_only"
+    description: "1D slice: vary Ts only; all other axes fixed to base_scenario values."
+    database: "Full_database"
+    method: "slice"
+    free_parameters: ["Ts"]
