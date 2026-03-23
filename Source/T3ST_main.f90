@@ -88,18 +88,23 @@ PROGRAM T3ST
 
    REAL(dp), POINTER, CONTIGUOUS             :: Qx(:), Qy(:), Qz(:), Qw(:), Qph(:), QL(:)
    real(dp) :: gnorm_local
+   integer :: type_choice
 
 !========================================================================================================
 ! ADDRESS DECLARATION FOR EXPORTING DATA
 !========================================================================================================
-   CALL sim_values
+   CALL sim_values(type_choice)
 
    CALL GetCWD(CWD)
    address = TRIM(ADJUSTL(CWD))
    lenCWD  = LEN(address)
 
    ! Must have 'source' and 'data' folders at same level.
-   address = address(1:lenCWD - 7)//'/data/Sim_'//noofsimstr//'/'  
+      IF (type_choice == 1) THEN
+	   address = address(1:lenCWD - 7)//'/data/Sim_'//noofsimstr//'/'  
+      ELSE
+	   address = address(1:lenCWD - 7)//'/data/DB_'//noofsimstr//'/'  
+      END IF
 
    OPEN (333, FILE=address//'/logs.dat')     ! logs of simulations
 
@@ -181,6 +186,7 @@ PROGRAM T3ST
 !========================================================================================================
 ! EXPORT SOME PARAMETERS (names & values) OF THIS RUN
 !========================================================================================================
+      WRITE(11,*) '# '//TRIM(sim_comment)
       WRITE(11,*) [ CHARACTER(LEN=15) :: &
                    "t0", "tc", "tt", "tmax", "Nt", "Nreal", "Nc", "Nloop", "Np", "ntraj", &
                    "Nci", "Nce", &

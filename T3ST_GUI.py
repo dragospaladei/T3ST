@@ -685,7 +685,7 @@ class SimulationGUI:
 
         self.load_config()
 
-        self.root.title("T3ST GUI")
+        self.root.title("T3ST: GUI Studio")
         screen_w = self.root.winfo_screenwidth()
         screen_h = self.root.winfo_screenheight()
         w, h = int(screen_w * 0.84), int(screen_h * 0.88)
@@ -729,6 +729,11 @@ class SimulationGUI:
         self.mode_var = tk.StringVar(value="manual")
         self.database_var = tk.StringVar()
         self.selection_var = tk.StringVar()
+        self.db_scenario_var = tk.StringVar()  # scenario override for database mode
+
+        # Override widgets for database mode: {param_name: ParamWidget}
+        self._db_override_widgets: Dict[str, ParamWidget] = {}
+        self._db_override_frame: Optional[ttk.Frame] = None
 
         self.setup_fonts()
         self.vcmd = (self.root.register(self.validate_numeric), "%P", "%W")
@@ -938,15 +943,15 @@ class SimulationGUI:
 
         # Banner
         banner_frame = ttk.Frame(sf)
-        banner_frame.grid(row=row, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="ew", pady=(5, 10))
-        ttk.Label(banner_frame, text="T3ST GUI — Manual + Database Tabs",
-                  font=("Helvetica", 18, "bold"), anchor="center").pack(fill="x", pady=10)
+        banner_frame.grid(row=row, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="ew", pady=(5, 4))
+        ttk.Label(banner_frame, text="T3ST: GUI Studio",
+                  font=("Helvetica", 18, "bold"), anchor="center").pack(fill="x", pady=(10, 2))
+        ttk.Label(banner_frame, text="Test Particle Simulation Setup  ·  Manual sweeps  ·  Database-driven runs",
+                  font=("Helvetica", 10, "normal"), anchor="center", foreground="gray").pack(fill="x", pady=(0, 8))
         row += 1
 
-        row = self._build_header_row(sf, row)
-
         ttk.Separator(sf, orient="horizontal").grid(
-            row=row, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="ew", pady=8
+            row=row, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="ew", pady=(0, 6)
         )
         row += 1
 
@@ -964,56 +969,48 @@ class SimulationGUI:
         self._build_database_tab()
         self._build_action_buttons(sf, row)
 
-    def _build_header_row(self, sf, row: int) -> int:
-        ttk.Label(sf, text="Simulation Setup", style="Section.TLabel").grid(
-            row=row, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="w", padx=2, pady=(10, 0)
-        )
-        row += 1
-
-        ttk.Label(sf, text="Simulation no.:").grid(row=row, column=0, sticky="e")
-        self.sim_no_var = tk.StringVar()
-        self.sim_no_entry = ttk.Spinbox(sf, from_=1, to=9999, textvariable=self.sim_no_var, width=10)
-        self.sim_no_entry.grid(row=row, column=1, padx=2, pady=5)
-
-        ttk.Label(sf, text="Scenario:").grid(row=row, column=2, sticky="e")
-        self.scenario_var = tk.StringVar()
-        self.scenario_dropdown = ttk.Combobox(
-            sf, textvariable=self.scenario_var, values=self.valid_scenarios, state="readonly", width=22
-        )
-        self.scenario_dropdown.grid(row=row, column=3, padx=2, pady=5)
-        self.scenario_dropdown.set(self.valid_scenarios[0])
-        self.scenario_dropdown.bind("<<ComboboxSelected>>", self.on_scenario_change)
-
-        self.theme_toggle_btn = ttk.Button(
-            sf, text="Switch to Light Mode" if self.dark_mode else "Switch to Dark Mode",
-            command=self.toggle_theme
-        )
-        self.theme_toggle_btn.grid(row=row, column=5)
-
-        ttk.Button(sf, text="Quit", command=self.root.quit).grid(row=row, column=6, padx=(30, 10))
-        return row + 1
-
     def _build_manual_tab(self):
         tab = self.manual_tab
         ttk.Label(tab, text="Parameter Set", style="Section.TLabel").grid(
             row=0, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="w", padx=2, pady=(8, 0)
         )
-        ttk.Label(tab, text="Filter:").grid(row=1, column=0, sticky="e")
+
+        # Row 1: Scenario + Manual sim number
+        ttk.Label(tab, text="Scenario:").grid(row=1, column=0, sticky="e", padx=(2, 2), pady=4)
+        self.scenario_var = tk.StringVar()
+        self.scenario_dropdown = ttk.Combobox(
+            tab, textvariable=self.scenario_var, values=self.valid_scenarios, state="readonly", width=22
+        )
+        self.scenario_dropdown.grid(row=1, column=1, padx=(0, 12), pady=4, sticky="w")
+        self.scenario_dropdown.set(self.valid_scenarios[0])
+        self.scenario_dropdown.bind("<<ComboboxSelected>>", self.on_scenario_change)
+        ToolTip(self.scenario_dropdown, "Load a named scenario to pre-fill all parameters below.")
+
+        ttk.Label(tab, text="Sim no.:").grid(row=1, column=2, sticky="e", padx=(2, 2), pady=4)
+        self.manual_sim_no_var = tk.StringVar(value="1")
+        self.manual_sim_no_entry = ttk.Spinbox(
+            tab, from_=1, to=9999, textvariable=self.manual_sim_no_var, width=10
+        )
+        self.manual_sim_no_entry.grid(row=1, column=3, padx=(0, 12), pady=4, sticky="w")
+        ToolTip(self.manual_sim_no_entry, "Output: Sims/Sim_NN.dat")
+
+        # Row 2: Filter
+        ttk.Label(tab, text="Filter:").grid(row=2, column=0, sticky="e")
         self.filter_var = tk.StringVar()
         filter_entry = ttk.Entry(tab, textvariable=self.filter_var, width=24)
-        filter_entry.grid(row=1, column=1, sticky="w", padx=5, pady=(0, 8))
+        filter_entry.grid(row=2, column=1, sticky="w", padx=5, pady=(0, 8))
         ToolTip(filter_entry, "Type to filter parameter names (substring match).")
         self.filter_var.trace_add("write", lambda *_: self.apply_filter())
 
         self.params_frame = ttk.Frame(tab)
-        self.params_frame.grid(row=2, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="ew")
+        self.params_frame.grid(row=3, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="ew")
         self._build_param_widgets()
 
         ttk.Separator(tab, orient="horizontal").grid(
-            row=3, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="ew", pady=10
+            row=4, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="ew", pady=10
         )
         ttk.Label(tab, text="Sweep Configuration", style="Section.TLabel").grid(
-            row=4, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="w", padx=2, pady=(10, 0)
+            row=5, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="w", padx=2, pady=(10, 0)
         )
         self._build_sweep_rows(tab)
 
@@ -1130,7 +1127,7 @@ class SimulationGUI:
     def _build_sweep_rows(self, tab):
         self.sweeps = []
         for si in range(1, 4):
-            sweep_row = 4 + si
+            sweep_row = 5 + si  # rows 0-5 now used by header/scenario/filter/params/sep/sweep-label
             ttk.Label(tab, text=f"Param #{si}:").grid(row=sweep_row, column=0, sticky="e")
             cb = ttk.Combobox(tab, values=self.labels, width=18)
             cb.grid(row=sweep_row, column=1)
@@ -1154,76 +1151,414 @@ class SimulationGUI:
 
     def _build_database_tab(self):
         tab = self.database_tab
-        ttk.Label(tab, text="Database Selection", style="Section.TLabel").grid(
-            row=0, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="w", padx=2, pady=(8, 0)
-        )
-        ttk.Label(
-            tab,
-            text="Database mode uses the selected database + selection. "
-                 "The editable manual parameter set is intentionally hidden in this tab.",
-            justify="left", wraplength=900,
-        ).grid(row=1, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="w", padx=4, pady=(2, 10))
 
-        ttk.Label(tab, text="Database:").grid(row=2, column=0, sticky="e")
+        # Section header — tooltip carries the explanation
+        _db_section_lbl = ttk.Label(tab, text="Database Selection  ⓘ", style="Section.TLabel", cursor="question_arrow")
+        _db_section_lbl.grid(row=0, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="w", padx=2, pady=(8, 4))
+        ToolTip(_db_section_lbl,
+                "Pick a database (defines the parameter space axes) and a selection (how to sample it).\n"
+                "Choose a base scenario to fill all non-varying parameters, then tweak individual values\n"
+                "in the Parameter Overrides section below before exporting.")
+
+        # Row 1: Database | Selection | run-count badge
+        ttk.Label(tab, text="Database:").grid(row=1, column=0, sticky="e")
         self.database_dropdown = ttk.Combobox(
             tab, textvariable=self.database_var,
             values=sorted(self.database_by_name.keys()), state="readonly", width=28
         )
-        self.database_dropdown.grid(row=2, column=1, padx=2, pady=4, sticky="w")
+        self.database_dropdown.grid(row=1, column=1, padx=2, pady=4, sticky="w")
         self.database_dropdown.bind("<<ComboboxSelected>>", self.on_database_change)
 
-        ttk.Label(tab, text="Selection:").grid(row=2, column=2, sticky="e")
+        ttk.Label(tab, text="Selection:").grid(row=1, column=2, sticky="e")
         self.selection_dropdown = ttk.Combobox(
             tab, textvariable=self.selection_var, values=[], state="readonly", width=28
         )
-        self.selection_dropdown.grid(row=2, column=3, padx=2, pady=4, sticky="w")
+        self.selection_dropdown.grid(row=1, column=3, padx=2, pady=4, sticky="w")
         self.selection_dropdown.bind("<<ComboboxSelected>>", self.on_selection_change)
 
-        # Live run-count badge — prominent, next to the Selection dropdown
         self._run_count_var = tk.StringVar(value="")
-        run_count_lbl = ttk.Label(
+        self._run_count_badge = tk.Label(
             tab, textvariable=self._run_count_var,
-            font=("Helvetica", 13, "bold"), foreground="#1a7abf",
+            font=("Helvetica", 11, "bold"),
+            foreground="white", background="#1a7abf",
+            relief="flat", padx=10, pady=3,
+            borderwidth=0,
         )
-        run_count_lbl.grid(row=2, column=4, padx=(12, 4), pady=4, sticky="w")
+        self._run_count_badge.grid(row=1, column=4, padx=(12, 4), pady=4, sticky="w")
 
-        self.db_info_label = ttk.Label(tab, text="Database info: -", justify="left", wraplength=900)
-        self.db_info_label.grid(row=3, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="w", padx=4, pady=2)
-
-        self.sel_info_label = ttk.Label(tab, text="Selection info: -", justify="left", wraplength=900)
-        self.sel_info_label.grid(row=4, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="w", padx=4, pady=2)
-
-        # Axis value inspector
-        ttk.Label(tab, text="Axis Inspector", style="Section.TLabel").grid(
-            row=5, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="w", padx=2, pady=(14, 0)
+        # Row 2: Base scenario + DB sim number
+        ttk.Label(tab, text="Base scenario:").grid(row=2, column=0, sticky="e")
+        self.db_scenario_dropdown = ttk.Combobox(
+            tab, textvariable=self.db_scenario_var,
+            values=self.valid_scenarios, state="readonly", width=28
         )
+        self.db_scenario_dropdown.grid(row=2, column=1, padx=2, pady=4, sticky="w")
+        ToolTip(
+            self.db_scenario_dropdown,
+            "Supplies values for all parameters not swept by the database axes.\n"
+            "Defaults to the scenario declared in databases.yaml; freely overridable here."
+        )
+        self.db_scenario_dropdown.bind("<<ComboboxSelected>>", self._on_db_scenario_change)
+
+        ttk.Label(tab, text="Sim no.:").grid(row=2, column=2, sticky="e", padx=(2, 2), pady=4)
+        self.db_sim_no_var = tk.StringVar(value="1")
+        self.db_sim_no_entry = ttk.Spinbox(
+            tab, from_=1, to=9999, textvariable=self.db_sim_no_var, width=10
+        )
+        self.db_sim_no_entry.grid(row=2, column=3, padx=(0, 12), pady=4, sticky="w")
+        ToolTip(self.db_sim_no_entry, "Output: Sims/DB_NN.dat")
+
+        # Live status labels (these are dynamic info, not explanatory — keep visible)
+        self.db_info_label = ttk.Label(tab, text="Database: —", justify="left", wraplength=900)
+        self.db_info_label.grid(row=3, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="w", padx=4, pady=(2, 0))
+
+        self.sel_info_label = ttk.Label(tab, text="Selection: —", justify="left", wraplength=900)
+        self.sel_info_label.grid(row=4, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="w", padx=4, pady=(0, 4))
+
+        # --- Axis Inspector (collapsible) ---
+        self._axis_inspector_collapsed = False
+        self._axis_inspector_btn = ttk.Button(
+            tab, text="▼  Axis Inspector", style="GroupHeader.TLabel",
+            command=self._toggle_axis_inspector,
+        )
+        self._axis_inspector_btn.grid(row=5, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="ew", padx=2, pady=(8, 0))
+
         cols = ("Parameter", "Min", "Max", "N", "Step size")
-        axis_frame = ttk.Frame(tab)
-        axis_frame.grid(row=6, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="ew", padx=4, pady=(2, 8))
-        axis_frame.columnconfigure(0, weight=1)
+        self._axis_inspector_frame = ttk.Frame(tab)
+        self._axis_inspector_frame.grid(row=6, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="ew", padx=4, pady=(2, 6))
+        self._axis_inspector_frame.columnconfigure(0, weight=1)
 
-        self._axis_tree = ttk.Treeview(axis_frame, columns=cols, show="headings", height=4)
+        self._axis_tree = ttk.Treeview(self._axis_inspector_frame, columns=cols, show="headings", height=4)
         for col in cols:
             self._axis_tree.heading(col, text=col)
             self._axis_tree.column(col, width=140, anchor="center")
         self._axis_tree.column("Parameter", width=200, anchor="w")
         self._axis_tree.grid(row=0, column=0, sticky="ew")
 
-        _axis_scroll = ttk.Scrollbar(axis_frame, orient="vertical", command=self._axis_tree.yview)
+        _axis_scroll = ttk.Scrollbar(self._axis_inspector_frame, orient="vertical", command=self._axis_tree.yview)
         self._axis_tree.configure(yscrollcommand=_axis_scroll.set)
         _axis_scroll.grid(row=0, column=1, sticky="ns")
 
-        ttk.Label(tab, text="Scenario Summary", style="Section.TLabel").grid(
-            row=7, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="w", padx=2, pady=(6, 0)
+        # --- Parameter Overrides (collapsible) ---
+        self._overrides_collapsed = False
+        self._overrides_btn = ttk.Button(
+            tab, text="▼  Parameter Overrides  ⓘ", style="GroupHeader.TLabel",
+            command=self._toggle_overrides,
         )
+        self._overrides_btn.grid(row=7, column=0, columnspan=6, sticky="ew", padx=2, pady=(8, 0))
+        ToolTip(self._overrides_btn,
+                "All simulation parameters are shown here.\n\n"
+                "White label  — not part of the database; freely editable.\n"
+                "Blue label   — database axis frozen to one value for this selection; read-only.\n"
+                "Steel label  — database axis that varies run-to-run; shown for reference, read-only.\n"
+                "Amber label  — you have edited this value away from the scenario default.")
+
+        # "Copy to Manual" button on the same visual row as the collapse toggle
+        ttk.Button(tab, text="Copy to Manual", command=self._copy_db_to_manual).grid(
+            row=7, column=6, padx=(4, 2), pady=(8, 0), sticky="e"
+        )
+
+        # Collapsible body: canvas + scrollbar
+        self._overrides_body_frame = ttk.Frame(tab)
+        self._overrides_body_frame.grid(row=8, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="ew", padx=4, pady=(2, 6))
+        self._overrides_body_frame.columnconfigure(0, weight=1)
+
+        self._override_canvas = tk.Canvas(self._overrides_body_frame, highlightthickness=0, height=220)
+        _ov_scroll = ttk.Scrollbar(self._overrides_body_frame, orient="vertical", command=self._override_canvas.yview)
+        self._override_canvas.configure(yscrollcommand=_ov_scroll.set)
+        self._override_canvas.grid(row=0, column=0, sticky="ew")
+        _ov_scroll.grid(row=0, column=1, sticky="ns")
+
+        self._db_override_frame = ttk.Frame(self._override_canvas)
+        self._db_override_frame_id = self._override_canvas.create_window(
+            (0, 0), window=self._db_override_frame, anchor="nw"
+        )
+        self._db_override_frame.bind(
+            "<Configure>",
+            lambda e: self._override_canvas.configure(scrollregion=self._override_canvas.bbox("all"))
+        )
+        self._override_canvas.bind(
+            "<Configure>",
+            lambda e: self._override_canvas.itemconfig(self._db_override_frame_id, width=e.width)
+        )
+        self._override_canvas.bind("<Enter>", self._bind_override_scroll)
+        self._override_canvas.bind("<Leave>", self._unbind_override_scroll)
+
+        # Scenario summary — tooltip on the label, keeps one compact info line visible
+        _scen_lbl = ttk.Label(tab, text="Scenario summary  ⓘ", style="Section.TLabel", cursor="question_arrow")
+        _scen_lbl.grid(row=9, column=0, columnspan=3, sticky="w", padx=2, pady=(6, 0))
+        ToolTip(_scen_lbl, "Shows the active base scenario and which parameters are swept by the database axes.")
         self.database_scenario_info_label = ttk.Label(
-            tab, text="Base scenario summary: -", justify="left", wraplength=900
+            tab, text="—", justify="left", wraplength=900
         )
-        self.database_scenario_info_label.grid(row=8, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="w", padx=4, pady=2)
+        self.database_scenario_info_label.grid(row=9, column=3, columnspan=UI_TOTAL_COLUMNS - 3, sticky="w", padx=4, pady=(6, 0))
+
+    def _bind_override_scroll(self, event=None):
+        self._override_canvas.bind_all("<MouseWheel>", self._on_override_mousewheel)
+        self._override_canvas.bind_all("<Button-4>", lambda e: self._override_canvas.yview_scroll(-1, "units"))
+        self._override_canvas.bind_all("<Button-5>", lambda e: self._override_canvas.yview_scroll(1, "units"))
+
+    def _unbind_override_scroll(self, event=None):
+        self._override_canvas.unbind_all("<MouseWheel>")
+        self._override_canvas.unbind_all("<Button-4>")
+        self._override_canvas.unbind_all("<Button-5>")
+        # Restore main canvas scroll bindings
+        self.canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+        self.canvas.bind_all("<Button-4>", lambda e: self.canvas.yview_scroll(-1, "units"))
+        self.canvas.bind_all("<Button-5>", lambda e: self.canvas.yview_scroll(1, "units"))
+
+    def _on_override_mousewheel(self, event):
+        delta = -1 if event.delta > 0 else 1 if event.delta < 0 else 0
+        if delta:
+            self._override_canvas.yview_scroll(delta, "units")
+
+    def _toggle_axis_inspector(self):
+        self._axis_inspector_collapsed = not self._axis_inspector_collapsed
+        if self._axis_inspector_collapsed:
+            self._axis_inspector_frame.grid_remove()
+            self._axis_inspector_btn.config(text="▶  Axis Inspector")
+        else:
+            self._axis_inspector_frame.grid()
+            self._axis_inspector_btn.config(text="▼  Axis Inspector")
+
+    def _toggle_overrides(self):
+        self._overrides_collapsed = not self._overrides_collapsed
+        if self._overrides_collapsed:
+            self._overrides_body_frame.grid_remove()
+            self._overrides_btn.config(text="▶  Parameter Overrides")
+        else:
+            self._overrides_body_frame.grid()
+            self._overrides_btn.config(text="▼  Parameter Overrides")
+
+    def _copy_db_to_manual(self):
+        """Push current DB scenario + overrides into the Manual tab, then switch to it."""
+        db_name = self.database_var.get().strip()
+        db = self.database_by_name.get(db_name)
+        scenario_name = self.db_scenario_var.get().strip()
+        if db is None or not scenario_name:
+            messagebox.showwarning("Copy to Manual", "Please select a database and scenario first.")
+            return
+
+        # Build merged value map: scenario → overrides (axis values not applied — those are db-specific)
+        try:
+            value_map = self.get_scenario_value_map(scenario_name)
+        except Exception as e:
+            messagebox.showerror("Copy to Manual", f"Could not load scenario: {e}")
+            return
+
+        for pname, pw in self._db_override_widgets.items():
+            v, err = pw.get_export_value()
+            if err:
+                messagebox.showerror("Copy to Manual", f"Invalid override for {pname!r}: {err}")
+                return
+            pdef = self.param_by_name.get(pname)
+            if pdef and pdef.kind == "enum":
+                value_map[pname] = int(v)
+            elif pdef and pdef.kind == "int":
+                value_map[pname] = int(v)
+            else:
+                try:
+                    value_map[pname] = float(v)
+                except Exception:
+                    value_map[pname] = v
+
+        self._push_undo()
+        for pw in self.param_widgets:
+            val = value_map.get(pw.pdef.name)
+            if val is not None:
+                pw.set_value(val)
+
+        # Switch to the Manual tab
+        self.mode_notebook.select(self.manual_tab)
+        self.set_status(f"Copied DB scenario '{scenario_name}' + overrides → Manual tab")
+
+    def _rebuild_override_table(self, db: Optional[DatabaseDef], scenario_name: str,
+                                sel: Optional[SelectionDef] = None):
+        """Destroy and recreate parameter widgets for the given db + scenario + selection.
+
+        Three categories of parameters are shown:
+          • Free-axis params  (vary run-to-run for this selection) — steel-blue label, read-only, shows axis range
+          • Frozen-axis params (axis exists but fixed to one value for this selection) — cornflower-blue label, read-only
+          • Non-axis params   (not part of the database at all) — editable, amber highlight on change
+        """
+        frame = self._db_override_frame
+        if frame is None:
+            return
+
+        for child in frame.winfo_children():
+            child.destroy()
+        self._db_override_widgets.clear()
+
+        if db is None:
+            ttk.Label(frame, text="(no database selected)").grid(row=0, column=0, sticky="w", padx=4, pady=2)
+            return
+
+        all_axis_names = {a.name for a in db.varying_parameters}
+        axis_map = db.axis_map()
+
+        # Determine which axes are frozen for the current selection
+        frozen_axis_names: set = set()
+        if sel is not None:
+            try:
+                fixed = resolved_fixed_indices(db, sel, self.scenarios, self.params)
+                frozen_axis_names = set(fixed.keys())
+            except Exception:
+                pass
+        free_axis_names = all_axis_names - frozen_axis_names
+
+        # Fetch scenario values for pre-filling and change-detection
+        scenario_values: Dict[str, Any] = {}
+        if scenario_name in self.scenarios:
+            raw = self.scenarios[scenario_name]
+            if isinstance(raw, dict):
+                scenario_values = raw
+            elif isinstance(raw, list) and len(raw) == len(self.labels):
+                scenario_values = dict(zip(self.labels, raw))
+
+        COLS = UI_PARAM_COLS_PER_ROW
+        total_cols = COLS * 2
+        for col in range(total_cols):
+            frame.columnconfigure(col, weight=0)
+
+        # Colour scheme — consistent across light/dark themes
+        amber_fg       = "#e07b00"   # user-modified override
+        free_axis_fg   = "#4a9eda"   # freely varying axis (runs differ)
+        frozen_axis_fg = "#7ab8e8"   # axis present but frozen to one value for this selection
+
+        # All params in their defined order, grouped
+        group_order: List[str] = []
+        group_to_params: Dict[str, List[ParamDef]] = {}
+        for p in self.params:
+            g = p.group or "Ungrouped"
+            if g not in group_to_params:
+                group_to_params[g] = []
+                group_order.append(g)
+            group_to_params[g].append(p)
+
+        cur_row = 0
+        for g_idx, g in enumerate(group_order):
+            if g_idx > 0:
+                ttk.Separator(frame, orient="horizontal").grid(
+                    row=cur_row, column=0, columnspan=total_cols, sticky="ew", pady=(4, 0)
+                )
+                cur_row += 1
+
+            ttk.Label(frame, text=g, style="GroupHeader.TLabel").grid(
+                row=cur_row, column=0, columnspan=total_cols, sticky="w", padx=4, pady=(4, 1)
+            )
+            cur_row += 1
+
+            params_in_group = group_to_params[g]
+            for i, p in enumerate(params_in_group):
+                r = cur_row + (i // COLS)
+                c = (i % COLS) * 2
+
+                is_free_axis   = p.name in free_axis_names
+                is_frozen_axis = p.name in frozen_axis_names
+                is_axis        = is_free_axis or is_frozen_axis
+
+                # Label colour
+                if is_free_axis:
+                    lbl_fg = free_axis_fg
+                elif is_frozen_axis:
+                    lbl_fg = frozen_axis_fg
+                else:
+                    lbl_fg = ""   # theme default
+
+                lbl = ttk.Label(frame, text=p.name, style="Param.TLabel", foreground=lbl_fg)
+                lbl.grid(row=r, column=c, padx=(2, 2), pady=1, sticky="e")
+
+                # Tooltip — add axis context for axis params
+                tip_parts = []
+                if p.help:    tip_parts.append(p.help)
+                if p.units:   tip_parts.append(f"Units: {p.units}")
+                if p.default is not None and p.default != "":
+                    tip_parts.append(f"Default: {p.default}")
+                if p.min is not None: tip_parts.append(f"Min: {p.min}")
+                if p.max is not None: tip_parts.append(f"Max: {p.max}")
+                if is_free_axis:
+                    ax = axis_map[p.name]
+                    tip_parts.append(f"⟳ Freely varying axis: [{ax.min:.6g} … {ax.max:.6g}], {ax.nvals} pts")
+                    tip_parts.append("Value changes each run — shown here for reference only.")
+                elif is_frozen_axis:
+                    ax = axis_map[p.name]
+                    tip_parts.append(f"⬡ Frozen axis: fixed to one point in [{ax.min:.6g} … {ax.max:.6g}]")
+                    tip_parts.append("Value is axis-controlled for this selection — shown read-only.")
+                ToolTip(lbl, "\n".join(tip_parts) if tip_parts else f"Value for {p.name}")
+
+                # Fill value: for axis params use the axis value if frozen, else scenario value
+                if is_frozen_axis:
+                    try:
+                        fixed_idx = resolved_fixed_indices(db, sel, self.scenarios, self.params)[p.name]
+                        fill_val = float(build_axis_values(axis_map[p.name])[fixed_idx])
+                    except Exception:
+                        fill_val = scenario_values.get(p.name, p.default if p.default is not None else "")
+                elif is_free_axis:
+                    # Show the scenario/default value as a reference — not exported
+                    fill_val = scenario_values.get(p.name, p.default if p.default is not None else "")
+                else:
+                    fill_val = scenario_values.get(p.name, p.default if p.default is not None else "")
+
+                if p.kind == "enum":
+                    values_list = [ch.label for ch in (p.choices or [])]
+                    cb = ttk.Combobox(frame, values=values_list, width=UI_COMBO_WIDTH,
+                                      state="disabled" if is_axis else "readonly")
+                    cb.grid(row=r, column=c + 1, padx=(2, 6), pady=1, sticky="w")
+                    pw = ParamWidget(
+                        pdef=p, label=lbl, widget=cb,
+                        enum_label_to_value={ch.label: int(ch.value) for ch in (p.choices or [])},
+                        enum_value_to_label={int(ch.value): ch.label for ch in (p.choices or [])},
+                    )
+                    if not is_axis:
+                        def _on_enum_change(event, _lbl=lbl, _fill=fill_val, _cb=cb):
+                            _lbl.config(foreground=amber_fg if _cb.get() != str(_fill) else "")
+                        cb.bind("<<ComboboxSelected>>", _on_enum_change)
+
+                elif p.ui == "checkbox" and p.kind == "int":
+                    v = tk.IntVar(value=0)
+                    chk = ttk.Checkbutton(frame, variable=v,
+                                          state="disabled" if is_axis else "normal")
+                    chk.grid(row=r, column=c + 1, padx=(2, 6), pady=1, sticky="w")
+                    pw = ParamWidget(pdef=p, label=lbl, widget=chk, var=v)
+                    if not is_axis:
+                        try:
+                            orig = int(float(fill_val)) if fill_val != "" else 0
+                        except Exception:
+                            orig = 0
+                        def _on_check_change(*_, _lbl=lbl, _v=v, _orig=orig):
+                            _lbl.config(foreground=amber_fg if _v.get() != _orig else "")
+                        v.trace_add("write", _on_check_change)
+
+                else:
+                    validate = "key" if (p.kind in ("int", "float") and not is_axis) else "none"
+                    ent = ttk.Entry(
+                        frame, width=UI_ENTRY_WIDTH,
+                        validate=validate,
+                        validatecommand=self.vcmd if validate == "key" else None,
+                        style="Numeric.TEntry",
+                    )
+                    ent.grid(row=r, column=c + 1, padx=(2, 6), pady=1, sticky="w")
+                    if is_axis:
+                        ent.config(state="readonly")
+                    pw = ParamWidget(pdef=p, label=lbl, widget=ent)
+                    if not is_axis:
+                        orig_str = str(fill_val)
+                        def _on_entry_change(*_, _lbl=lbl, _ent=ent, _orig=orig_str):
+                            _lbl.config(foreground=amber_fg if _ent.get() != _orig else "")
+                        ent.bind("<KeyRelease>", _on_entry_change)
+
+                pw.set_value(fill_val)
+                # Only register editable (non-axis) params in the export dict
+                if not is_axis:
+                    self._db_override_widgets[p.name] = pw
+
+            cur_row += (len(params_in_group) + COLS - 1) // COLS
+
+        self._override_canvas.yview_moveto(0)
 
     def _build_action_buttons(self, sf, row: int):
-        ttk.Label(sf, text="Actions", style="Section.TLabel").grid(
-            row=row, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="w", padx=2, pady=(8, 0)
+        ttk.Separator(sf, orient="horizontal").grid(
+            row=row, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="ew", pady=(4, 0)
         )
         row += 1
         buttons = [
@@ -1231,10 +1566,18 @@ class SimulationGUI:
             ("Load Parameters",     self.load_parameters),
             ("Clear All Fields",    self.clear_all_fields),
             ("Reset to Scenario",   self.reset_to_scenario_defaults),
-            ("Quit",                self.root.quit),
         ]
         for col, (label, cmd) in enumerate(buttons):
-            ttk.Button(sf, text=label, command=cmd).grid(row=row, column=col, pady=20)
+            ttk.Button(sf, text=label, command=cmd).grid(row=row, column=col, padx=4, pady=12)
+
+        self.theme_toggle_btn = ttk.Button(
+            sf, text="Switch to Dark Mode" if not self.dark_mode else "Switch to Light Mode",
+            command=self.toggle_theme
+        )
+        self.theme_toggle_btn.grid(row=row, column=len(buttons), padx=(20, 4), pady=12)
+        ttk.Button(sf, text="Quit", command=self.root.quit).grid(
+            row=row, column=len(buttons) + 1, padx=4, pady=12
+        )
 
     def initialize_database_controls(self):
         db_names = sorted(self.database_by_name.keys())
@@ -1279,8 +1622,9 @@ class SimulationGUI:
             if db_name in self.database_by_name:
                 db = self.database_by_name[db_name]
                 axis_names = [a.name for a in db.varying_parameters]
+                chosen_scenario = self.db_scenario_var.get().strip() or db.base_scenario
                 self.database_scenario_info_label.config(
-                    text=f"Base scenario summary: {db.base_scenario} | "
+                    text=f"Base scenario summary: {chosen_scenario} | "
                          f"varying parameters={', '.join(axis_names) or '-'}"
                 )
                 return
@@ -1422,6 +1766,7 @@ class SimulationGUI:
             self.selection_dropdown["values"] = []
             self.db_info_label.config(text="Database info: invalid database")
             self._refresh_axis_inspector(None)
+            self._rebuild_override_table(None, "", None)
             return
 
         db = self.database_by_name[db_name]
@@ -1431,6 +1776,14 @@ class SimulationGUI:
             f"description={db.description or '-'}"
         ))
         self._refresh_axis_inspector(db)
+
+        # Pre-select the scenario specified in databases.yaml (user can override)
+        if db.base_scenario in self.valid_scenarios:
+            self.db_scenario_var.set(db.base_scenario)
+        elif self.valid_scenarios:
+            self.db_scenario_var.set(self.valid_scenarios[0])
+
+        self._rebuild_override_table(db, self.db_scenario_var.get(), None)
 
         selection_names = sorted(s.name for s in self.selections if s.database == db_name)
         self.selection_dropdown["values"] = selection_names
@@ -1463,21 +1816,25 @@ class SimulationGUI:
                 str(axis.nvals),
                 step_str,
             ))
-        # Auto-size: show all rows up to a max of 15, no blank space
+        # Auto-size: show all rows up to a max of 7, no blank space
         n = len(db.varying_parameters)
-        self._axis_tree.configure(height=max(1, min(n, 15)))
+        self._axis_tree.configure(height=max(1, min(n, 7)))
 
     def on_selection_change(self, event=None):
         sel_name = self.selection_var.get().strip()
         if not sel_name or sel_name not in self.selection_by_name:
             self.sel_info_label.config(text="Selection info: -")
             self._run_count_var.set("")
+            if hasattr(self, "_run_count_badge"):
+                self._run_count_badge.grid_remove()
             return
 
         sel = self.selection_by_name[sel_name]
         if sel.database not in self.database_by_name:
             self.sel_info_label.config(text=f"Selection info: database {sel.database!r} not found")
             self._run_count_var.set("")
+            if hasattr(self, "_run_count_badge"):
+                self._run_count_badge.grid_remove()
             return
 
         db = self.database_by_name[sel.database]
@@ -1487,10 +1844,30 @@ class SimulationGUI:
                 f"Selection info: {sel.name} | method={sel.method} | selected runs={count} | "
                 f"description={sel.description or '-'}"
             ))
-            self._run_count_var.set(f"→ {count:,} runs")
+            self._run_count_var.set(f"  {count:,} runs  ")
+            if hasattr(self, "_run_count_badge"):
+                self._run_count_badge.config(background="#1a7abf")
+                self._run_count_badge.grid()
         except Exception as e:
             self.sel_info_label.config(text=f"Selection info: invalid selection ({e})")
-            self._run_count_var.set("⚠ error")
+            self._run_count_var.set("  ⚠ error  ")
+            if hasattr(self, "_run_count_badge"):
+                self._run_count_badge.config(background="#c0392b")
+                self._run_count_badge.grid()
+
+        # Rebuild override table so axis colouring reflects the new selection
+        self._rebuild_override_table(db, self.db_scenario_var.get(), sel)
+
+    def _on_db_scenario_change(self, event=None):
+        """Called when the user changes the scenario override dropdown in database mode."""
+        scenario_name = self.db_scenario_var.get().strip()
+        db_name = self.database_var.get().strip()
+        db = self.database_by_name.get(db_name)
+        sel_name = self.selection_var.get().strip()
+        sel = self.selection_by_name.get(sel_name)
+        self._rebuild_override_table(db, scenario_name, sel)
+        self.update_database_scenario_summary()
+        self.set_status(f"Database base scenario changed to: {scenario_name}")
 
     # -----------------------------
     # Sweeps parsing / preview
@@ -1566,13 +1943,15 @@ class SimulationGUI:
     # Export helpers
     # -----------------------------
 
-    def get_script_sims_dir(self) -> Path:
-        sims_dir = Path(__file__).resolve().parent / "Sims"
-        sims_dir.mkdir(parents=True, exist_ok=True)
-        return sims_dir
+    def get_sims_dir(self) -> Path:
+        d = Path(__file__).resolve().parent / "Sims"
+        d.mkdir(parents=True, exist_ok=True)
+        return d
 
-    def write_dat_file(self, file_path: Path, rows: List[List[str]]):
+    def write_dat_file(self, file_path: Path, rows: List[List[str]], comment: str = ""):
         with open(file_path, "w", encoding="utf-8") as f:
+            if comment:
+                f.write(f"# {comment}\n")
             f.write(f"{len(rows)}\n{len(self.labels)}\n")
             f.write(" ".join(self.labels) + "\n")
             for row in rows:
@@ -1608,7 +1987,28 @@ class SimulationGUI:
         raise ValueError(f"Scenario {scenario_name!r} has unsupported format")
 
     def build_database_run_row(self, db: DatabaseDef, idx_tuple: Tuple[int, ...]) -> List[str]:
-        value_map = self.get_scenario_value_map(db.base_scenario)
+        # Use the scenario chosen in the GUI dropdown, falling back to the YAML-specified one
+        chosen_scenario = self.db_scenario_var.get().strip() if hasattr(self, "db_scenario_var") else ""
+        if not chosen_scenario or chosen_scenario not in self.scenarios:
+            chosen_scenario = db.base_scenario
+        value_map = self.get_scenario_value_map(chosen_scenario)
+
+        # Apply per-parameter overrides from the override table (non-varying params only)
+        for pname, pw in self._db_override_widgets.items():
+            v, err = pw.get_export_value()
+            if err:
+                raise ValueError(f"Override for parameter {pname!r}: {err}")
+            # Convert back to the raw type for value_map
+            pdef = self.param_by_name.get(pname)
+            if pdef and pdef.kind == "enum":
+                # v is the integer string; store as int
+                value_map[pname] = int(v)
+            elif pdef and pdef.kind == "int":
+                value_map[pname] = int(v)
+            else:
+                value_map[pname] = float(v) if v else v
+
+        # Then overlay the varying-axis values for this specific run
         for axis, idx in zip(database_axes_in_order(db), idx_tuple):
             raw = float(build_axis_values(axis)[int(idx)])
             pdef = self.param_by_name[axis.name]
@@ -1623,7 +2023,7 @@ class SimulationGUI:
         for p in self.params:
             raw = value_map.get(p.name, p.default if p.default is not None else "")
             if raw == "" or raw is None:
-                raise ValueError(f"Base scenario {db.base_scenario!r}: parameter {p.name!r} is empty")
+                raise ValueError(f"Base scenario {chosen_scenario!r}: parameter {p.name!r} is empty")
             if p.kind == "enum":
                 try:
                     xi = int(round(float(raw)))
@@ -1657,6 +2057,7 @@ class SimulationGUI:
     # -----------------------------
 
     def export_manual_mode(self, file_path: Path):
+        import datetime
         sweeps, sweep_errors = self.parse_sweeps()
         if sweep_errors:
             raise ValueError("\n".join(sweep_errors))
@@ -1692,9 +2093,24 @@ class SimulationGUI:
                     recurse(level + 1, nxt)
             recurse(0, formatted_values)
 
-        self.write_dat_file(file_path, rows)
+        scenario = self.scenario_var.get().strip() or "—"
+        date_str = datetime.date.today().isoformat()
+        if sweeps:
+            sweep_desc = ", ".join(
+                f"{pname}({vals[0]:.6g}→{vals[-1]:.6g}, {len(vals)}pts)"
+                for _, vals, pname in sweeps
+            )
+        else:
+            sweep_desc = "—"
+        comment = (
+            f"mode=manual | scenario={scenario} | db=— | selection=— | "
+            f"sweeps={sweep_desc} | runs={total_rows} | exported={date_str}"
+        )
+
+        self.write_dat_file(file_path, rows, comment)
 
     def export_database_mode(self, file_path: Path):
+        import datetime
         db, sel = self.get_current_database_and_selection()
         count = selection_count(db, sel, self.scenarios, self.params)
         if count > MAX_EXPORT_ROWS:
@@ -1706,18 +2122,34 @@ class SimulationGUI:
             self.build_database_run_row(db, tuple(int(x) for x in idx_tuple))
             for idx_tuple in selection_index_iterator(db, sel, self.scenarios, self.params)
         ]
-        self.write_dat_file(file_path, rows)
+        chosen_scenario = self.db_scenario_var.get().strip() or db.base_scenario
+        date_str = datetime.date.today().isoformat()
+        comment = (
+            f"mode=database | scenario={chosen_scenario} | db={db.name} | selection={sel.name} | "
+            f"sweeps=— | runs={count} | exported={date_str}"
+        )
+        self.write_dat_file(file_path, rows, comment)
 
     def export_current_mode(self):
-        sim_no_txt = self.sim_no_entry.get().strip()
-        if not sim_no_txt.isdigit():
-            messagebox.showerror("Invalid Input", "Simulation number must be an integer.")
-            return
-        file_path = self.get_script_sims_dir() / f"Sim_{int(sim_no_txt):02d}.dat"
+        is_db = self.mode_var.get().strip() == "database"
+
+        if is_db:
+            sim_no_txt = self.db_sim_no_var.get().strip()
+            if not sim_no_txt.isdigit():
+                messagebox.showerror("Invalid Input", "Simulation number must be an integer.")
+                return
+            file_path = self.get_sims_dir() / f"DB_{int(sim_no_txt):02d}.dat"
+        else:
+            sim_no_txt = self.manual_sim_no_var.get().strip()
+            if not sim_no_txt.isdigit():
+                messagebox.showerror("Invalid Input", "Simulation number must be an integer.")
+                return
+            file_path = self.get_sims_dir() / f"Sim_{int(sim_no_txt):02d}.dat"
+
         if file_path.exists() and not messagebox.askyesno("Overwrite?", f"{file_path.name} exists. Overwrite?"):
             return
         try:
-            if self.mode_var.get().strip() == "database":
+            if is_db:
                 self.export_database_mode(file_path)
             else:
                 self.export_manual_mode(file_path)
@@ -1737,7 +2169,12 @@ class SimulationGUI:
             return
         file_path = Path(file_path)
         try:
-            lines = [ln.strip() for ln in file_path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+            raw_lines = [ln.strip() for ln in file_path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+
+            # Extract and display any leading comment lines, then strip them for parsing
+            comment_lines = [ln for ln in raw_lines if ln.startswith("#")]
+            lines = [ln for ln in raw_lines if not ln.startswith("#")]
+
             if len(lines) < 3:
                 messagebox.showerror("Error", "File format not recognized."); return
 
@@ -1767,7 +2204,11 @@ class SimulationGUI:
             self._push_undo()
             for pw in self.param_widgets:
                 pw.set_value(name_to_val.get(pw.pdef.name, ""))
-            messagebox.showinfo("Loaded", f"Loaded parameters from {file_path}\n(total rows in file: {rows})")
+
+            info = f"Loaded parameters from {file_path}\n(total rows in file: {rows})"
+            if comment_lines:
+                info += f"\n\n{chr(10).join(comment_lines)}"
+            messagebox.showinfo("Loaded", info)
             self.set_status(f"Loaded parameters from {file_path.name}  ({rows} row(s) in file)")
 
         except Exception as e:

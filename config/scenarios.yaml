@@ -294,12 +294,12 @@ CycloneBaseCase:
   t0: 0
   tc: -1
   tt: -1
-  tmax: 60
-  Nt: 1200
+  tmax: 50
+  Nt: 1000
   Nreal: 1
   Nc: 50
   Nloop: 1
-  Np: 5000
+  Np: 50000
   ntraj: 10
   Ti: 3.0
   Te: 3.0
