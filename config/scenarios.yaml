@@ -310,7 +310,7 @@ CycloneBaseCase:
   Li: 6.9
   Le: 6.9
   magnetic_model: 4
-  B0: 2.2
+  B0: 2.5
   R0: 1.65
   a0: 0.600
   s1: 0.84

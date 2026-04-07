@@ -27,7 +27,7 @@ SUBROUTINE printing(runs, nsim, date_time, folder, lene, simf, simi, iono)
    WRITE (*, *) 'Start time  🕒 :: ', date_time(7:8), '/', date_time(5:6), '/', date_time(1:4), &
                                  &'  ', date_time(9:10), ':', date_time(11:12), ':', date_time(13:14)
 
-   timpnufigrabit1 = real(Np,dp)*real(Nloop,dp)*real(Nreal,dp)*real(Nt,dp)*(1.2_dp + 0.7_dp*real(USE_coll,dp) + 3.9_dp*real(USE_turb,dp) + 1.5_dp*real(USE_coll,dp)*real(USE_turb,dp))/10.0**8
+   timpnufigrabit1 = real(Np,rp)*real(Nloop,rp)*real(Nreal,rp)*real(Nt,rp)*(1.2_rp + 0.7_rp*real(USE_coll,rp) + 3.9_rp*real(USE_turb,rp) + 1.5_rp*real(USE_coll,rp)*real(USE_turb,rp))/10.0**8
    timpnufigrabit2 = (simf-simi+1)*timpnufigrabit1
    WRITE (*, *) 'EsCompTime  ⏳ ::', timpnufigrabit1, 's  out of a total of ', timpnufigrabit2, ' s'
    WRITE (*, '(A)') ' Folder      📁 :: '//TRIM(folder)
@@ -49,7 +49,7 @@ SUBROUTINE error_signal
    IMPLICIT NONE
 
    INTEGER :: nerr
-   REAL(KIND=dp), PARAMETER :: tiny_dp = 1.0e-30_dp
+   REAL(KIND=rp), PARAMETER :: tiny_dp = 1.0e-30_rp
 
    nerr = 0
 
@@ -100,7 +100,7 @@ SUBROUTINE error_signal
       nerr = nerr + 1
    END IF
 
-   IF (a0 <= 0.0_dp) THEN
+   IF (a0 <= 0.0_rp) THEN
       WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: a0 must be > 0 (normalized minor radius), got a0 =', a0
       nerr = nerr + 1
    END IF
@@ -110,27 +110,27 @@ SUBROUTINE error_signal
       nerr = nerr + 1
    END IF
 
-   IF (Ti <= 0.0_dp) THEN
+   IF (Ti <= 0.0_rp) THEN
       WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: Ti must be > 0, got Ti =', Ti
       nerr = nerr + 1
    END IF
 
-   IF (Te <= 0.0_dp) THEN
+   IF (Te <= 0.0_rp) THEN
       WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: Te must be > 0, got Te =', Te
       nerr = nerr + 1
    END IF
 
-   IF (ndens <= 0.0_dp) THEN
+   IF (ndens <= 0.0_rp) THEN
       WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: ndens must be > 0, got ndens =', ndens
       nerr = nerr + 1
    END IF
 
-   IF (As <= 0.0_dp .OR. Aeff <= 0.0_dp) THEN
+   IF (As <= 0.0_rp .OR. Aeff <= 0.0_rp) THEN
       WRITE(error_unit,'(A,2(1X,ES12.4))') 'Error :: As and Aeff must be > 0, got (As,Aeff)=', As, Aeff
       nerr = nerr + 1
    END IF
 
-   IF (Zeff <= 0.0_dp .OR. Zs < 0.0_dp) THEN
+   IF (Zeff <= 0.0_rp .OR. Zs < 0.0_rp) THEN
       WRITE(error_unit,'(A,2(1X,ES12.4))') 'Error :: Zeff and Zs must be >= 0, got (Zeff,Zs)=', Zeff, Zs
       nerr = nerr + 1
    END IF
@@ -175,12 +175,12 @@ SUBROUTINE error_signal
    END SELECT
 
    ! --- turbulence fractions / amplitudes ---
-   IF (Ai < 0.0_dp .OR. Ai > 1.0_dp) THEN
+   IF (Ai < 0.0_rp .OR. Ai > 1.0_rp) THEN
       WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: Ai must be in [0,1], got Ai =', Ai
       nerr = nerr + 1
    END IF
 
-   IF (Phi < 0.0_dp) THEN
+   IF (Phi < 0.0_rp) THEN
       WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: Phi must be >= 0, got Phi =', Phi
       nerr = nerr + 1
    END IF
@@ -309,29 +309,29 @@ SELECT CASE (USE_turb)
    END IF
 
    IF (Nt > 0) THEN
-      IF ((tmax - t0)/REAL(Nt,dp) > 1.0_dp) THEN
-         WRITE(output_unit,'(A,1X,ES12.4)') 'Warning :: dt is large (dt = (tmax-t0)/Nt) =', (tmax - t0)/REAL(Nt,dp)
+      IF ((tmax - t0)/REAL(Nt,rp) > 1.0_rp) THEN
+         WRITE(output_unit,'(A,1X,ES12.4)') 'Warning :: dt is large (dt = (tmax-t0)/Nt) =', (tmax - t0)/REAL(Nt,rp)
       END IF
    END IF
 
-   IF (10.0_dp < ABS(B0)) THEN
+   IF (10.0_rp < ABS(B0)) THEN
       WRITE(output_unit,'(A,1X,ES12.4)') 'Warning :: |B0| is large (B0 =', B0, '). Check normalization/units.'
    END IF
 
-   IF (10.0_dp < ABS(R0)) THEN
+   IF (10.0_rp < ABS(R0)) THEN
       WRITE(output_unit,'(A,1X,ES12.4)') 'Warning :: |R0| is large (R0 =', R0, '). Check normalization/units.'
    END IF
 
-   IF (a0 > 1.0_dp) THEN
+   IF (a0 > 1.0_rp) THEN
       WRITE(output_unit,'(A,1X,ES12.4,A)') 'Warning :: a0 > 1 (a0 =', a0, &
            '); in normalized units this implies minor radius exceeds major radius.'
    END IF
 
-   IF (ABS(s2) > 0.0_dp) THEN
+   IF (ABS(s2) > 0.0_rp) THEN
       WRITE(output_unit,'(A,1X,ES12.4)') 'Warning :: s2 not 0 (s2 =', s2, ').'
    END IF
 
-   IF (Phi > 0.2_dp) THEN
+   IF (Phi > 0.2_rp) THEN
       WRITE(output_unit,'(A,1X,ES12.4)') 'Warning :: turbulence amplitude Phi is high (Phi =', Phi, ').'
    END IF
 
@@ -378,7 +378,7 @@ write(*,*) 'turbprof', turbprof
 write(*,*) 'Ai', Ai
 write(*,*) 'lambdax', lambdax
 write(*,*) 'lambday', lambday
-write(*,*) 'lambdaz', lambdaz
+write(*,*) 'lambdz', lambdaz
 write(*,*) 'lbalonz', lbalonz
 write(*,*) 'tauc', tauc
 write(*,*) 'k0i', k0i

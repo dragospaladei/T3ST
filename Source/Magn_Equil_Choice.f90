@@ -13,8 +13,8 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), DIMENSION(Np), INTENT(IN)   :: X, Y                  ! new basis coordinates (input)
-       REAL(KIND=dp), DIMENSION(Nqua, Np), INTENT(OUT)  :: R                     ! new basis coordinates (input)
+       REAL(KIND=rp), DIMENSION(Np), INTENT(IN)   :: X, Y                  ! new basis coordinates (input)
+       REAL(KIND=rp), DIMENSION(Nqua, Np), INTENT(OUT)  :: R                     ! new basis coordinates (input)
 
        IF (magnetic_model .eq. 1) THEN
           CALL EFIT2(X, Y, R)                                               ! realistic equilibrium:: interpolation from Efit files
@@ -42,12 +42,12 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), INTENT(IN)   :: X7, Y7                  ! new basis coordinates (input)
-       REAL(KIND=dp), INTENT(OUT)  :: Q7, Q8                  ! new basis coordinates (input)
+       REAL(KIND=rp), INTENT(IN)   :: X7, Y7                  ! new basis coordinates (input)
+       REAL(KIND=rp), INTENT(OUT)  :: Q7, Q8                  ! new basis coordinates (input)
 
        ! Local variables
-       REAL(KIND=dp), DIMENSION(Np)                       :: X8, Y8    ! Effective (star, "s") electric/magnetic fields
-       REAL(KIND=dp), DIMENSION(Nqua, Np)                :: R8       ! Effective (star, "s") electric/magnetic fields
+       REAL(KIND=rp), DIMENSION(Np)                       :: X8, Y8    ! Effective (star, "s") electric/magnetic fields
+       REAL(KIND=rp), DIMENSION(Nqua, Np)                :: R8       ! Effective (star, "s") electric/magnetic fields
 
        X8 = X7
        Y8 = Y7
@@ -81,12 +81,12 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), DIMENSION(Np), INTENT(IN)   :: X7, Y7, Z7, Vp                 ! new basis coordinates (input)
-       REAL(KIND=dp), DIMENSION(Np), INTENT(OUT)  :: q17, q27, q37, B7                ! new basis coordinates (input)
+       REAL(KIND=rp), DIMENSION(Np), INTENT(IN)   :: X7, Y7, Z7, Vp                 ! new basis coordinates (input)
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT)  :: q17, q27, q37, B7                ! new basis coordinates (input)
 
        ! Local variables
-       REAL(KIND=dp), DIMENSION(Np)                       :: X8, Y8, Q7, hx, hy, hz    ! Effective (star, "s") electric/magnetic fields
-       REAL(KIND=dp), DIMENSION(Nqua,  Np)                :: R8          ! Effective (star, "s") electric/magnetic fields
+       REAL(KIND=rp), DIMENSION(Np)                       :: X8, Y8, Q7, hx, hy, hz    ! Effective (star, "s") electric/magnetic fields
+       REAL(KIND=rp), DIMENSION(Nqua,  Np)                :: R8          ! Effective (star, "s") electric/magnetic fields
 
        X8 = X7
        Y8 = Y7
@@ -127,11 +127,11 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), INTENT(IN)   :: X7, Y7, Z7!, Vp                 ! new basis coordinates (input)
-       REAL(KIND=dp), INTENT(OUT)  :: q17!, q27, q37, B7                ! new basis coordinates (input)
+       REAL(KIND=rp), INTENT(IN)   :: X7, Y7, Z7!, Vp                 ! new basis coordinates (input)
+       REAL(KIND=rp), INTENT(OUT)  :: q17!, q27, q37, B7                ! new basis coordinates (input)
 
        ! Local variables
-       REAL(KIND=dp)         :: xi,yi,zi,rhot,rr, psi, psiradius, X1, Y1, Xef,Yef, F1, F2, F3, F4, efit_vals
+       REAL(KIND=rp)         :: xi,yi,zi,rhot,rr, psi, psiradius, X1, Y1, Xef,Yef, F1, F2, F3, F4, efit_vals
       INTEGER :: poz1,poz2, jax
    
         xi = X0
@@ -146,8 +146,8 @@ if (magnetic_model == 4) then
       else if (magnetic_model == 3) then
 
          ! psi and derivatives (analytical model)
-         psi   = (amp*( (alfa**2*(-1.0 + xi**2)**2)/4.0_dp + (-gama + xi**2)*yi**2 )) / (2.0_dp*(1.0_dp + alfa**2))
-         psiradius = (amp*( (alfa**2*(-1.0 + (1.0_dp + a0)**2)**2)/4.0_dp )) / (2.0_dp*(1.0_dp + alfa**2))
+         psi   = (amp*( (alfa**2*(-1.0 + xi**2)**2)/4.0_rp + (-gama + xi**2)*yi**2 )) / (2.0_rp*(1.0_rp + alfa**2))
+         psiradius = (amp*( (alfa**2*(-1.0 + (1.0_rp + a0)**2)**2)/4.0_rp )) / (2.0_rp*(1.0_rp + alfa**2))
          rr        = sqrt(psi/psiradius)*a0
          rhot  = rr/a0
       else
@@ -195,12 +195,12 @@ if (magnetic_model == 4) then
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), DIMENSION(Np), INTENT(IN)   :: X, Y, Z                                             ! new basis coordinates (input)
-       REAL(KIND=dp), DIMENSION(Np), INTENT(OUT)  :: B                                                  ! Bx,  By, Bz, B components in the x,y,z system
+       REAL(KIND=rp), DIMENSION(Np), INTENT(IN)   :: X, Y, Z                                             ! new basis coordinates (input)
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT)  :: B                                                  ! Bx,  By, Bz, B components in the x,y,z system
 
        ! Local variables
-       REAL(KIND=dp), DIMENSION(Np)                    :: hx, hy, hz, Bx, By, Bz, psir, psiz, Fpsi            ! lame coefficients
-       REAL(KIND=dp), DIMENSION(Nqua, Np)               :: R                                                   ! G_ij = grad(qj).dr/dxi;
+       REAL(KIND=rp), DIMENSION(Np)                    :: hx, hy, hz, Bx, By, Bz, psir, psiz, Fpsi            ! lame coefficients
+       REAL(KIND=rp), DIMENSION(Nqua, Np)               :: R                                                   ! G_ij = grad(qj).dr/dxi;
 
        hx = 1.0                                                       ! lame coefficient for x = R -> hx = 1
        hy = 1.0                                                       ! lame coefficient for y = Z -> hy = 1

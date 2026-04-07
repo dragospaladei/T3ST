@@ -16,14 +16,14 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), DIMENSION(Np), INTENT(IN)    :: X, Y, Z, Vp, mu                               ! gyro-center coordinates (cylindrical)
-       REAL(KIND=dp), INTENT(IN)    :: time, dt                                          ! the moment in time
-       REAL(KIND=dp), DIMENSION(Np), INTENT(OUT)   :: Vx, Vy, Vz, Vm, Ap, Ham, q1, q2, q3, B, Vtx, Vty                           ! GC velocities
+       REAL(KIND=rp), DIMENSION(Np), INTENT(IN)    :: X, Y, Z, Vp, mu                               ! gyro-center coordinates (cylindrical)
+       REAL(KIND=rp), INTENT(IN)    :: time, dt                                          ! the moment in time
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT)   :: Vx, Vy, Vz, Vm, Ap, Ham, q1, q2, q3, B, Vtx, Vty                           ! GC velocities
 
        ! Local variables
-       REAL(KIND=dp), DIMENSION(Np)                    :: Esx, Esy, Esz, Bsx, Bsy, Bsz, Bsp, Etx, Ety, Etz             ! Effective (star, "s") electric/magnetic fields projected on (x,y,z)
-       REAL(KIND=dp), DIMENSION(3, 3, Np)                :: F                                             ! The F_(ij)=<(dx_j x b).dx_i> matrix from the ExB term
-       REAL(KIND=dp), DIMENSION(Np)                    :: vcolx, vcoly, vcolz, vcolm, vcolp
+       REAL(KIND=rp), DIMENSION(Np)                    :: Esx, Esy, Esz, Bsx, Bsy, Bsz, Bsp, Etx, Ety, Etz             ! Effective (star, "s") electric/magnetic fields projected on (x,y,z)
+       REAL(KIND=rp), DIMENSION(3, 3, Np)                :: F                                             ! The F_(ij)=<(dx_j x b).dx_i> matrix from the ExB term
+       REAL(KIND=rp), DIMENSION(Np)                    :: vcolx, vcoly, vcolz, vcolm, vcolp
 
        ! ------------------------------------------------------------------------------------------------------------------------
        ! Estar/Bstar components in field-aligned coordinate system
@@ -70,21 +70,21 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), DIMENSION(Np), INTENT(IN)     :: X, Y, Z, Vp, mu                                     ! GY coordinates (input)
-       REAL(KIND=dp), INTENT(IN)     :: time                                            ! moment in time
-       REAL(KIND=dp), DIMENSION(Np), INTENT(OUT)    :: Esx, Esy, Esz, Bsx, Bsy, Bsz, Bsp, Ham, Etx, Ety, Etz              ! Effective fields components (output)
-       REAL(KIND=dp), DIMENSION(Np), INTENT(OUT)    :: vcolx, vcoly, vcolz, vcolm, vcolp, qx, qy, qz
-       REAL(KIND=dp), DIMENSION(3, 3, Np), INTENT(OUT)    :: F                                                   ! F (exb) matrix
+       REAL(KIND=rp), DIMENSION(Np), INTENT(IN)     :: X, Y, Z, Vp, mu                                     ! GY coordinates (input)
+       REAL(KIND=rp), INTENT(IN)     :: time                                            ! moment in time
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT)    :: Esx, Esy, Esz, Bsx, Bsy, Bsz, Bsp, Ham, Etx, Ety, Etz              ! Effective fields components (output)
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT)    :: vcolx, vcoly, vcolz, vcolm, vcolp, qx, qy, qz
+       REAL(KIND=rp), DIMENSION(3, 3, Np), INTENT(OUT)    :: F                                                   ! F (exb) matrix
 
        ! Local variables
-       REAL(KIND=dp), DIMENSION(Np)                    :: phi0, phix, phiy, phiz, phixt, phiyt, phizt         ! Lagrangian derivatives of the turbulent potential
-       REAL(KIND=dp), DIMENSION(Np)                    :: phi0x, phi0y, phi0z, Tprofile, Armp                                ! The gradient of the neoclassical field Phi_0 (for quasineutrality in rotating plasmas)
-       REAL(KIND=dp), DIMENSION(Np)                    :: gradBx, gradBy, gradBz, gradu2x, gradu2y, gradu2z   ! Grad B, grad u**2
-       REAL(KIND=dp), DIMENSION(Np)                    :: rotbx, rotby, rotbz, rotux, rotuy, rotuz            ! curl(b), curl(u) components in the x,y,z system
-       REAL(KIND=dp), DIMENSION(Np)                    :: Bx, By, Bz, B                                       ! Bx,  By, Bz, B, Bsp components in the x,y,z system
-       REAL(KIND=dp), DIMENSION(3, 3, Np)                :: G, M                                                ! Matrices for fieldaligned-cylindrical (gradqi*dr/dxj), polarization
-       REAL(KIND=dp), DIMENSION(Np)                    :: hx, hy, hz                                          ! lame coefficients
-       REAL(KIND=dp)                                    :: dt                                             ! moment in time
+       REAL(KIND=rp), DIMENSION(Np)                    :: phi0, phix, phiy, phiz, phixt, phiyt, phizt         ! Lagrangian derivatives of the turbulent potential
+       REAL(KIND=rp), DIMENSION(Np)                    :: phi0x, phi0y, phi0z, Tprofile, Armp                                ! The gradient of the neoclassical field Phi_0 (for quasineutrality in rotating plasmas)
+       REAL(KIND=rp), DIMENSION(Np)                    :: gradBx, gradBy, gradBz, gradu2x, gradu2y, gradu2z   ! Grad B, grad u**2
+       REAL(KIND=rp), DIMENSION(Np)                    :: rotbx, rotby, rotbz, rotux, rotuy, rotuz            ! curl(b), curl(u) components in the x,y,z system
+       REAL(KIND=rp), DIMENSION(Np)                    :: Bx, By, Bz, B                                       ! Bx,  By, Bz, B, Bsp components in the x,y,z system
+       REAL(KIND=rp), DIMENSION(3, 3, Np)                :: G, M                                                ! Matrices for fieldaligned-cylindrical (gradqi*dr/dxj), polarization
+       REAL(KIND=rp), DIMENSION(Np)                    :: hx, hy, hz                                          ! lame coefficients
+       REAL(KIND=rp)                                    :: dt                                             ! moment in time
 
        ! ------------------------------------------------------------------------------------------------------------------------
        ! Magnetic equilibrium quantities and turbulent field
@@ -203,13 +203,13 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), DIMENSION(Np), INTENT(IN)   :: X, B                                 ! positions, magnetic field
-       REAL(KIND=dp), DIMENSION(3, 3, Np), INTENT(IN)   :: g                                    ! G_ij = grad(qj).dr/dxi;
-       REAL(KIND=dp), DIMENSION(3, 3, Np), INTENT(OUT)  :: F, M                                 ! F_ij = (grad(xj)x b).grad(xi) ; M = (grad(xj)x b).dr/dxi;
+       REAL(KIND=rp), DIMENSION(Np), INTENT(IN)   :: X, B                                 ! positions, magnetic field
+       REAL(KIND=rp), DIMENSION(3, 3, Np), INTENT(IN)   :: g                                    ! G_ij = grad(qj).dr/dxi;
+       REAL(KIND=rp), DIMENSION(3, 3, Np), INTENT(OUT)  :: F, M                                 ! F_ij = (grad(xj)x b).grad(xi) ; M = (grad(xj)x b).dr/dxi;
 
        ! Local variables
-       REAL(KIND=dp), DIMENSION(3, 3, Np)                  :: eta                                  ! auxiliary matrix
-       REAL(KIND=dp), DIMENSION(Np)                      :: hx, hy, hz                           ! lame coefficients
+       REAL(KIND=rp), DIMENSION(3, 3, Np)                  :: eta                                  ! auxiliary matrix
+       REAL(KIND=rp), DIMENSION(Np)                      :: hx, hy, hz                           ! lame coefficients
 
        hx = 1.0                                                       ! lame coefficient for x = R -> hx = 1
        hy = 1.0                                                       ! lame coefficient for y = Z -> hy = 1
@@ -280,12 +280,12 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), DIMENSION(Np), INTENT(IN)   :: X, Bx, By, Bz                        ! positions, magnetic field
-       REAL(KIND=dp), DIMENSION(3, 3, Np), INTENT(IN)   :: G                                    ! G_ij = grad(qj).dr/dxi;
-       REAL(KIND=dp), DIMENSION(3, 3, Np), INTENT(OUT)  :: F, M                                 ! F_ij = (grad(xj)x b).grad(xi) ; M = (grad(xj)x b).dr/dxi;
+       REAL(KIND=rp), DIMENSION(Np), INTENT(IN)   :: X, Bx, By, Bz                        ! positions, magnetic field
+       REAL(KIND=rp), DIMENSION(3, 3, Np), INTENT(IN)   :: G                                    ! G_ij = grad(qj).dr/dxi;
+       REAL(KIND=rp), DIMENSION(3, 3, Np), INTENT(OUT)  :: F, M                                 ! F_ij = (grad(xj)x b).grad(xi) ; M = (grad(xj)x b).dr/dxi;
 
        ! Local variables
-       REAL(KIND=dp), DIMENSION(Np)                      :: hx, hy, hz, B                        ! lame coefficients
+       REAL(KIND=rp), DIMENSION(Np)                      :: hx, hy, hz, B                        ! lame coefficients
 
        hx = 1.0                                                       ! lame coefficient for x = R -> hx = 1
        hy = 1.0                                                       ! lame coefficient for y = Z -> hy = 1
@@ -346,25 +346,25 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), INTENT(IN)     :: t01, tmax1                  ! initial time, final time
-       REAL(KIND=dp), DIMENSION(Np, 2), INTENT(OUT)    :: Xtot, Ytot, Ztot, Vptot, mutot, Htot, q1tot, q2tot, q3tot! store gyro-center coordinates at each moment in time
-       REAL(KIND=dp), DIMENSION(ntraj, Nt + 1), INTENT(OUT)    :: Xtr, Ytr, Ztr, Vptr, mutr, Htr, q1tr, q2tr, q3tr! store gyro-center coordinates at each moment in time
-       REAL(KIND=dp), DIMENSION(4, Nt + 1), INTENT(OUT)    :: vit                         ! transport coefficients, pinch
-       REAL(KIND=dp), DIMENSION(4, Nt + 1), INTENT(OUT)    :: dif                         ! transport coefficients, diffusion
+       REAL(KIND=rp), INTENT(IN)     :: t01, tmax1                  ! initial time, final time
+       REAL(KIND=rp), DIMENSION(Np, 2), INTENT(OUT)    :: Xtot, Ytot, Ztot, Vptot, mutot, Htot, q1tot, q2tot, q3tot! store gyro-center coordinates at each moment in time
+       REAL(KIND=rp), DIMENSION(ntraj, Nt + 1), INTENT(OUT)    :: Xtr, Ytr, Ztr, Vptr, mutr, Htr, q1tr, q2tr, q3tr! store gyro-center coordinates at each moment in time
+       REAL(KIND=rp), DIMENSION(4, Nt + 1), INTENT(OUT)    :: vit                         ! transport coefficients, pinch
+       REAL(KIND=rp), DIMENSION(4, Nt + 1), INTENT(OUT)    :: dif                         ! transport coefficients, diffusion
 
-       REAL(KIND=dp), DIMENSION(Np, Nt + 1)                 :: Vrr, VrT                    ! transport coefficients, diffusion
-       REAL(KIND=dp), DIMENSION(Nt + 1, Nt + 1)               :: Vcorff, VcorTT, VcorTN, VcorNT !                     ! transport coefficients, diffusion
+       REAL(KIND=rp), DIMENSION(Np, Nt + 1)                 :: Vrr, VrT                    ! transport coefficients, diffusion
+       REAL(KIND=rp), DIMENSION(Nt + 1, Nt + 1)               :: Vcorff, VcorTT, VcorTN, VcorNT !                     ! transport coefficients, diffusion
 
        ! Local variables
-       REAL(KIND=dp), DIMENSION(Np)                        :: X, Y, Z, Vp, mu             ! gyro-center coordinates
-       REAL(KIND=dp), DIMENSION(Np)                        :: q1, q2, q3, BB, pb          ! gyro-center coordinates
-       REAL(KIND=dp), DIMENSION(Np)                        :: Vx, Vy, Vz, Ap, Vm          ! gyro-center velocities
-       REAL(KIND=dp), DIMENSION(Np)                        :: Wx, Wy, Wz, Wp, Wm          ! auxiliary gyro-center velocities
-       REAL(KIND=dp), DIMENSION(Np)                        :: Ham, Vrinit, VrinitT, Vtx, Vty ! store gyro-center coordinates at each moment in time
-       REAL(KIND=dp), DIMENSION(Nt + 1)                      :: t                           ! discrete time vector
-       REAL(KIND=dp)                                                    :: dt                          ! time step
+       REAL(KIND=rp), DIMENSION(Np)                        :: X, Y, Z, Vp, mu             ! gyro-center coordinates
+       REAL(KIND=rp), DIMENSION(Np)                        :: q1, q2, q3, BB, pb          ! gyro-center coordinates
+       REAL(KIND=rp), DIMENSION(Np)                        :: Vx, Vy, Vz, Ap, Vm          ! gyro-center velocities
+       REAL(KIND=rp), DIMENSION(Np)                        :: Wx, Wy, Wz, Wp, Wm          ! auxiliary gyro-center velocities
+       REAL(KIND=rp), DIMENSION(Np)                        :: Ham, Vrinit, VrinitT, Vtx, Vty ! store gyro-center coordinates at each moment in time
+       REAL(KIND=rp), DIMENSION(Nt + 1)                      :: t                           ! discrete time vector
+       REAL(KIND=rp)                                                    :: dt                          ! time step
        INTEGER                                                               :: k, i                        ! auxiliary integer for time steps
-       REAL(KIND=dp), DIMENSION(Np)                      :: mask, maskR, maskZ, rrrr, ttt   !, q2tot, q3tot,Btot  ! store GC coordinates
+       REAL(KIND=rp), DIMENSION(Np)                      :: mask, maskR, maskZ, rrrr, ttt   !, q2tot, q3tot,Btot  ! store GC coordinates
 
        dt = (tmax1 - t01)/REAL(Nt)                           ! time step
        t = [(i*dt + t01, i=0, Nt)]                             ! discrete time vector
@@ -521,13 +521,13 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), DIMENSION(Np), INTENT(IN) :: X, Y, Z                   ! positions
-       REAL(KIND=dp), DIMENSION(Np), INTENT(OUT):: Armp!, rotbx, rotby, rotbz
+       REAL(KIND=rp), DIMENSION(Np), INTENT(IN) :: X, Y, Z                   ! positions
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT):: Armp!, rotbx, rotby, rotbz
 
        ! Local variables
        INTEGER                         :: i
-       REAL(KIND=dp), DIMENSION(Nc)                :: zintc, zints               ! auxiliary
-       REAL(KIND=dp), DIMENSION(Np)                :: rr, theta, zzeta
+       REAL(KIND=rp), DIMENSION(Nc)                :: zintc, zints               ! auxiliary
+       REAL(KIND=rp), DIMENSION(Np)                :: rr, theta, zzeta
 
        !      rr = sqrt((X - 1.0)**2 + Y**2) + 0.00001
        !      theta = atan2(Y, X-1.0)      ! atan(z,rr)
@@ -568,17 +568,17 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), DIMENSION(Np), INTENT(IN) :: X, Y, Z                   ! positions
-       REAL(KIND=dp), INTENT(IN) :: time                    ! time
-       REAL(KIND=dp), INTENT(IN) :: ind                     ! index for Larmor radius;; 1. -> use Larmor radius;; anything else -> don't use Larmor radius
-       REAL(KIND=dp), DIMENSION(Np), INTENT(IN) :: mut, B                  ! magnetic moment and |B|
+       REAL(KIND=rp), DIMENSION(Np), INTENT(IN) :: X, Y, Z                   ! positions
+       REAL(KIND=rp), INTENT(IN) :: time                    ! time
+       REAL(KIND=rp), INTENT(IN) :: ind                     ! index for Larmor radius;; 1. -> use Larmor radius;; anything else -> don't use Larmor radius
+       REAL(KIND=rp), DIMENSION(Np), INTENT(IN) :: mut, B                  ! magnetic moment and |B|
 
-       REAL(KIND=dp), DIMENSION(Np), INTENT(OUT):: phi0, phix, phiy, phiz, phixt, phiyt, phizt
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT):: phi0, phix, phiy, phiz, phixt, phiyt, phizt
 
        ! Local variables
        INTEGER                         :: i
-       REAL(KIND=dp), DIMENSION(Nc)             :: zintc, zints, faza              ! auxiliary
-       !      REAL(KIND=dp), DIMENSION(Nc,Np)          :: L, L1                          ! auxiliary for Larmor radius effects
+       REAL(KIND=rp), DIMENSION(Nc)             :: zintc, zints, faza              ! auxiliary
+       !      REAL(KIND=rp), DIMENSION(Nc,Np)          :: L, L1                          ! auxiliary for Larmor radius effects
 
        !   ky = BESSEL_J0(kperp*SPREAD(SQRT(2.0*Aw*abs(mu)/Zw**2/B), DIM = 1, NCOPIES = Nc))
        !   not fast enough; a little bit faster than series do, but sloeer than parallel
@@ -646,16 +646,16 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), DIMENSION(Np), INTENT(IN) :: X, Y, Z                   ! positions
-       REAL(KIND=dp), INTENT(IN) :: time                    ! time
-       REAL(KIND=dp), INTENT(IN) :: ind                     ! index for Larmor radius;; 1. -> use Larmor radius;; anything else -> don't use Larmor radius
-       REAL(KIND=dp), DIMENSION(Np), INTENT(IN) :: mut, B                  ! magnetic moment and |B|
+       REAL(KIND=rp), DIMENSION(Np), INTENT(IN) :: X, Y, Z                   ! positions
+       REAL(KIND=rp), INTENT(IN) :: time                    ! time
+       REAL(KIND=rp), INTENT(IN) :: ind                     ! index for Larmor radius;; 1. -> use Larmor radius;; anything else -> don't use Larmor radius
+       REAL(KIND=rp), DIMENSION(Np), INTENT(IN) :: mut, B                  ! magnetic moment and |B|
 
-       REAL(KIND=dp), DIMENSION(Np), INTENT(OUT):: phi0, phix, phiy, phiz, phixt, phiyt, phizt
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT):: phi0, phix, phiy, phiz, phixt, phiyt, phizt
 
        ! Local variables
        INTEGER                         :: i
-       REAL(KIND=dp), DIMENSION(Nc)             :: zintc, zints, Ls2, faza!, kxs,kys,kzs,ws,phs,Ls,faza              ! auxiliary
+       REAL(KIND=rp), DIMENSION(Nc)             :: zintc, zints, Ls2, faza!, kxs,kys,kzs,ws,phs,Ls,faza              ! auxiliary
 
        !$OMP PARALLEL DO &
        !$OMP SHARED (X,Y,Z,time) &
@@ -704,14 +704,14 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), DIMENSION(Np), INTENT(IN) :: X, Y
-       REAL(KIND=dp), INTENT(IN) :: time
+       REAL(KIND=rp), DIMENSION(Np), INTENT(IN) :: X, Y
+       REAL(KIND=rp), INTENT(IN) :: time
 
-       REAL(KIND=dp), DIMENSION(Np), INTENT(OUT):: phi0, phix, phiy, phixt, phiyt
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT):: phi0, phix, phiy, phixt, phiyt
 
        ! Local variables
        INTEGER                         :: i
-       REAL(KIND=dp), DIMENSION(Nc)             :: zintc, zints
+       REAL(KIND=rp), DIMENSION(Nc)             :: zintc, zints
 
        !$OMP PARALLEL DO &
        !$OMP SHARED (X,Y,time) &
@@ -755,10 +755,10 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), DIMENSION(Np), INTENT(IN) :: X, Y, Z
-       REAL(KIND=dp), INTENT(IN) :: time
+       REAL(KIND=rp), DIMENSION(Np), INTENT(IN) :: X, Y, Z
+       REAL(KIND=rp), INTENT(IN) :: time
 
-       REAL(KIND=dp), DIMENSION(Np), INTENT(OUT):: phi0
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT):: phi0
 
        ! Local variables
        INTEGER                         :: i
@@ -794,10 +794,10 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), DIMENSION(Np), INTENT(IN) :: X, Y
-       REAL(KIND=dp), INTENT(IN) :: time
+       REAL(KIND=rp), DIMENSION(Np), INTENT(IN) :: X, Y
+       REAL(KIND=rp), INTENT(IN) :: time
 
-       REAL(KIND=dp), DIMENSION(Np), INTENT(OUT):: phi0
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT):: phi0
 
        ! Local variables
        INTEGER                         :: i
@@ -834,8 +834,8 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), INTENT(IN) :: time
-       REAL(KIND=dp), DIMENSION(Np), INTENT(OUT):: Cx, Cy
+       REAL(KIND=rp), INTENT(IN) :: time
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT):: Cx, Cy
 
        ! Local variables
        INTEGER                         :: i

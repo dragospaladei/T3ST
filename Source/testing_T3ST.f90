@@ -44,20 +44,20 @@ contains
   ! Main entry point
   !=============================================================================
   subroutine testing_T3ST(X, Y, Z, Vp, mu, pb, Vstar1, Vstar2, Vstar3, no_errors, gnorm_local)
-    real(dp), intent(in)  :: X(:), Y(:), Z(:), Vp(:), mu(:), pb(:)
-    real(dp), intent(in)  :: Vstar1, Vstar2, Vstar3
+    real(rp), intent(in)  :: X(:), Y(:), Z(:), Vp(:), mu(:), pb(:)
+    real(rp), intent(in)  :: Vstar1, Vstar2, Vstar3
     integer,  intent(out) :: no_errors
 
     integer  :: Np_partial, Nt_partial, np_avail
-    real(dp) :: dt, ratio32,  gnorm_local
+    real(rp) :: dt, ratio32,  gnorm_local
 
-    real(dp), allocatable :: Xh(:,:), Yh(:,:), Zh(:,:), Vph(:,:), muh(:,:)
-    real(dp), allocatable :: Hh(:,:), Pch(:,:), c1h(:,:), c2h(:,:), c3h(:,:),  Vtx(:,:),  Vty(:,:)
-    real(dp), allocatable :: Xaux(:), Yaux(:), Zaux(:), Vpaux(:), muaux(:)
+    real(rp), allocatable :: Xh(:,:), Yh(:,:), Zh(:,:), Vph(:,:), muh(:,:)
+    real(rp), allocatable :: Hh(:,:), Pch(:,:), c1h(:,:), c2h(:,:), c3h(:,:),  Vtx(:,:),  Vty(:,:)
+    real(rp), allocatable :: Xaux(:), Yaux(:), Zaux(:), Vpaux(:), muaux(:)
 
     integer  :: nstep_eff
-    real(dp) :: T, compare
-    real(dp), parameter :: epsH = 1.0e-300_dp
+    real(rp) :: T, compare
+    real(rp), parameter :: epsH = 1.0e-300_rp
 
     no_errors = 0
     ! -------------------------
@@ -67,7 +67,7 @@ contains
     Nt_partial = 200
     np_avail   = size(X)
     Np_partial = min(Np_partial, np_avail)
-    dt         = real(tmax / Nt, dp)   ! base dt used by rk4_propagation below
+    dt         = real(tmax / Nt, rp)   ! base dt used by rk4_propagation below
 
     allocate(Xh (1:Nt_partial, 1:Np_partial), &
              Yh (1:Nt_partial, 1:Np_partial), &
@@ -130,21 +130,21 @@ contains
     call section("Vstar checks")
     call log_vals3("[INFO ]", "Vstar1 Vstar2 Vstar3", Vstar1, Vstar2, Vstar3)
 
-    if (abs(Vstar1) > 1.0e-9_dp) then
+    if (abs(Vstar1) > 1.0e-9_rp) then
       no_errors = no_errors + 1
       call log_alert("Vstar1 not ~ 0 (radial drift present)")
     else
       call log_ok("Vstar1 ~ 0 (radial drift OK)")
     end if
 
-    if (abs(Vstar2) <= tiny(1.0_dp)) then
+    if (abs(Vstar2) <= tiny(1.0_rp)) then
       no_errors = no_errors + 1
       call log_alert("Vstar2 ~ 0 (cannot evaluate Vstar3/Vstar2)")
     else
       ratio32 = Vstar3 / Vstar2
-      call log_ratio("[INFO ]", "Vstar3/Vstar2", abs(ratio32), 0.1_dp)
+      call log_ratio("[INFO ]", "Vstar3/Vstar2", abs(ratio32), 0.1_rp)
 
-      if (abs(ratio32) > 0.1_dp) then
+      if (abs(ratio32) > 0.1_rp) then
         no_errors = no_errors + 1
         call log_alert("Large parallel drift (|Vstar3/Vstar2| > 0.1)")
       else
@@ -156,7 +156,7 @@ contains
     ! Input consistency checks
     ! -------------------------
     call section("Input consistency checks")
-    call check_inputs(X, Y, Z, Vp, mu, pb, a0, 1.0e-12_dp, no_errors)
+    call check_inputs(X, Y, Z, Vp, mu, pb, a0, 1.0e-12_rp, no_errors)
 
     ! -------------------------
     ! Wave moment/symmetry checks (same switch)
@@ -176,8 +176,8 @@ contains
     ! Drift / RK4 propagation
     ! =====================================================================
     call section("RK4 propagation")
-    call log_val("[INFO ]", "Np_partial", real(Np_partial, dp))
-    call log_val("[INFO ]", "Nt_partial", real(Nt_partial, dp))
+    call log_val("[INFO ]", "Np_partial", real(Np_partial, rp))
+    call log_val("[INFO ]", "Nt_partial", real(Nt_partial, rp))
     call log_val("[INFO ]", "dt", dt)
 
 
@@ -185,7 +185,7 @@ contains
                          Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtx, Vty)
                          
     nstep_eff = max(1, Nt_partial - 1)
-    T         = dt * real(nstep_eff, dp)
+    T         = dt * real(nstep_eff, rp)
 
     ! =====================================================================
     ! Energy proxy diagnostics (d ln H / dt)
@@ -203,12 +203,12 @@ contains
     ! Gaussianity / moment checks: whole (time x particles)
     ! =====================================================================
     call section("Gaussianity summary: all times x particles (kurt/3 = 1 for Gaussian)")
-    compare = 1.0_dp
+    compare = 1.0_rp
     
     call print_gaussianity_block("phi",  c1h, Np_partial, Nt_partial, no_errors, compare)
-        compare = 1.0_dp
+        compare = 1.0_rp
     call print_gaussianity_block("phix", c2h, Np_partial, Nt_partial, no_errors, compare)
-        compare = 1.0_dp
+        compare = 1.0_rp
     call print_gaussianity_block("phiy", c3h, Np_partial, Nt_partial, no_errors, compare)
 
     call section("Gaussianity drivers (qualitative)")
@@ -221,17 +221,17 @@ contains
     ! Gaussianity / moment checks: time slice (k = 1)
     ! =====================================================================
     call section("Gaussianity summary: time slice k=1 (kurt/3 = 1 for Gaussian)")
-     compare = 1.0_dp
+     compare = 1.0_rp
          if (USE_balloon.eq.ON) then
-      compare = compare**exp(-1.0_dp/lbalonz**2)*(1 + 1.0_dp/lbalonz**2/4.0_dp + 1.0_dp/lbalonz**4/64.0_dp)
+      compare = compare**exp(-1.0_rp/lbalonz**2)*(1 + 1.0_rp/lbalonz**2/4.0_rp + 1.0_rp/lbalonz**4/64.0_rp)
     endif
     call print_gaussianity_slice("phi",  c1h, 1, Np_partial, no_errors, compare)
-           compare = 1.0_dp / lambdax**4 &
-        + (pi**4 / 5.0_dp) * (3.0_dp/lambday**2 + k0i**2)**2 &
-          * (2.0_dp*C2/(C1*C3))**4 * 9.0_dp * (r00/a0**2)**4 &
-        + (2.0_dp*pi**2 / 3.0_dp) * (1.0_dp/lambdax**2) &
-          * (3.0_dp/lambday**2 + k0i**2) &
-          * (2.0_dp*C2/(C1*C3))**2 * 3.0_dp * (r00/a0**2)**2
+           compare = 1.0_rp / lambdax**4 &
+        + (pi**4 / 5.0_rp) * (3.0_rp/lambday**2 + k0i**2)**2 &
+          * (2.0_rp*C2/(C1*C3))**4 * 9.0_rp * (r00/a0**2)**4 &
+        + (2.0_rp*pi**2 / 3.0_rp) * (1.0_rp/lambdax**2) &
+          * (3.0_rp/lambday**2 + k0i**2) &
+          * (2.0_rp*C2/(C1*C3))**2 * 3.0_rp * (r00/a0**2)**2
           call print_gaussianity_slice("phix", c2h, 1, Np_partial, no_errors, compare)
  
     call print_gaussianity_slice("phiy", c3h, 1, Np_partial, no_errors, compare)
@@ -240,12 +240,12 @@ contains
                          Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtx, Vty)
 
     if (USE_real.eq.OFF) then
-      compare = ((R0/rhoi*Phi)**2)*sum(ky**2)/real(Np*Nc,dp)
+      compare = ((R0/rhoi*Phi)**2)*sum(ky**2)/real(Np*Nc,rp)
     elseif (USE_real.eq.ON) then
-      compare = ((R0/rhoi*Phi)**2)*sum(ky**2)/real(Np*Nc,dp)
+      compare = ((R0/rhoi*Phi)**2)*sum(ky**2)/real(Np*Nc,rp)
     endif
     if (USE_balloon.eq.ON) then
-      compare = compare**exp(-1.0_dp/lbalonz**2)*(1 + 1.0_dp/lbalonz**2/4.0_dp + 1.0_dp/lbalonz**4/64.0_dp)
+      compare = compare**exp(-1.0_rp/lbalonz**2)*(1 + 1.0_rp/lbalonz**2/4.0_rp + 1.0_rp/lbalonz**4/64.0_rp)
     endif
     ! Larmor
 
@@ -276,21 +276,21 @@ contains
   subroutine rk4_propagation(gnorm_local, X, Y, Z, Vp, mu, pb, dt, Nt_partial, Np_partial, &
                              Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtxall, Vtyall)
 
-    real(dp), intent(in) :: X(:), Y(:), Z(:), Vp(:), mu(:), pb(:)
+    real(rp), intent(in) :: X(:), Y(:), Z(:), Vp(:), mu(:), pb(:)
     integer,  intent(in) :: Np_partial, Nt_partial
-    real(dp), intent(in) :: dt
+    real(rp), intent(in) :: dt
 
-    real(dp), intent(out) :: Xh(:,:), Yh(:,:), Zh(:,:), Vph(:,:), muh(:,:)
-    real(dp), intent(out) :: Hh(:,:), Pch(:,:), c1h(:,:), c2h(:,:), c3h(:,:), Vtxall(:,:), Vtyall(:,:)
+    real(rp), intent(out) :: Xh(:,:), Yh(:,:), Zh(:,:), Vph(:,:), muh(:,:)
+    real(rp), intent(out) :: Hh(:,:), Pch(:,:), c1h(:,:), c2h(:,:), c3h(:,:), Vtxall(:,:), Vtyall(:,:)
 
-    real(dp), pointer, contiguous :: Qx(:), Qy(:), Qz(:), Qw(:), Qph(:), QL(:)
+    real(rp), pointer, contiguous :: Qx(:), Qy(:), Qz(:), Qw(:), Qph(:), QL(:)
 
-    real(dp) :: xi, yi, zi, mui, vpi, pbi
-    real(dp) :: vx, vy, vz, vm, ap
-    real(dp) :: Wx, Wy, Wz, Wm, Wp
-    real(dp) :: q1, q2, q3, gnorm_local
-    real(dp) :: Hi, B, Vtx, Vty, Pc
-    real(dp) :: check_1, check_2, check_3, time
+    real(rp) :: xi, yi, zi, mui, vpi, pbi
+    real(rp) :: vx, vy, vz, vm, ap
+    real(rp) :: Wx, Wy, Wz, Wm, Wp
+    real(rp) :: q1, q2, q3, gnorm_local
+    real(rp) :: Hi, B, Vtx, Vty, Pc
+    real(rp) :: check_1, check_2, check_3, time
     integer  :: ias, k
 
     do ias = 1, Np_partial
@@ -322,7 +322,7 @@ contains
 
       do k = 1, Nt_partial
 
-        time = dt * real(k - 1, dp)
+        time = dt * real(k - 1, rp)
 
         call Drift2(dt, xi, yi, zi, vpi, mui, q1, q2, q3, time,                 &
                     vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty,                    &
@@ -341,46 +341,46 @@ contains
         Vtxall(k,ias) = Vtx
         Vtyall(k,ias) = Vty
 
-        Wx = vx / 6.0_dp
-        Wy = vy / 6.0_dp
-        Wz = vz / 6.0_dp
-        Wm = vm / 6.0_dp
-        Wp = ap / 6.0_dp
+        Wx = vx / 6.0_rp
+        Wy = vy / 6.0_rp
+        Wz = vz / 6.0_rp
+        Wm = vm / 6.0_rp
+        Wp = ap / 6.0_rp
 
-        call Drift2(dt, xi + vx*dt/2.0_dp, yi + vy*dt/2.0_dp, zi + vz*dt/2.0_dp, &
-                    vpi + ap*dt/2.0_dp, mui + vm*dt/2.0_dp, q1, q2, q3,         &
-                    time + dt/2.0_dp,                                           &
+        call Drift2(dt, xi + vx*dt/2.0_rp, yi + vy*dt/2.0_rp, zi + vz*dt/2.0_rp, &
+                    vpi + ap*dt/2.0_rp, mui + vm*dt/2.0_rp, q1, q2, q3,         &
+                    time + dt/2.0_rp,                                           &
                     vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty,                    &
                     check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL,gnorm_local)
 
-        Wx = Wx + vx / 3.0_dp
-        Wy = Wy + vy / 3.0_dp
-        Wz = Wz + vz / 3.0_dp
-        Wm = Wm + vm / 3.0_dp
-        Wp = Wp + ap / 3.0_dp
+        Wx = Wx + vx / 3.0_rp
+        Wy = Wy + vy / 3.0_rp
+        Wz = Wz + vz / 3.0_rp
+        Wm = Wm + vm / 3.0_rp
+        Wp = Wp + ap / 3.0_rp
 
-        call Drift2(dt, xi + vx*dt/2.0_dp, yi + vy*dt/2.0_dp, zi + vz*dt/2.0_dp, &
-                    vpi + ap*dt/2.0_dp, mui + vm*dt/2.0_dp, q1, q2, q3,         &
-                    time + dt/2.0_dp,                                           &
+        call Drift2(dt, xi + vx*dt/2.0_rp, yi + vy*dt/2.0_rp, zi + vz*dt/2.0_rp, &
+                    vpi + ap*dt/2.0_rp, mui + vm*dt/2.0_rp, q1, q2, q3,         &
+                    time + dt/2.0_rp,                                           &
                     vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty,                    &
                     check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL,gnorm_local)
 
-        Wx = Wx + vx / 3.0_dp
-        Wy = Wy + vy / 3.0_dp
-        Wz = Wz + vz / 3.0_dp
-        Wm = Wm + vm / 3.0_dp
-        Wp = Wp + ap / 3.0_dp
+        Wx = Wx + vx / 3.0_rp
+        Wy = Wy + vy / 3.0_rp
+        Wz = Wz + vz / 3.0_rp
+        Wm = Wm + vm / 3.0_rp
+        Wp = Wp + ap / 3.0_rp
 
         call Drift2(dt, xi + vx*dt, yi + vy*dt, zi + vz*dt,                      &
                     vpi + ap*dt, mui + vm*dt, q1, q2, q3, time + dt,            &
                     vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty,                    &
                     check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL,gnorm_local)
 
-        Wx = Wx + vx / 6.0_dp
-        Wy = Wy + vy / 6.0_dp
-        Wz = Wz + vz / 6.0_dp
-        Wm = Wm + vm / 6.0_dp
-        Wp = Wp + ap / 6.0_dp
+        Wx = Wx + vx / 6.0_rp
+        Wy = Wy + vy / 6.0_rp
+        Wz = Wz + vz / 6.0_rp
+        Wm = Wm + vm / 6.0_rp
+        Wp = Wp + ap / 6.0_rp
 
         xi  = xi  + dt * Wx
         yi  = yi  + dt * Wy
@@ -398,7 +398,7 @@ contains
   !=============================================================================
   subroutine check_nan(name, x, no_errors)
     character(len=*), intent(in)    :: name
-    real(dp),         intent(in)    :: x(..)
+    real(rp),         intent(in)    :: x(..)
     integer,          intent(inout) :: no_errors
 
     logical :: has_nan
@@ -463,15 +463,15 @@ contains
   ! Input checks (uniform messages + formatted numbers)
   !=============================================================================
   subroutine check_inputs(X, Y, Z, Vp, mu, pb, a1, tol, no_errors)
-    real(dp), intent(in)    :: X(:), Y(:), Z(:), Vp(:), mu(:), pb(:)
-    real(dp), intent(in)    :: a1, tol
+    real(rp), intent(in)    :: X(:), Y(:), Z(:), Vp(:), mu(:), pb(:)
+    real(rp), intent(in)    :: a1, tol
     integer,  intent(inout) :: no_errors
 
     integer  :: n, nbad
-    real(dp) :: pii, mean_pb
+    real(rp) :: pii, mean_pb
 
     n   = size(X)
-    pii = 3.14159265358979323846_dp
+    pii = 3.14159265358979323846_rp
 
     if (any([ size(Y), size(Z), size(Vp), size(mu), size(pb) ] /= n)) then
       no_errors = no_errors + 1
@@ -487,7 +487,7 @@ contains
       call log_raw(TMP)
     end if
 
-    nbad = count(X <= 0.0_dp)
+    nbad = count(X <= 0.0_rp)
     if (nbad > 0) then
       no_errors = no_errors + 1
       call log_alert("Condition failed: X must be > 0")
@@ -496,7 +496,7 @@ contains
       call log_ok("X > 0 everywhere")
     end if
 
-    nbad = count(abs(Y) >= 1.0_dp)
+    nbad = count(abs(Y) >= 1.0_rp)
     if (nbad > 0) then
       no_errors = no_errors + 1
       call log_alert("Condition failed: abs(Y) must be < 1")
@@ -514,7 +514,7 @@ contains
       call log_ok("Z in (-pi, pi) everywhere")
     end if
 
-    nbad = count(mu <= 0.0_dp)
+    nbad = count(mu <= 0.0_rp)
     if (nbad > 0) then
       no_errors = no_errors + 1
       call log_alert("Condition failed: mu must be > 0")
@@ -523,7 +523,7 @@ contains
       call log_ok("mu > 0 everywhere")
     end if
 
-    nbad = count(pb <= 0.0_dp)
+    nbad = count(pb <= 0.0_rp)
     if (nbad > 0) then
       no_errors = no_errors + 1
       call log_alert("Condition failed: pb must be > 0")
@@ -532,8 +532,8 @@ contains
       call log_ok("pb > 0 everywhere")
     end if
 
-    mean_pb = sum(pb) / real(n, dp)
-    if (abs(mean_pb - 1.0_dp) > tol) then
+    mean_pb = sum(pb) / real(n, rp)
+    if (abs(mean_pb - 1.0_rp) > tol) then
       no_errors = no_errors + 1
       call log_alert("Condition failed: mean(pb) must be 1")
       call log_val("[INFO ]", "mean(pb)", mean_pb)
@@ -544,7 +544,7 @@ contains
       call log_val("[INFO ]", "tol",      tol)
     end if
 
-    nbad = count(sqrt((X - 1.0_dp)**2 + Y**2) >= a1)
+    nbad = count(sqrt((X - 1.0_rp)**2 + Y**2) >= a1)
     if (nbad > 0) then
       no_errors = no_errors + 1
       call log_alert("Condition failed: sqrt((X-1)^2 + Y^2) < a0")
@@ -562,68 +562,68 @@ contains
   ! Wave checks (rank-agnostic) WITHOUT L/Ls
   !=============================================================================
   subroutine check_waves_any(kxA, kyA, kzA, wA, phA, Vstar2, Vstar3, no_errors)
-    real(dp), intent(in)    :: kxA(..), kyA(..), kzA(..), wA(..), phA(..)
-    real(dp), intent(in)    :: Vstar2, Vstar3
+    real(rp), intent(in)    :: kxA(..), kyA(..), kzA(..), wA(..), phA(..)
+    real(rp), intent(in)    :: Vstar2, Vstar3
     integer,  intent(inout) :: no_errors
 
-    real(dp), parameter :: tiny_dp = 1.0e-12_dp
-    real(dp), parameter :: eps_ref = 1.0e-30_dp
+    real(rp), parameter :: tiny_rp = 1.0e-12_rp
+    real(rp), parameter :: eps_ref = 1.0e-30_rp
 
-    real(dp) :: m1(5), m2(5), m4(5)
-    real(dp) :: tol_mean(5), tol_m2(5), tol_m4(5)
-    real(dp) :: m2_ref(5), m4_ref(5)
-    real(dp) :: ratio, pii
-    real(dp) :: t_m2_ky, t_m2_kz, t_m4_ky, t_m4_kz
-    real(dp) :: fac
+    real(rp) :: m1(5), m2(5), m4(5)
+    real(rp) :: tol_mean(5), tol_m2(5), tol_m4(5)
+    real(rp) :: m2_ref(5), m4_ref(5)
+    real(rp) :: ratio, pii
+    real(rp) :: t_m2_ky, t_m2_kz, t_m4_ky, t_m4_kz
+    real(rp) :: fac
 
     call log_info("Wave diagnostics (moments / target checks)")
 
-    pii = 3.14159265358979323846_dp
+    pii = 3.14159265358979323846_rp
 
-    tol_mean = 0.05_dp
-    tol_m2   = 0.05_dp
-    tol_m4   = 0.10_dp
+    tol_mean = 0.05_rp
+    tol_m2   = 0.05_rp
+    tol_m4   = 0.10_rp
 
 
-    m2_ref(2) = 3.0_dp / (lambday*lambday) + k0i*k0i
-    m2_ref(3) = (erfc(lambdaz/sqrt(2.0_dp)) + 3.0_dp*erfc(lambdaz*sqrt(2.0_dp)))/C3**2!1.0_dp / (lambdaz*lambdaz) ! erfc(lambdaz/sqrt(2.0_dp))
-    m2_ref(5) = (pii*pii) / 3.0_dp
+    m2_ref(2) = 3.0_rp / (lambday*lambday) + k0i*k0i
+    m2_ref(3) = (erfc(lambdaz/sqrt(2.0_rp)) + 3.0_rp*erfc(lambdaz*sqrt(2.0_rp)))/C3**2!1.0_rp / (lambdaz*lambdaz) ! erfc(lambdaz/sqrt(2.0_rp))
+    m2_ref(5) = (pii*pii) / 3.0_rp
 
         ! Radial spectrum selection
         IF (x_corr == 1) THEN
-            m2_ref(1) = 1.0_dp / (lambdax**2)
-            m4_ref(1) = 3.0_dp / (lambdax**4)
+            m2_ref(1) = 1.0_rp / (lambdax**2)
+            m4_ref(1) = 3.0_rp / (lambdax**4)
         ELSEIF (x_corr == 2) THEN
-            m2_ref(1) = (10.0_dp / atan(10.0_dp)-1.0_dp)/ (lambdax**2)
-            m4_ref(1) = (1.0_dp + 10.0_dp*(10.0_dp**2-3)/3.0_dp/atan(10.0_dp))/ (lambdax**4)
+            m2_ref(1) = (10.0_rp / atan(10.0_rp)-1.0_rp)/ (lambdax**2)
+            m4_ref(1) = (1.0_rp + 10.0_rp*(10.0_rp**2-3)/3.0_rp/atan(10.0_rp))/ (lambdax**4)
         END IF
 
         ! Temporal spectrum selection
         IF (t_corr == 1) THEN
-            m2_ref(4) = 1.0_dp / (tauc**2)
-            m4_ref(4) = 3.0_dp / (tauc**4)
+            m2_ref(4) = 1.0_rp / (tauc**2)
+            m4_ref(4) = 3.0_rp / (tauc**4)
         ELSEIF (t_corr == 2) THEN
-            m2_ref(4) = (10.0_dp / atan(10.0_dp)-1.0_dp)/ (tauc**2)
-            m4_ref(4) = (1.0_dp + 10.0_dp*(10.0_dp**2-3)/3.0_dp/atan(10.0_dp))/ (tauc**4)
+            m2_ref(4) = (10.0_rp / atan(10.0_rp)-1.0_rp)/ (tauc**2)
+            m4_ref(4) = (1.0_rp + 10.0_rp*(10.0_rp**2-3)/3.0_rp/atan(10.0_rp))/ (tauc**4)
         END IF
 
-    m4_ref(2) = (15.0_dp/(lambday**4) + 10.0_dp*k0i**2/(lambday**2) + k0i**4)
-    m4_ref(3) = (erfc(lambdaz/sqrt(2.0_dp)) + 15.0_dp*erfc(lambdaz*sqrt(2.0_dp)) + 65.0_dp*erfc(lambdaz*3.0_dp/sqrt(2.0_dp)))/C3**4
-    m4_ref(5) = (pii**4) / 5.0_dp
+    m4_ref(2) = (15.0_rp/(lambday**4) + 10.0_rp*k0i**2/(lambday**2) + k0i**4)
+    m4_ref(3) = (erfc(lambdaz/sqrt(2.0_rp)) + 15.0_rp*erfc(lambdaz*sqrt(2.0_rp)) + 65.0_rp*erfc(lambdaz*3.0_rp/sqrt(2.0_rp)))/C3**4
+    m4_ref(5) = (pii**4) / 5.0_rp
 
     t_m2_ky = m2_ref(2)
     t_m2_kz = m2_ref(3)
     t_m4_ky = m4_ref(2)
     t_m4_kz = m4_ref(3)
 
-    fac = (Ln*(rhoi/R0/(1.0_dp+r00))**2)
+    fac = (Ln*(rhoi/R0/(1.0_rp+r00))**2)
 
     m2_ref(4) = m2_ref(4) + (fac**2) * (Vstar2**2*t_m2_ky + Vstar3**2*t_m2_kz)
 
     m4_ref(4) = m4_ref(4)                                                        &
               + (fac**4) * (Vstar2**4*t_m4_ky + Vstar3**4*t_m4_kz                         &
-              + 2.0_dp*Vstar2**2*Vstar3**2*t_m2_kz*t_m2_ky)                               &
-              + 2.0_dp/(tauc**2) * (fac**2) * (Vstar2**2*t_m2_ky + Vstar3**2*t_m2_kz)
+              + 2.0_rp*Vstar2**2*Vstar3**2*t_m2_kz*t_m2_ky)                               &
+              + 2.0_rp/(tauc**2) * (fac**2) * (Vstar2**2*t_m2_ky + Vstar3**2*t_m2_kz)
 
     call moments_ar(kxA, m1(1), m2(1), m4(1))
     call moments_ar(kyA, m1(2), m2(2), m4(2))
@@ -631,19 +631,19 @@ contains
     call moments_ar(wA,  m1(4), m2(4), m4(4))
     call moments_ar(phA, m1(5), m2(5), m4(5))
 
-    ratio = abs(m1(1)) / max(sqrt(m2(1)), tiny_dp)
+    ratio = abs(m1(1)) / max(sqrt(m2(1)), tiny_rp)
     call check_ratio("kx mean ~ 0", ratio, tol_mean(1), no_errors)
 
-    ratio = abs(m1(2)) / max(sqrt(m2(2)), tiny_dp)
+    ratio = abs(m1(2)) / max(sqrt(m2(2)), tiny_rp)
     call check_ratio("ky mean ~ 0", ratio, tol_mean(2), no_errors)
 
-    ratio = abs(m1(3)) / max(sqrt(m2(3)), tiny_dp)
+    ratio = abs(m1(3)) / max(sqrt(m2(3)), tiny_rp)
     call check_ratio("kz mean ~ 0", ratio, tol_mean(3), no_errors)
 
-    ratio = abs(m1(4)) / max(sqrt(m2(4)), tiny_dp)
+    ratio = abs(m1(4)) / max(sqrt(m2(4)), tiny_rp)
     call check_ratio("w  mean ~ 0", ratio, tol_mean(4), no_errors)
 
-    ratio = abs(m1(5)) / max(sqrt(m2(5)), tiny_dp)
+    ratio = abs(m1(5)) / max(sqrt(m2(5)), tiny_rp)
     call check_ratio("ph mean ~ 0", ratio, tol_mean(5), no_errors)
 
     call log_info("Second moments (targets)")
@@ -665,9 +665,9 @@ contains
 
   subroutine check_moment(label, val, ref, tol, no_errors, eps_ref)
     character(len=*), intent(in)    :: label
-    real(dp),         intent(in)    :: val, ref, tol, eps_ref
+    real(rp),         intent(in)    :: val, ref, tol, eps_ref
     integer,          intent(inout) :: no_errors
-    real(dp) :: relerr
+    real(rp) :: relerr
 
     relerr = abs(val - ref) / max(abs(ref), eps_ref)
 
@@ -682,7 +682,7 @@ contains
 
   subroutine log_moment(tag, label, val, ref, relerr, tol)
     character(len=*), intent(in) :: tag, label
-    real(dp),         intent(in) :: val, ref, relerr, tol
+    real(rp),         intent(in) :: val, ref, relerr, tol
 
     write(TMP,'(a,1x,a,": val=",1x,'//FVAL//',", ref=",1x,'//FVAL//',", rel=",1x,'//FRAT//',", tol=",1x,'//FRAT//')') &
       tag, pad_label(label), val, ref, relerr, tol
@@ -696,39 +696,39 @@ contains
   ! Moments for assumed-rank arrays (rank 0/1/2 supported)
   !=============================================================================
   subroutine moments_ar(x, m1, m2, m4)
-    real(dp), intent(in)  :: x(..)
-    real(dp), intent(out) :: m1, m2, m4
+    real(rp), intent(in)  :: x(..)
+    real(rp), intent(out) :: m1, m2, m4
 
     integer  :: n
-    real(dp) :: rn
+    real(rp) :: rn
 
     select rank (x)
     rank (0)
       n  = 1
-      rn = 1.0_dp
+      rn = 1.0_rp
       m1 = x
       m2 = x*x
       m4 = (x*x)*(x*x)
 
     rank (1)
       n  = size(x)
-      rn = real(n, dp)
+      rn = real(n, rp)
       m1 = sum(x)    / rn
       m2 = sum(x**2) / rn
       m4 = sum(x**4) / rn
 
     rank (2)
       n  = size(x)
-      rn = real(n, dp)
+      rn = real(n, rp)
       m1 = sum(x)    / rn
       m2 = sum(x**2) / rn
       m4 = sum(x**4) / rn
 
     rank default
       call log_warn("moments_ar: unsupported rank encountered")
-      m1 = huge(1.0_dp)
-      m2 = huge(1.0_dp)
-      m4 = huge(1.0_dp)
+      m1 = huge(1.0_rp)
+      m2 = huge(1.0_rp)
+      m4 = huge(1.0_rp)
     end select
   end subroutine moments_ar
 
@@ -737,24 +737,24 @@ contains
   ! Energy proxy: d(ln H)/dt finite difference stats
   !=============================================================================
   subroutine print_dlnH_stats(Hh, Np, Nt, T, epsH, no_errors)
-    real(dp), intent(in)    :: Hh(:,:)
+    real(rp), intent(in)    :: Hh(:,:)
     integer,  intent(in)    :: Np, Nt
-    real(dp), intent(in)    :: T, epsH
+    real(rp), intent(in)    :: T, epsH
     integer,  intent(inout) :: no_errors
 
-    real(dp), allocatable :: v(:)
-    real(dp) :: mean_v, rms_v, std_v, maxabs_v, meanabs_v
+    real(rp), allocatable :: v(:)
+    real(rp) :: mean_v, rms_v, std_v, maxabs_v, meanabs_v
     integer  :: imax(1)
 
     allocate(v(Np))
 
     v = (Hh(Nt, :) - Hh(1, :)) / max(abs(Hh(1, :)), epsH) / T
 
-    mean_v    = sum(v) / real(Np, dp)
-    rms_v     = sqrt(sum(v**2) / real(Np, dp))
-    std_v     = sqrt(max(0.0_dp, rms_v**2 - mean_v**2))
+    mean_v    = sum(v) / real(Np, rp)
+    rms_v     = sqrt(sum(v**2) / real(Np, rp))
+    std_v     = sqrt(max(0.0_rp, rms_v**2 - mean_v**2))
     maxabs_v  = maxval(abs(v))
-    meanabs_v = sum(abs(v)) / real(Np, dp)
+    meanabs_v = sum(abs(v)) / real(Np, rp)
 
     call log_val("[INFO ]", "mean (H(tf)/H(ti)-1)/(tf-ti)",    mean_v)
     call log_val("[INFO ]", "rms  (H(tf)/H(ti)-1)/(tf-ti)",    rms_v)
@@ -766,7 +766,7 @@ contains
     write(TMP,'(a,1x,a,":",1x,'//FINT//')') "[INFO ]", pad_label("argmax |(H(tf)/H(ti)-1)/(tf-ti)| (particle index)"), imax(1)
     call log_raw(TMP)
 
-    if (maxabs_v > 1.0e-1_dp) then
+    if (maxabs_v > 1.0e-1_rp) then
       no_errors = no_errors + 1
       call log_alert("Energy proxy: large max |(H(tf)/H(ti)-1)/(tf-ti)| (threshold 1e-1)")
     end if
@@ -779,24 +779,24 @@ contains
   ! Energy proxy: d(ln H)/dt finite difference stats
   !=============================================================================
   subroutine print_dlnPc_stats(Hh, Np, Nt, T, epsH, no_errors)
-    real(dp), intent(in)    :: Hh(:,:)
+    real(rp), intent(in)    :: Hh(:,:)
     integer,  intent(in)    :: Np, Nt
-    real(dp), intent(in)    :: T, epsH
+    real(rp), intent(in)    :: T, epsH
     integer,  intent(inout) :: no_errors
 
-    real(dp), allocatable :: v(:)
-    real(dp) :: mean_v, rms_v, std_v, maxabs_v, meanabs_v
+    real(rp), allocatable :: v(:)
+    real(rp) :: mean_v, rms_v, std_v, maxabs_v, meanabs_v
     integer  :: imax(1)
 
     allocate(v(Np))
 
     v = (Hh(Nt, :) - Hh(1, :)) / max(abs(Hh(1, :)), epsH) / T
 
-    mean_v    = sum(v) / real(Np, dp)
-    rms_v     = sqrt(sum(v**2) / real(Np, dp))
-    std_v     = sqrt(max(0.0_dp, rms_v**2 - mean_v**2))
+    mean_v    = sum(v) / real(Np, rp)
+    rms_v     = sqrt(sum(v**2) / real(Np, rp))
+    std_v     = sqrt(max(0.0_rp, rms_v**2 - mean_v**2))
     maxabs_v  = maxval(abs(v))
-    meanabs_v = sum(abs(v)) / real(Np, dp)
+    meanabs_v = sum(abs(v)) / real(Np, rp)
 
     call log_val("[INFO ]", "mean (Pc(tf)/Pc(ti)-1)/(tf-ti)" ,    mean_v)
     call log_val("[INFO ]", "rms  (Pc(tf)/Pc(ti)-1)/(tf-ti)",    rms_v)
@@ -808,7 +808,7 @@ contains
     write(TMP,'(a,1x,a,":",1x,'//FINT//')') "[INFO ]", pad_label("argmax |(Pc(tf)/Pc(ti)-1)/(tf-ti)| (particle index)"), imax(1)
     call log_raw(TMP)
 
-    if (maxabs_v > 1.0e-1_dp) then
+    if (maxabs_v > 1.0e-1_rp) then
       no_errors = no_errors + 1
       call log_alert("Energy proxy: large max |(Pc(tf)/Pc(ti)-1)/(tf-ti)| (threshold 1e-1)")
     end if
@@ -822,18 +822,18 @@ contains
   !=============================================================================
   subroutine print_gaussianity_block(name, A, Np, Nt, no_errors, compare)
     character(len=*), intent(in)    :: name
-    real(dp),         intent(in)    :: A(:,:), compare
+    real(rp),         intent(in)    :: A(:,:), compare
     integer,          intent(in)    :: Np, Nt
     integer,          intent(inout) :: no_errors
 
-    real(dp) :: norm, m1, m2, m4, kurt3
-    real(dp), parameter :: tol_kurt3 = 0.15_dp
+    real(rp) :: norm, m1, m2, m4, kurt3
+    real(rp), parameter :: tol_kurt3 = 0.15_rp
 
-    norm  = 1.0_dp / (real(Np, dp) * real(Nt, dp))
+    norm  = 1.0_rp / (real(Np, rp) * real(Nt, rp))
     m1    = sum(A)      * norm
     m2    = sum(A**2)   * norm
     m4    = sum(A**4)   * norm
-    kurt3 = m4 / max(m2*m2, tiny(1.0_dp)) / 3.0_dp
+    kurt3 = m4 / max(m2*m2, tiny(1.0_rp)) / 3.0_rp
 
     call log_gauss_line(name, m1, m2, kurt3, tol_kurt3, no_errors, compare)
   end subroutine print_gaussianity_block
@@ -844,18 +844,18 @@ contains
   !=============================================================================
   subroutine print_gaussianity_slice(name, A, k, Np, no_errors, compare)
     character(len=*), intent(in)    :: name
-    real(dp),         intent(in)    :: A(:,:), compare
+    real(rp),         intent(in)    :: A(:,:), compare
     integer,          intent(in)    :: k, Np
     integer,          intent(inout) :: no_errors
 
-    real(dp) :: norm, m1, m2, m4, kurt3
-    real(dp), parameter :: tol_kurt3 = 0.15_dp
+    real(rp) :: norm, m1, m2, m4, kurt3
+    real(rp), parameter :: tol_kurt3 = 0.15_rp
 
-    norm  = 1.0_dp / real(Np, dp)
+    norm  = 1.0_rp / real(Np, rp)
     m1    = sum(A(k, :))      * norm
     m2    = sum(A(k, :)**2)   * norm
     m4    = sum(A(k, :)**4)   * norm
-    kurt3 = m4 / max(m2*m2, tiny(1.0_dp)) / 3.0_dp
+    kurt3 = m4 / max(m2*m2, tiny(1.0_rp)) / 3.0_rp
 
     call log_gauss_line(name, m1, m2, kurt3, tol_kurt3, no_errors, compare)
   end subroutine print_gaussianity_slice
@@ -863,13 +863,13 @@ contains
 
   subroutine log_gauss_line(name, mean, ex2, kurt3, tol_kurt3, no_errors, compare)
     character(len=*), intent(in)    :: name
-    real(dp),         intent(in)    :: mean, ex2, kurt3, tol_kurt3, compare
+    real(rp),         intent(in)    :: mean, ex2, kurt3, tol_kurt3, compare
     integer,          intent(inout) :: no_errors
 
     character(len=WTAG) :: tag
     logical :: bad
 
-    bad = abs(kurt3 - 1.0_dp) > tol_kurt3
+    bad = abs(kurt3 - 1.0_rp) > tol_kurt3
     if (bad) then
       tag = "[ALERT]"
       no_errors = no_errors + 1
@@ -890,7 +890,7 @@ contains
   !=============================================================================
   subroutine check_ratio(label, ratio, tol, no_errors)
     character(len=*), intent(in)    :: label
-    real(dp),         intent(in)    :: ratio, tol
+    real(rp),         intent(in)    :: ratio, tol
     integer,          intent(inout) :: no_errors
 
     if (ratio > tol) then
@@ -936,21 +936,21 @@ contains
 
   subroutine log_val(tag, name, val)
     character(len=*), intent(in) :: tag, name
-    real(dp),         intent(in) :: val
+    real(rp),         intent(in) :: val
     write(TMP,'(a,1x,a,":",1x,'//FVAL//')') tag, pad_label(name), val
     call log_raw(TMP)
   end subroutine log_val
 
   subroutine log_vals3(tag, name, v1, v2, v3)
     character(len=*), intent(in) :: tag, name
-    real(dp),         intent(in) :: v1, v2, v3
+    real(rp),         intent(in) :: v1, v2, v3
     write(TMP,'(a,1x,a,":",3(1x,'//FVAL//'))') tag, pad_label(name), v1, v2, v3
     call log_raw(TMP)
   end subroutine log_vals3
 
   subroutine log_ratio(tag, name, ratio, tol)
     character(len=*), intent(in) :: tag, name
-    real(dp),         intent(in) :: ratio, tol
+    real(rp),         intent(in) :: ratio, tol
     write(TMP,'(a,1x,a,": ratio=",1x,'//FRAT//',", tol=",1x,'//FRAT//')') tag, pad_label(name), ratio, tol
     call log_raw(TMP)
     if (trim(tag) == "[ALERT]") call alerts_add(trim(name) // " ratio exceeded tol")
@@ -1018,7 +1018,7 @@ contains
   ! Small helper for unused dummy variable
   !=============================================================================
   subroutine ignore_unused(x)
-    real(dp), intent(in) :: x
+    real(rp), intent(in) :: x
     if (x /= x) then
       call log_warn("ignore_unused triggered (NaN)")
     end if

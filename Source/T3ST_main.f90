@@ -9,7 +9,7 @@
 !          :: Equations of motion consistent with GK gyro-centers
 !          :: Projected onto cylindrical coordinates (X,Y,Z)
 !          :: Turbulence in field-aligned (q1,q2,q3) ~ (psi, zeta-nu, nu)
-!
+!!! everyone should know this: in the description of turbulence (x,y,z) = field-aligned; whereas in the remaining (X,Y,Z) = (R,Z,varphi)
 ! Record of revisions:
 !    Date       | Programmer          | Description
 !  -----------  | ------------------- | -----------------------------------------
@@ -55,39 +55,39 @@ PROGRAM T3ST
    INTEGER                                   :: ne, clock, ja
 
 !----------------- trajectory variables -----------------------------------------------------------------
-   REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)  :: X, Y, Z, Vp, mu, Ham, Pb, Pcc, ck1, ck2, ck3
-   REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)  :: q1al, q2al, q3al
+   REAL(KIND=rp), ALLOCATABLE, DIMENSION(:)  :: X, Y, Z, Vp, mu, Ham, Pb, Pcc, ck1, ck2, ck3
+   REAL(KIND=rp), ALLOCATABLE, DIMENSION(:)  :: q1al, q2al, q3al
 
-!   REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :) :: Xtot, Ytot, Ztot, Vptot, mutot, Htot
-   REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :) :: q1tot, q2tot, q3tot
+!   REAL(KIND=rp), ALLOCATABLE, DIMENSION(:, :) :: Xtot, Ytot, Ztot, Vptot, mutot, Htot
+   REAL(KIND=rp), ALLOCATABLE, DIMENSION(:, :) :: q1tot, q2tot, q3tot
 
-   REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :) :: Xtr, Ytr, Ztr, Vptr, mutr, Htr, Pctr
-   REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :) :: q1tr, q2tr, q3tr, ck1tr, ck2tr, ck3tr
+   REAL(KIND=rp), ALLOCATABLE, DIMENSION(:, :) :: Xtr, Ytr, Ztr, Vptr, mutr, Htr, Pctr
+   REAL(KIND=rp), ALLOCATABLE, DIMENSION(:, :) :: q1tr, q2tr, q3tr, ck1tr, ck2tr, ck3tr
 
-   REAL(KIND=dp)                             :: normB, Vstar1, Vstar2, Vstar3
-   REAL(KIND=dp), DIMENSION(3, 3)            :: gees
+   REAL(KIND=rp)                             :: normB, Vstar1, Vstar2, Vstar3
+   REAL(KIND=rp), DIMENSION(3, 3)            :: gees
 
 !----------------- transport quantities -----------------------------------------------------------------
-   REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :) :: vit, dif
-   REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :) :: Vcorff, VcorTT, VcorTN, VcorNT
+   REAL(KIND=rp), ALLOCATABLE, DIMENSION(:, :) :: vit, dif
+   REAL(KIND=rp), ALLOCATABLE, DIMENSION(:, :) :: Vcorff, VcorTT, VcorTN, VcorNT
 
 !----------------- numerical / auxiliaries --------------------------------------------------------------
    INTEGER                                   :: i, j, k, m, re, lene, k2, i8
-   REAL(KIND=dp), ALLOCATABLE, DIMENSION(:)  :: t
+   REAL(KIND=rp), ALLOCATABLE, DIMENSION(:)  :: t
    INTEGER                                   :: filled, ias, eror_flag
    REAL                                      :: progress = 25.0
    INTEGER, PARAMETER                        :: barWidth = 25
    CHARACTER(LEN=80)                         :: bar
    LOGICAL                                   :: has_nan, ok
 
-   REAL(KIND=dp)                             :: dt1, dt2, dt, dt_half
-   REAL(KIND=dp)                             :: quan11, quan12, quan13, quan14, quanVtxCorr
-   REAL(KIND=dp)                             :: quan21, quan22, quan23, quan24
-   REAL(KIND=dp), ALLOCATABLE                :: Lagr_ref(:)     ! Vtx at k=1, per particle
-   REAL(KIND=dp), ALLOCATABLE                :: Lagr_corr(:)    ! correlation vs time, size Nt+1
+   REAL(KIND=rp)                             :: dt1, dt2, dt, dt_half
+   REAL(KIND=rp)                             :: quan11, quan12, quan13, quan14, quanVtxCorr
+   REAL(KIND=rp)                             :: quan21, quan22, quan23, quan24
+   REAL(KIND=rp), ALLOCATABLE                :: Lagr_ref(:)     ! Vtx at k=1, per particle
+   REAL(KIND=rp), ALLOCATABLE                :: Lagr_corr(:)    ! correlation vs time, size Nt+1
 
-   REAL(dp), POINTER, CONTIGUOUS             :: Qx(:), Qy(:), Qz(:), Qw(:), Qph(:), QL(:)
-   real(dp) :: gnorm_local
+   REAL(rp), POINTER, CONTIGUOUS             :: Qx(:), Qy(:), Qz(:), Qw(:), Qph(:), QL(:)
+   real(rp) :: gnorm_local
    integer :: type_choice
 
 !========================================================================================================
@@ -150,7 +150,7 @@ PROGRAM T3ST
       ! Create data files: "...\folder\file_XX.*"
       OPEN (11, FILE=folder//'file_01.dat')   ! parameters export
 
-      DO i = 2, 30
+      DO i = 2, 40
          WRITE (runs, *) i
          IF (i < 10) THEN
             OPEN (UNIT=i+10, FILE=folder//'file_0'//TRIM(ADJUSTL(runs))//'.bin', &
@@ -178,10 +178,6 @@ PROGRAM T3ST
       ALLOCATE (Ytr, Ztr, Vptr, mutr, Htr, q1tr, q2tr, q3tr, Pctr, ck1tr, ck2tr, ck3tr, MOLD=Xtr)
       ALLOCATE (VcorTT, VcorTN, VcorNT, MOLD=Vcorff)
       ALLOCATE( Lagr_ref(Np), Lagr_corr(Nt+1) )
-!      ALLOCATE (randm1(Nt+1, Np), randm2(Nt+1, Np))
-!      ALLOCATE ( Xtot(Np, 2))
-!      ALLOCATE (Ytot, Ztot, Vptot, mutot, Htot, q1tot, q2tot, q3tot, MOLD=Xtot)
-
 
 !========================================================================================================
 ! EXPORT SOME PARAMETERS (names & values) OF THIS RUN
@@ -204,29 +200,29 @@ PROGRAM T3ST
                    "C1", "C2", "C3" ]
 
       WRITE(11,*) [ &
-                   t0, tc, tt, tmax, REAL(Nt,dp), REAL(Nreal,dp), REAL(Nc,dp), REAL(Nloop,dp), REAL(Np,dp), REAL(ntraj,dp), &
-                   REAL(Nci,dp), REAL(Nce,dp), &
+                   t0, tc, tt, tmax, REAL(Nt,rp), REAL(Nreal,rp), REAL(Nc,rp), REAL(Nloop,rp), REAL(Np,rp), REAL(ntraj,rp), &
+                   REAL(Nci,rp), REAL(Nce,rp), &
                    Ti, Te, Zeff, Aeff, ndens, vth, rhoi, wi, &
                    Ln, Li, Le, &
-                   REAL(magnetic_model,dp), B0, R0, a0, s1, s2, s3, q00, r00, psi0, &
-                   amp, elong, REAL(device,dp), REAL(shot,dp), REAL(shotslice,dp), REAL(NgridR,dp), REAL(NgridZ,dp), &
+                   REAL(magnetic_model,rp), B0, R0, a0, s1, s2, s3, q00, r00, psi0, &
+                   amp, elong, REAL(device,rp), REAL(shot,rp), REAL(shotslice,rp), REAL(NgridR,rp), REAL(NgridZ,rp), &
                    Omgt0, Omgtprim, &
-                   REAL(turb_model,dp), REAL(x_corr,dp), REAL(y_corr,dp), REAL(t_corr,dp), Phi, turbprof, Ai, Ae, &
+                   REAL(turb_model,rp), REAL(x_corr,rp), REAL(y_corr,rp), REAL(t_corr,rp), Phi, turbprof, Ai, Ae, &
                    lambdax, lambday, lambdaz, lbalonz, tauc, k0i, k0e, gamma_ZF, gamma_E, &
                    X0, Y0, Z0, Ts, Es, pitch, As, Zs, taucc, &
-                   REAL(position_type,dp), REAL(pitch_type,dp), REAL(energy_type,dp), &
-                   REAL(USE_larmor,dp), REAL(USE_coll,dp), REAL(USE_turb,dp), REAL(USE_magnturb,dp), REAL(USE_freq,dp), REAL(USE_polar,dp), &
-                   REAL(USE_PC,dp), REAL(USE_real,dp), REAL(USE_corr,dp), REAL(USE_balloon,dp), REAL(USE_tilt,dp), REAL(USE_testing,dp), &
+                   REAL(position_type,rp), REAL(pitch_type,rp), REAL(energy_type,rp), &
+                   REAL(USE_larmor,rp), REAL(USE_coll,rp), REAL(USE_turb,rp), REAL(USE_magnturb,rp), REAL(USE_freq,rp), REAL(USE_polar,rp), &
+                   REAL(USE_PC,rp), REAL(USE_real,rp), REAL(USE_corr,rp), REAL(USE_balloon,rp), REAL(USE_tilt,rp), REAL(USE_testing,rp), &
                    C1, C2, C3 ]
                  
 !========================================================================================================
 ! TIME GRID
 !========================================================================================================
       dt = (tmax - t0) / REAL(Nt)
-      dt_half = dt/2.0_dp
+      dt_half = dt/2.0_rp
       t  = [(i8*dt + t0, i8=0, Nt)]
-      Lagr_ref  = 0.0_dp
-      Lagr_corr = 0.0_dp
+      Lagr_ref  = 0.0_rp
+      Lagr_corr = 0.0_rp
 
 !========================================================================================================
 ! REALIZATIONS LOOP
@@ -247,7 +243,9 @@ PROGRAM T3ST
 
             WRITE (23) X
             WRITE (24) Y
- 
+            WRITE (25) Z
+            WRITE (26) Vp
+            WRITE (27) mu
 
             !============================================================================================
             ! TIME PROPAGATION
@@ -257,18 +255,18 @@ PROGRAM T3ST
             DO k = 1, Nt + 1
 
                !$omp single
-               quan11 = 0.0_dp; quan12 = 0.0_dp; quan13 = 0.0_dp; quan14 = 0.0_dp
-               quan21 = 0.0_dp; quan22 = 0.0_dp; quan23 = 0.0_dp; quan24 = 0.0_dp; quanVtxCorr = 0.0_dp
+               quan11 = 0.0_rp; quan12 = 0.0_rp; quan13 = 0.0_rp; quan14 = 0.0_rp
+               quan21 = 0.0_rp; quan22 = 0.0_rp; quan23 = 0.0_rp; quan24 = 0.0_rp; quanVtxCorr = 0.0_rp
                !$omp end single
 
                !$omp do schedule(static) private(Qx,Qy,Qz,Qw,Qph,QL) &
                !$omp   reduction(+: quan11,quan12,quan13,quan14, quan21,quan22,quan23,quan24,quanVtxCorr)
                DO i = 1, Np
                   BLOCK
-                     REAL(dp) :: xi, yi, zi, mui, vpi, pbi, mask, maskR, maskZ
-                     REAL(dp) :: vx, vy, vz, vm, ap, Wx, Wy, Wz, Wm, Wp
-                     REAL(dp) :: q1, q2, q3, Vrt, Vrr, temp
-                     REAL(dp) :: Hi, B, Vtx, Vty, sm1, sm2, Pc, check_1, check_2, check_3!, dt_half
+                     REAL(rp) :: xi, yi, zi, mui, vpi, pbi, mask, maskR, maskZ
+                     REAL(rp) :: vx, vy, vz, vm, ap, Wx, Wy, Wz, Wm, Wp
+                     REAL(rp) :: q1, q2, q3, Vrt, Vrr, temp
+                     REAL(rp) :: Hi, B, Vtx, Vty, sm1, sm2, Pc, check_1, check_2, check_3!, dt_half
 
                      ! Select per-particle or single-spectrum arrays
                      IF (USE_real == OFF) THEN
@@ -306,15 +304,15 @@ PROGRAM T3ST
                      ! store reference Vtx at k=1 (per particle)
                      IF (k == 1) Lagr_ref(i) = Vtx
 
-                     Wx = vx/6.0_dp; Wy = vy/6.0_dp; Wz = vz/6.0_dp
-                     Wm = vm/6.0_dp; Wp = ap/6.0_dp
+                     Wx = vx/6.0_rp; Wy = vy/6.0_rp; Wz = vz/6.0_rp
+                     Wm = vm/6.0_rp; Wp = ap/6.0_rp
 
                      ! Mask for particles outside the domain
-                     mask = 1.0_dp
+                     mask = 1.0_rp
                      IF (ANY(magnetic_model == [1, 2])) THEN
                         maskR = (xi - minR) * (maxR - xi)
                         maskZ = (yi - minZ) * (maxZ - yi)
-                        mask  = MERGE(1.0_dp, 0.0_dp, (maskR >= 0.0) .AND. (maskZ >= 0.0))
+                        mask  = MERGE(1.0_rp, 0.0_rp, (maskR >= 0.0) .AND. (maskZ >= 0.0))
                      END IF
 
                      ! Observables (ignore NaNs)
@@ -331,25 +329,25 @@ PROGRAM T3ST
 	                quanVtxCorr = quanVtxCorr + pbi*mask * (Lagr_ref(i) * Vtx)    ! Lagrangian correlation <v_{q1}(0)v_{q1}(t)>
                      END IF
                      ! RK4 stage 2
-                     CALL Drift2(dt, xi+vx*dt/2.0_dp, yi+vy*dt/2.0_dp, zi+vz*dt/2.0_dp, &
-                                 vpi+ap*dt/2.0_dp, mui+vm*dt/2.0_dp, q1, q2, q3, t(k)+dt/2.0_dp, &
+                     CALL Drift2(dt, xi+vx*dt/2.0_rp, yi+vy*dt/2.0_rp, zi+vz*dt/2.0_rp, &
+                                 vpi+ap*dt/2.0_rp, mui+vm*dt/2.0_rp, q1, q2, q3, t(k)+dt/2.0_rp, &
                                  vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL,gnorm_local)
-                     Wx = Wx + vx/3.0_dp; Wy = Wy + vy/3.0_dp; Wz = Wz + vz/3.0_dp
-                     Wm = Wm + vm/3.0_dp; Wp = Wp + ap/3.0_dp
+                     Wx = Wx + vx/3.0_rp; Wy = Wy + vy/3.0_rp; Wz = Wz + vz/3.0_rp
+                     Wm = Wm + vm/3.0_rp; Wp = Wp + ap/3.0_rp
 
                              ! RK4 stage 3
-                     CALL Drift2(dt, xi+vx*dt/2.0_dp, yi+vy*dt/2.0_dp, zi+vz*dt/2.0_dp, &
-                                 vpi+ap*dt/2.0_dp, mui+vm*dt/2.0_dp, q1, q2, q3, t(k)+dt/2.0_dp, &
+                     CALL Drift2(dt, xi+vx*dt/2.0_rp, yi+vy*dt/2.0_rp, zi+vz*dt/2.0_rp, &
+                                 vpi+ap*dt/2.0_rp, mui+vm*dt/2.0_rp, q1, q2, q3, t(k)+dt/2.0_rp, &
                                  vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, gnorm_local)
-                     Wx = Wx + vx/3.0_dp; Wy = Wy + vy/3.0_dp; Wz = Wz + vz/3.0_dp
-                     Wm = Wm + vm/3.0_dp; Wp = Wp + ap/3.0_dp
+                     Wx = Wx + vx/3.0_rp; Wy = Wy + vy/3.0_rp; Wz = Wz + vz/3.0_rp
+                     Wm = Wm + vm/3.0_rp; Wp = Wp + ap/3.0_rp
 
                      ! RK4 stage 4
                      CALL Drift2(dt, xi+vx*dt, yi+vy*dt, zi+vz*dt, vpi+ap*dt, mui+vm*dt, &
                                  q1, q2, q3, t(k)+dt, vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, &
                                  Qx, Qy, Qz, Qw, Qph, QL, gnorm_local)
-                     Wx = Wx + vx/6.0_dp; Wy = Wy + vy/6.0_dp; Wz = Wz + vz/6.0_dp
-                     Wm = Wm + vm/6.0_dp; Wp = Wp + ap/6.0_dp
+                     Wx = Wx + vx/6.0_rp; Wy = Wy + vy/6.0_rp; Wz = Wz + vz/6.0_rp
+                     Wm = Wm + vm/6.0_rp; Wp = Wp + ap/6.0_rp
 
                      ! Commit back
                      X(i)   = xi  + dt*Wx
@@ -429,33 +427,37 @@ PROGRAM T3ST
 
             WRITE (21) vit
             WRITE (22) dif
-            WRITE (25) X
-            WRITE (26) Y
-            WRITE (27) Ham
-            WRITE (28) q1al
-            WRITE (29) q2al
+
+	    WRITE (28) X
+            WRITE (29) Y
+            WRITE (30) Z
+            WRITE (31) Vp
+            WRITE (32) mu        
+            WRITE (33) Ham
+            WRITE (34) q1al
+            WRITE (35) q2al
 
 if(USE_corr.eq.1) then
-            WRITE (30) Vcorff
-            WRITE (31) VcorTT
-            WRITE (32) VcorTN
-            WRITE (33) VcorNT
+            WRITE (36) Vcorff
+            WRITE (37) VcorTT
+            WRITE (38) VcorTN
+            WRITE (39) VcorNT
 endif
-            WRITE (35) Pctr
-            WRITE (36) ck1tr
-            WRITE (37) ck2tr
-            WRITE (38) ck3tr
+            WRITE (41) Pctr
+            WRITE (42) ck1tr
+            WRITE (43) ck2tr
+            WRITE (44) ck3tr
 
-            WRITE (39) Lagr_corr
+            WRITE (45) Lagr_corr
 
            IF (ANY(magnetic_model == [1, 2])) THEN
-               WRITE (34) REAL(COUNT( ((X - minR)*(maxR - X) >= 0.0_dp) .AND. &
-                                     ((Y - minZ)*(maxZ - Y) >= 0.0_dp) .AND. &
-                                     .NOT. IEEE_IS_NAN(X) .AND. .NOT. IEEE_IS_NAN(Y) ), dp)
+               WRITE (40) REAL(COUNT( ((X - minR)*(maxR - X) >= 0.0_rp) .AND. &
+                                     ((Y - minZ)*(maxZ - Y) >= 0.0_rp) .AND. &
+                                     .NOT. IEEE_IS_NAN(X) .AND. .NOT. IEEE_IS_NAN(Y) ), rp)
             ELSEIF (ANY(magnetic_model == [3, 4])) THEN
-               WRITE (34) REAL(COUNT( ((X - (1.0-a0))*((1.0+a0) - X) >= 0.0_dp) .AND. &
-                                     ((Y - (-a0))*((a0) - Y) >= 0.0_dp) .AND. &
-                                     .NOT. IEEE_IS_NAN(X) .AND. .NOT. IEEE_IS_NAN(Y) ), dp)
+               WRITE (40) REAL(COUNT( ((X - (1.0-a0))*((1.0+a0) - X) >= 0.0_rp) .AND. &
+                                     ((Y - (-a0))*((a0) - Y) >= 0.0_rp) .AND. &
+                                     .NOT. IEEE_IS_NAN(X) .AND. .NOT. IEEE_IS_NAN(Y) ), rp)
             END IF
 
             ! Progress bar (per super-ensemble loop)

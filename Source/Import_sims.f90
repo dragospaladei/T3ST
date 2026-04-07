@@ -23,9 +23,9 @@ MODULE sims
    !---------------------------------------------------------------------------------
    ! Public data
    !---------------------------------------------------------------------------------
-   INTEGER, PARAMETER :: dp = selected_real_kind(7)      ! working precision across the entire code
+   INTEGER, PARAMETER :: rp = selected_real_kind(7)      ! requested precision across the entire code
 
-   REAL(KIND=dp), ALLOCATABLE, DIMENSION(:, :) :: array1 ! storage of simulation parameters
+   REAL(KIND=rp), ALLOCATABLE, DIMENSION(:, :) :: array1 ! storage of simulation parameters
    INTEGER                                    :: rows1  ! number of runs/scenarios in the file
    INTEGER                                    :: cols1  ! number of parameters per run
 

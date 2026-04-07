@@ -15,12 +15,12 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), DIMENSION(Np), INTENT(OUT) :: X, Y, Z, mu, vp, pb
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT) :: X, Y, Z, mu, vp, pb
 
        ! Local variables
-       REAL(KIND=dp), DIMENSION(Np)                 :: En, PA, aux
-       REAL(KIND=dp), DIMENSION(Np)                 :: phi0, phi1, phi2, B, Bx, By, Bz, q1, q2, q3
-       REAL(KIND=dp)                                :: m1, m2
+       REAL(KIND=rp), DIMENSION(Np)                 :: En, PA, aux
+       REAL(KIND=rp), DIMENSION(Np)                 :: phi0, phi1, phi2, B, Bx, By, Bz, q1, q2, q3
+       REAL(KIND=rp)                                :: m1, m2
        ! ------------------------------------------------------------------------------------------------------------------------
        ! Pitch angle PA = (-pi, pi) or fixed
        ! ------------------------------------------------------------------------------------------------------------------------
@@ -76,6 +76,9 @@
           pb = E**(-Zs*phi2/Ts)
        END IF
 
+       pb = pb*X
+       write(*,*) 'lets not forget that we have putted a weight of R on all particles to compensate the toroidal geometrical effects'
+
        pb = pb*Np/sum(pb)
 
        mu = En/B*(1.0 - PA**2.)                               !(En-Phi*Zw*phi0)/normB*SIN(PA)**2.
@@ -99,9 +102,9 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), DIMENSION(Np), INTENT(OUT) :: X, Y, Z
-       REAL(KIND=dp), DIMENSION(Np)                 :: Vp
-       REAL(KIND=dp), DIMENSION(Np)                 :: aux, aux2, aux1
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT) :: X, Y, Z
+       REAL(KIND=rp), DIMENSION(Np)                 :: Vp
+       REAL(KIND=rp), DIMENSION(Np)                 :: aux, aux2, aux1, aux3
 
        IF (position_type .eq. 1) THEN
           X = X0
@@ -126,13 +129,15 @@
        ELSEIF (position_type .eq. 3) THEN
           CALL random_number(aux)
           CALL random_number(aux2)
+          CALL random_number(aux3)
           aux = pi*(2.0*aux - 1.0)
+          aux3 = pi*(2.0*aux3 - 1.0)
           aux2 = a0*sqrt(aux2*(0.55**2 - 0.45**2) + 0.45**2)
           Y = aux2*sin(aux)
           X = 1.0 + aux2*cos(aux)
-          Z = 0.0
+          Z = aux3
        ELSE
-          WRITE (*, *) 'Error [initial_conditions]: unknown tyoe for GC position distribution specification'
+          WRITE (*, *) 'Error [initial_conditions]: unknown type for GC position distribution specification'
        END IF
        
 
@@ -146,18 +151,18 @@ SUBROUTINE potent_3D(q_1, q_2, q_3, time, phi0)
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), DIMENSION(Np), INTENT(IN) :: q_1, q_2, q_3
-       REAL(KIND=dp), INTENT(IN) :: time
+       REAL(KIND=rp), DIMENSION(Np), INTENT(IN) :: q_1, q_2, q_3
+       REAL(KIND=rp), INTENT(IN) :: time
 
-       REAL(KIND=dp), DIMENSION(Np), INTENT(OUT):: phi0
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT):: phi0
 
-       REAL(KIND=dp), DIMENSION(Np) :: gpar, gprim, env
+       REAL(KIND=rp), DIMENSION(Np) :: gpar, gprim, env
        ! Local variables
        INTEGER                         :: i
 
 
       ! Defaults (kept as in your original snippet)
-      gpar    = exp((cos(q_3/C3)-1.0_dp)/lbalonz**2)*balloon   ! this must be periodic
+      gpar    = exp((cos(q_3/C3)-1.0_rp)/lbalonz**2)*balloon   ! this must be periodic
       gprim   = -sin(q_3/C3)/lbalonz**2/C3*balloon ! note that this is g'/g
       env     = noballoon + gpar             ! ballooning envelope multiplier
 

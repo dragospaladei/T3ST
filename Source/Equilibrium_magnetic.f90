@@ -14,19 +14,19 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=dp), DIMENSION(Np), INTENT(IN)   :: X, Y, Z                                             ! new basis coordinates (input)
-       REAL(KIND=dp), DIMENSION(Np), INTENT(OUT)  :: phi0x, phi0y, phi0z                                 ! The gradient of the neoclassical field Phi_0 (for quasineutrality in rotating plasmas)
-       REAL(KIND=dp), DIMENSION(Np), INTENT(OUT)  :: gradBx, gradBy, gradBz, gradu2x, gradu2y, gradu2z   ! Grad B, grad u**2
-       REAL(KIND=dp), DIMENSION(Np), INTENT(OUT)  :: rotbx, rotby, rotbz, rotux, rotuy, rotuz            ! curl(b), curl(u) components in the x,y,z system
-       REAL(KIND=dp), DIMENSION(Np), INTENT(OUT)  :: Bx, By, Bz, B                                       ! Bx,  By, Bz, B components in the x,y,z system
-       REAL(KIND=dp), DIMENSION(3, 3, Np), INTENT(OUT)  :: G                                                   ! G_ij = grad(qj).dr/dxi;
-       REAL(KIND=dp), DIMENSION(Np), INTENT(OUT)  :: q1, q2, q3                                            ! Scaled field-aligned coordinates, a la GENE
+       REAL(KIND=rp), DIMENSION(Np), INTENT(IN)   :: X, Y, Z                                             ! new basis coordinates (input)
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT)  :: phi0x, phi0y, phi0z                                 ! The gradient of the neoclassical field Phi_0 (for quasineutrality in rotating plasmas)
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT)  :: gradBx, gradBy, gradBz, gradu2x, gradu2y, gradu2z   ! Grad B, grad u**2
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT)  :: rotbx, rotby, rotbz, rotux, rotuy, rotuz            ! curl(b), curl(u) components in the x,y,z system
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT)  :: Bx, By, Bz, B                                       ! Bx,  By, Bz, B components in the x,y,z system
+       REAL(KIND=rp), DIMENSION(3, 3, Np), INTENT(OUT)  :: G                                                   ! G_ij = grad(qj).dr/dxi;
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT)  :: q1, q2, q3                                            ! Scaled field-aligned coordinates, a la GENE
 
        ! Local variables
-       REAL(KIND=dp), DIMENSION(Np)                    :: hx, hy, hz                                          ! lame coefficients
-       REAL(KIND=dp), DIMENSION(Np)                    :: psi, psir, psiz, psirr, psizz, psirz, rhot, rhotr, rhotz                ! miscelaneous
-       REAL(KIND=dp), DIMENSION(Np)                    :: chi, chir, chiz, qpsi, qprim, Fpsi, Fprim              ! miscelaneous
-       REAL(KIND=dp), DIMENSION(Nqua, Np)             :: R                                                   ! G_ij = grad(qj).dr/dxi;
+       REAL(KIND=rp), DIMENSION(Np)                    :: hx, hy, hz                                          ! lame coefficients
+       REAL(KIND=rp), DIMENSION(Np)                    :: psi, psir, psiz, psirr, psizz, psirz, rhot, rhotr, rhotz                ! miscelaneous
+       REAL(KIND=rp), DIMENSION(Np)                    :: chi, chir, chiz, qpsi, qprim, Fpsi, Fprim              ! miscelaneous
+       REAL(KIND=rp), DIMENSION(Nqua, Np)             :: R                                                   ! G_ij = grad(qj).dr/dxi;
 
        hx = 1.0                                                      ! lame coefficient for x = R -> hx = 1
        hy = 1.0                                                      ! lame coefficient for y = Z -> hy = 1

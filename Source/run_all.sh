@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Set to 1 (Sim) or 2 (DB)
-FILE_TYPE=2
+FILE_TYPE=1
 
-for val in {5..12}; do
+for val in {1..1}; do
     echo "====================================="
     echo " RUNNING SIMULATION NO. : $val"
     echo " Using script: run_all.sh"
