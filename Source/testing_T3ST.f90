@@ -43,8 +43,8 @@ contains
   !=============================================================================
   ! Main entry point
   !=============================================================================
-  subroutine testing_T3ST(X, Y, Z, Vp, mu, pb, Vstar1, Vstar2, Vstar3, no_errors, gnorm_local)
-    real(rp), intent(in)  :: X(:), Y(:), Z(:), Vp(:), mu(:), pb(:)
+  subroutine testing_T3ST(X, Y, Z, Vp, mu, weight, pb, Vstar1, Vstar2, Vstar3, no_errors, gnorm_local)
+    real(rp), intent(in)  :: X(:), Y(:), Z(:), Vp(:), mu(:), pb(:), weight(:)
     real(rp), intent(in)  :: Vstar1, Vstar2, Vstar3
     integer,  intent(out) :: no_errors
 
@@ -181,8 +181,8 @@ contains
     call log_val("[INFO ]", "dt", dt)
 
 
-    call rk4_propagation(gnorm_local, X, Y, Z, Vp, mu, pb, dt, Nt_partial, Np_partial, &
-                         Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtx, Vty)
+!    call rk4_propagation(gnorm_local, X, Y, Z, Vp, mu, weight, pb, dt, Nt_partial, Np_partial, &
+ !                        Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtx, Vty)
                          
     nstep_eff = max(1, Nt_partial - 1)
     T         = dt * real(nstep_eff, rp)
@@ -236,8 +236,8 @@ contains
  
     call print_gaussianity_slice("phiy", c3h, 1, Np_partial, no_errors, compare)
 
-    call rk4_propagation(gnorm_local, Xaux, Yaux, Zaux, Vpaux, muaux, pb, dt, 1, Np_partial, &
-                         Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtx, Vty)
+!    call rk4_propagation(gnorm_local, Xaux, Yaux, Zaux, Vpaux, muaux, weight, pb, dt, 1, Np_partial, &
+ !                        Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtx, Vty)
 
     if (USE_real.eq.OFF) then
       compare = ((R0/rhoi*Phi)**2)*sum(ky**2)/real(Np*Nc,rp)
@@ -273,10 +273,10 @@ contains
   !=============================================================================
   ! RK4 propagation (unchanged numerics; formatting/indent only)
   !=============================================================================
-  subroutine rk4_propagation(gnorm_local, X, Y, Z, Vp, mu, pb, dt, Nt_partial, Np_partial, &
+  subroutine rk4_propagation(gnorm_local, X, Y, Z, Vp, mu, weight, pb, dt, Nt_partial, Np_partial, &
                              Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtxall, Vtyall)
 
-    real(rp), intent(in) :: X(:), Y(:), Z(:), Vp(:), mu(:), pb(:)
+    real(rp), intent(in) :: X(:), Y(:), Z(:), Vp(:), mu(:), pb(:), weight(:)
     integer,  intent(in) :: Np_partial, Nt_partial
     real(rp), intent(in) :: dt
 
@@ -285,9 +285,9 @@ contains
 
     real(rp), pointer, contiguous :: Qx(:), Qy(:), Qz(:), Qw(:), Qph(:), QL(:)
 
-    real(rp) :: xi, yi, zi, mui, vpi, pbi
-    real(rp) :: vx, vy, vz, vm, ap
-    real(rp) :: Wx, Wy, Wz, Wm, Wp
+    real(rp) :: xi, yi, zi, mui, vpi, pbi, weighti
+    real(rp) :: vx, vy, vz, vm, ap, vw, vq
+    real(rp) :: Wx, Wy, Wz, Wm, Wp, Ww
     real(rp) :: q1, q2, q3, gnorm_local
     real(rp) :: Hi, B, Vtx, Vty, Pc
     real(rp) :: check_1, check_2, check_3, time
@@ -318,16 +318,17 @@ contains
       mui = mu(ias)
       vpi = Vp(ias)
       pbi = pb(ias)
+      weighti = weight(ias)
       call ignore_unused(pbi)
 
       do k = 1, Nt_partial
 
         time = dt * real(k - 1, rp)
 
-        call Drift2(dt, xi, yi, zi, vpi, mui, q1, q2, q3, time,                 &
-                    vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty,                    &
-                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, gnorm_local)
-
+call Drift2(dt, xi, yi, zi, vpi, mui, weighti, q1, q2, q3, time,          &
+            vx, vy, vz, ap, vm, vw, vq, Hi, Pc, B, Vtx, Vty,                  &
+            check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, gnorm_local)
+            
         Xh(k, ias)  = xi
         Yh(k, ias)  = yi
         Zh(k, ias)  = zi
@@ -345,41 +346,51 @@ contains
         Wy = vy / 6.0_rp
         Wz = vz / 6.0_rp
         Wm = vm / 6.0_rp
+        Ww = vw / 6.0_rp
         Wp = ap / 6.0_rp
 
-        call Drift2(dt, xi + vx*dt/2.0_rp, yi + vy*dt/2.0_rp, zi + vz*dt/2.0_rp, &
-                    vpi + ap*dt/2.0_rp, mui + vm*dt/2.0_rp, q1, q2, q3,         &
-                    time + dt/2.0_rp,                                           &
-                    vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty,                    &
-                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL,gnorm_local)
+call Drift2(dt, xi + vx*dt/2.0_rp, yi + vy*dt/2.0_rp, zi + vz*dt/2.0_rp, &
+            vpi + ap*dt/2.0_rp, mui + vm*dt/2.0_rp, weighti + vw*dt/2.0_rp, &
+            q1, q2, q3, time + dt/2.0_rp,                                  &
+            vx, vy, vz, ap, vm, vw, vq, Hi, Pc, B, Vtx, Vty,                  &
+            check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, gnorm_local)
+                          
+        Wx = Wx + vx / 3.0_rp
+        Wy = Wy + vy / 3.0_rp
+        Wz = Wz + vz / 3.0_rp
+        Wm = Wm + vm / 3.0_rp
+        Ww = Ww + vw / 3.0_rp
+        Wp = Wp + ap / 3.0_rp
+
+
+! RK2b
+call Drift2(dt, xi + vx*dt/2.0_rp, yi + vy*dt/2.0_rp, zi + vz*dt/2.0_rp, &
+            vpi + ap*dt/2.0_rp, mui + vm*dt/2.0_rp, weighti + vw*dt/2.0_rp, &
+            q1, q2, q3, time + dt/2.0_rp,                                  &
+            vx, vy, vz, ap, vm, vw, vq, Hi, Pc, B, Vtx, Vty,                  &
+            check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, gnorm_local)
+
 
         Wx = Wx + vx / 3.0_rp
         Wy = Wy + vy / 3.0_rp
         Wz = Wz + vz / 3.0_rp
         Wm = Wm + vm / 3.0_rp
+        Ww = Ww + vw / 3.0_rp
         Wp = Wp + ap / 3.0_rp
 
-        call Drift2(dt, xi + vx*dt/2.0_rp, yi + vy*dt/2.0_rp, zi + vz*dt/2.0_rp, &
-                    vpi + ap*dt/2.0_rp, mui + vm*dt/2.0_rp, q1, q2, q3,         &
-                    time + dt/2.0_rp,                                           &
-                    vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty,                    &
-                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL,gnorm_local)
-
-        Wx = Wx + vx / 3.0_rp
-        Wy = Wy + vy / 3.0_rp
-        Wz = Wz + vz / 3.0_rp
-        Wm = Wm + vm / 3.0_rp
-        Wp = Wp + ap / 3.0_rp
-
-        call Drift2(dt, xi + vx*dt, yi + vy*dt, zi + vz*dt,                      &
-                    vpi + ap*dt, mui + vm*dt, q1, q2, q3, time + dt,            &
-                    vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty,                    &
-                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL,gnorm_local)
-
+! RK4
+call Drift2(dt, xi + vx*dt, yi + vy*dt, zi + vz*dt,                       &
+            vpi + ap*dt, mui + vm*dt, weighti + vw*dt,                     &
+            q1, q2, q3, time + dt,                                         &
+            vx, vy, vz, ap, vm, vw, vq, Hi, Pc, B, Vtx, Vty,                  &
+            check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, QL, gnorm_local)
+            
+            
         Wx = Wx + vx / 6.0_rp
         Wy = Wy + vy / 6.0_rp
         Wz = Wz + vz / 6.0_rp
         Wm = Wm + vm / 6.0_rp
+        Ww = Ww + vw / 6.0_rp
         Wp = Wp + ap / 6.0_rp
 
         xi  = xi  + dt * Wx
@@ -387,6 +398,7 @@ contains
         zi  = zi  + dt * Wz
         vpi = vpi + dt * Wp
         mui = mui + dt * Wm
+        weighti = weighti + dt * Ww
 
       end do
     end do

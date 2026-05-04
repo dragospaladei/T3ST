@@ -4,17 +4,16 @@ module drift_kernels
 
 contains
 
-   pure subroutine Drift2(dt, xi, yi, zi, vpi, mui, q1, q2, q3, time, &
-                          vx, vy, vz, ap, vm, Hi,Pc, B, Vtx, Vty, check_1, check_2, check_3, &
+   pure subroutine Drift2(dt, xi, yi, zi, vpi, mui, weighti, q1, q2, q3, time, &
+                          vx, vy, vz, ap, vm, vw, vq, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3, &
                           Qx1, Qy1, Qz1, Qw1, Qph1, QL1, anormal)
       !$omp declare simd(Drift2) uniform(dt,anormal,time,Qx1,Qy1,Qz1,Qw1,Qph1,QL1) notinbranch
 
       !---------------------------------------------------------------------------------
       ! Arguments
       !---------------------------------------------------------------------------------
-      real(rp), intent(in)  :: dt, xi, yi, zi, vpi, mui, time, anormal
-!      real(rp), value, intent(in) :: 
-      real(rp), intent(out) :: q1, q2, q3, vx, vy, vz, ap, vm, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3
+      real(rp), intent(in)  :: dt, xi, yi, zi, vpi, mui, weighti, time, anormal
+      real(rp), intent(out) :: q1, q2, q3, vx, vy, vz, ap, vm, vw, vq, Hi, Pc, B, Vtx, Vty, check_1, check_2, check_3
       real(rp), intent(in), contiguous :: Qx1(:), Qy1(:), Qz1(:), Qw1(:), Qph1(:), QL1(:)
       real(rp) ::  Q0wrp1
       !---------------------------------------------------------------------------------
@@ -50,6 +49,7 @@ contains
 	! --- SIMD-loop temporaries ---
 	real(rp) :: amplu, amplu0, wfac, keff_x,keff_y,keff_z, frac, gg
 	integer  ::ddm
+      real(rp) :: Vx_1, Vy_1, Vz_1, Ap_1
 
       ! Numerics / helpers
       real(rp) :: xi_m1, xi2, yi2
@@ -98,9 +98,9 @@ contains
       invhz = 1.0_rp / hz
 
       !---------------------------------------------------------------------------------
-      ! Straight-field-line angle, safety factor model, fluxes
+      ! Geometry and magnetic equilibrium :: Straight-field-line angle, safety factor model, fluxes
       !---------------------------------------------------------------------------------
-      if (magnetic_model == 4) then
+      if (magnetic_model == 4) then   ! circular equilibrium
 
          theta = atan2(yi, xi_m1)
 
@@ -139,9 +139,9 @@ contains
          Fprim = 0.0_rp
 
          ! psi (closed form) kept, algebraically simplified
-         t_tmp   = a02*s1/s3
+         t_tmp   = a02*s1/(s3 + eps_large)
          sqrt_t1 = sqrt(t_tmp + 1.0_rp)
-         psi     = -(a02/s3)/sqrt_t1 * (atanh(root1/sqrt_t1) - atanh(1.0_rp/sqrt_t1))
+         psi     = -(a02/(s3 + eps_large))/sqrt_t1 * (atanh(root1/sqrt_t1) - atanh(1.0_rp/sqrt_t1))
 
       else if (magnetic_model == 3) then
 
@@ -373,8 +373,13 @@ contains
             
             faza  = Qx1(n)*q1 + Qy1(n)*q2 + Qz1(n)*q3 - wfac*time + q3/C3*usetilt*(C2*Qy1(n)*qpsi - Q0wrp1) + Qph1(n)
 
-	    amplu = 2.0_rp*abs(mui)*As/Zs**2*(keff_x**2+keff_y**2)/B
-	    amplu = norm*QL1(n)*exp(-amplu/20_rp)
+            amplu = 0.0_rp
+            amplu = amplu + keff_x*keff_x*(G(1,1)*G(1,1)*invhx**2 + G(2,1)*G(2,1)*invhy**2 + G(3,1)*G(3,1)*invhz**2)
+            amplu = amplu + keff_y*keff_y*(G(1,2)*G(1,2)*invhx**2 + G(2,2)*G(2,2)*invhy**2 + G(3,2)*G(3,2)*invhz**2)
+            amplu = amplu + 2.0_rp*keff_x*keff_y*(G(1,1)*G(1,2)*invhx**2 + G(2,1)*G(2,2)*invhy**2 + G(3,1)*G(3,2)*invhz**2)
+	    amplu = 2.0_rp*abs(mui)*As/Zs**2*amplu/B
+	    amplu = Cos(amplu - Pi/4.0*tanh(amplu**2))/(1.0 + Tanh(amplu**2/5.0)*Sqrt(amplu))  ! this is an approximation for J0(z)
+	    amplu = norm*amplu!*exp(-amplu/20_rp)!QL1(n)*exp(-amplu/20_rp)
 	           
             ! ifx is typically good at fusing sin/cos, but paired calls are still fine
             zintc = cos(faza)
@@ -422,11 +427,14 @@ contains
 		  zintc0 = cos(faza0)
 		  zints0 = sin(faza0)
 
-!		    amplu = QL1(n)
-	            amplu0 = 2.0_rp*abs(mui)*As/Zs**2*(keff_x**2+keff_y**2)/B
-	            amplu0 = QL1(n)!*exp(-amplu0/20_rp)
-!	            amplu0 = 1.0_rp
-!	            amplu = Bessel_J0(amplu)
+		  amplu0 = 0.0_rp
+		  amplu0 = amplu0 + keff_x*keff_x*(G(1,1)*G(1,1)*invhx**2 + G(2,1)*G(2,1)*invhy**2 + G(3,1)*G(3,1)*invhz**2)
+		  amplu0 = amplu0 + keff_y*keff_y*(G(1,2)*G(1,2)*invhx**2 + G(2,2)*G(2,2)*invhy**2 + G(3,2)*G(3,2)*invhz**2)
+		  amplu0 = amplu0 + 2.0_rp*keff_x*keff_y*(G(1,1)*G(1,2)*invhx**2 + G(2,1)*G(2,2)*invhy**2 + G(3,1)*G(3,2)*invhz**2)
+		  amplu0 = 2.0_rp*abs(mui)*As/Zs**2*amplu0/B
+		  amplu0 = Cos(amplu0 - Pi/4.0*tanh(amplu0**2))/(1.0 + Tanh(amplu0**2/5.0)*Sqrt(amplu0))  ! this is an approximation for J0(z)
+		  amplu0 = norm!*amplu0!*exp(-amplu/20_rp)!QL1(n)*exp(-amplu/20_rp)
+		            
 	            
 		  do ddm = -dmmax, dmmax
 		    frac  = frac0 + ddm
@@ -510,48 +518,57 @@ contains
 
       ap = (Zs/As) * (Esx*Bsx + Esy*Bsy + Esz*Bsz) * invBsp
 
-      Vtx = (rhoi/R0)*invBsp*(F(1, 1)*Etx + F(1, 2)*Ety + F(1, 3)*Etz)
-      Vty = (rhoi/R0)*invBsp*(F(2, 1)*Etx + F(2, 2)*Ety + F(2, 3)*Etz)
+      !---------------------------------------------------------------------------------
+      ! Drifts & accelerations::: the perturbatuive (turbulent) components
+      !---------------------------------------------------------------------------------
+      Vx_1 = (rhoi/R0)*invBsp*(F(1, 1)*Etx + F(1, 2)*Ety + F(1, 3)*Etz)
+      Vy_1 = (rhoi/R0)*invBsp*(F(2, 1)*Etx + F(2, 2)*Ety + F(2, 3)*Etz)
+      Vz_1 = (rhoi/R0)*invBsp*(F(3, 1)*Etx + F(3, 2)*Ety + F(3, 3)*Etz)
+      ap_1 = (Zs/As) * (Etx*Bsx + Ety*Bsy + Etz*Bsz) * invBsp
 
-      Vtx = C1*(Vtx*rhotr + Vty*rhotz)
+      !---------------------------------------------------------------------------------
+      ! purely turbulent drifts along rho for other purposes;
+      !---------------------------------------------------------------------------------
+      Vtx = C1*(Vx_1*rhotr + Vy_1*rhotz)
       Vty = C1*(Vx*rhotr  + Vy*rhotz)
 
       ! collisions
       vm = 0.0_rp
+      vw = 0.0_rp
 
       !---------------------------------------------------------------------------------
       ! Energy (Hamiltonian)
       !---------------------------------------------------------------------------------
-!     dBdt = gradBx*vx*hx2 + gradBy*vy*hy2 + gradBz*vz*hz2   ! if that’s your consistent “physical dot”
-!     Hi = As*vpi*ap + mui*dBdt! - As u^2/2.0
      Hi = As*vpi*vpi*0.5_rp + mui*B - As*xi2*Omega*Omega*0.5_rp + Zs*xi2*Omega*Omega*0.5_rp*tau*(1.0_rp - R02avrg/xi2) + Zs*Phi*phi0!- (1.0_rp - tau)*As*(Omgt02*xi2)*0.5_rp + Zs*Phi*phi0
      Pc = psi - As/Zs*rhoi/R0*Fpsi/B*(vpi + 1.0_rp*Fpsi/B*Omega)
      check_1 = phi0
      check_2 = phix
      check_3 = phiy
-      
-! Hi = gradBy/B
-! Use the following if you wanna test toroidal canonical momentum conservation Pctor
-! there are several mistakes related to the inclusion of rotation
 
-!q1 = gradBx/B
-!q2 = gradBy/B
-!q3 = rotbx
-!Hi = rotby
-!q1=psir
-!q2=psiz
-!q3=psirr
-!Hi=psirz
+      !---------------------------------------------------------------------------------
+      ! vW
+      !---------------------------------------------------------------------------------
+      
+      vq = vx_1*G(1,1) + vy_1*G(1,1) + vz_1*G(3,1)
+      vW = ap_1*As*vpi/Ts + mui/Ts*(vx_1*gradBx + vy_1*gradBy + vz_1*gradBz) - vq/(C1*R0)*(Lns - Lts*(1.5_rp - Hi/Ts)) ! atentie la semnul lui Lns! 
+
+!     Hi =  (Bx/B*G(1, 1) + By/B*G(2, 1) + Bz/B*G(3, 1))*phix + (Bx/B*G(1, 2) + By/B*G(2, 2) + Bz/B*G(3, 2))*phiy + (Bx/B*G(1, 3) + By/B*G(2, 3) + Bz/B*G(3, 3))*phiz
+!     Pc = phiz
+!     dBdt = gradBx*vx*hx2 + gradBy*vy*hy2 + gradBz*vz*hz2   ! if that’s your consistent “physical dot”
+!     Hi = As*vpi*ap + mui*dBdt! - As u^2/2.0
+!     check_1 = phi0!Bx/B*G(1, 1) + By/B*G(2, 1) + Bz/B*G(3, 1)!Bx*(G(1, 1)*phix + G(1, 2)*phiy + G(1, 3)*phiz)+By*(G(2, 1)*phix + G(2, 2)*phiy + G(2, 3)*phiz)+Bz*(G(3, 1)*phix + G(3, 2)*phiy + G(3, 3)*phiz)!phi0
+!     check_2 = phix!Bx/B*G(1, 2) + By/B*G(2, 2) + Bz/B*G(3, 2)!phix
+!     check_3 = phiy!Bx/B*G(1, 3) + By/B*G(2, 3) + Bz/B*G(3, 3)!phiy
 end subroutine Drift2
 
-   pure subroutine collisions_1_MP(sm1, sm2, dt_local, xi, yi, zi, vpi, mui, B, vcolx, vcoly, vcolz, vcolm, vcolp)
+   pure subroutine collisions_1_MP(sm1, sm2, dt_local, xi, yi, zi, vpi, mui, weighti, B, vcolx, vcoly, vcolz, vcolm, vcolw, vcolp)
       !$omp declare simd(collisions_1_MP) uniform(dt_local) notinbranch
 
       !---------------------------------------------------------------------------------
       ! Arguments
       !---------------------------------------------------------------------------------
-      real(rp), intent(in)  :: sm1, sm2, dt_local, xi, yi, zi, vpi, mui, B
-      real(rp), intent(out) :: vcolx, vcoly, vcolz, vcolm, vcolp
+      real(rp), intent(in)  :: sm1, sm2, dt_local, xi, yi, zi, vpi, mui, weighti, B
+      real(rp), intent(out) :: vcolx, vcoly, vcolz, vcolm, vcolp, vcolw
 
       !---------------------------------------------------------------------------------
       ! Locals
@@ -595,7 +612,7 @@ end subroutine Drift2
       !---------------------------------------------------------------------------------
       ! Defaults
       !---------------------------------------------------------------------------------
-      vcolx = 0.0_rp;  vcoly = 0.0_rp;  vcolz = 0.0_rp
+      vcolx = 0.0_rp;  vcoly = 0.0_rp;  vcolz = 0.0_rp;  vcolw = 0.0_rp
       vcolp = (v*zeta - vpi)/dt_local
       vcolm = (ene/B*(1.0_rp - zeta**2) - mui)/(dt_local+0.00001_rp)
 

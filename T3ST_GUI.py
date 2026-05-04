@@ -993,24 +993,22 @@ class SimulationGUI:
         )
         self.manual_sim_no_entry.grid(row=1, column=3, padx=(0, 12), pady=4, sticky="w")
         ToolTip(self.manual_sim_no_entry, "Output: Sims/Sim_NN.dat")
-
-        # Row 2: Filter
-        ttk.Label(tab, text="Filter:").grid(row=2, column=0, sticky="e")
+        ttk.Label(tab, text="Filter:").grid(row=1, column=4, sticky="e", padx=(2, 2), pady=4)
         self.filter_var = tk.StringVar()
         filter_entry = ttk.Entry(tab, textvariable=self.filter_var, width=24)
-        filter_entry.grid(row=2, column=1, sticky="w", padx=5, pady=(0, 8))
+        filter_entry.grid(row=1, column=5, sticky="w", padx=5, pady=4)
         ToolTip(filter_entry, "Type to filter parameter names (substring match).")
         self.filter_var.trace_add("write", lambda *_: self.apply_filter())
 
         self.params_frame = ttk.Frame(tab)
-        self.params_frame.grid(row=3, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="ew")
+        self.params_frame.grid(row=2, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="ew")
         self._build_param_widgets()
 
         ttk.Separator(tab, orient="horizontal").grid(
-            row=4, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="ew", pady=10
+            row=3, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="ew", pady=10
         )
         ttk.Label(tab, text="Sweep Configuration", style="Section.TLabel").grid(
-            row=5, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="w", padx=2, pady=(10, 0)
+            row=4, column=0, columnspan=UI_TOTAL_COLUMNS, sticky="w", padx=2, pady=(10, 0)
         )
         self._build_sweep_rows(tab)
 
@@ -1127,7 +1125,7 @@ class SimulationGUI:
     def _build_sweep_rows(self, tab):
         self.sweeps = []
         for si in range(1, 4):
-            sweep_row = 5 + si  # rows 0-5 now used by header/scenario/filter/params/sep/sweep-label
+            sweep_row = 4 + si  # rows 0-5 now used by header/scenario/filter/params/sep/sweep-label
             ttk.Label(tab, text=f"Param #{si}:").grid(row=sweep_row, column=0, sticky="e")
             cb = ttk.Combobox(tab, values=self.labels, width=18)
             cb.grid(row=sweep_row, column=1)
@@ -1425,7 +1423,7 @@ class SimulationGUI:
         free_axis_fg   = "#4a9eda"   # freely varying axis (runs differ)
         frozen_axis_fg = "#7ab8e8"   # axis present but frozen to one value for this selection
 
-        # All params in their defined order, grouped
+	# All params in their defined order, grouped
         group_order: List[str] = []
         group_to_params: Dict[str, List[ParamDef]] = {}
         for p in self.params:
@@ -1434,6 +1432,14 @@ class SimulationGUI:
                 group_to_params[g] = []
                 group_order.append(g)
             group_to_params[g].append(p)
+
+	# Enforce preferred order
+        preferred = ["Parameter Set", "Switches", "Numerics"]
+
+        group_order = (
+            [g for g in preferred if g in group_to_params]
+            + [g for g in group_order if g not in preferred]
+        )
 
         cur_row = 0
         for g_idx, g in enumerate(group_order):

@@ -1,6 +1,124 @@
 schema_version: 2
 
 parameters:
+  # --- Switches (0/1 integers for Fortran) ---
+#  - name: Method
+#    kind: int
+#    min: 0
+#    max: 1
+#    default: 0
+#    ui: checkbox
+#    group: Switches
+#    help: Full-f or delta-f (0=full, fluxtube, 1=deltaf_ala_ORB5)
+
+  - name: USE_larmor
+    kind: int
+    min: 0
+    max: 1
+    default: 0
+    ui: checkbox
+    group: Switches
+    help: Finite-Larmor-radius effects [J0] (1=yes, 0=no)
+
+  - name: USE_coll
+    kind: int
+    min: 0
+    max: 1
+    default: 0
+    ui: checkbox
+    group: Switches
+    help: Collisional effects (1=yes, 0=no)
+
+  - name: USE_turb
+    kind: int
+    min: 0
+    max: 1
+    default: 1
+    ui: checkbox
+    group: Switches
+    help: Turbulence effects (1=yes, 0=no)
+
+  - name: USE_magnturb
+    kind: int
+    min: 0
+    max: 1
+    default: 0
+    ui: checkbox
+    group: Switches
+    help: RMP presence (1=yes, 0=no)
+
+  - name: USE_freq
+    kind: int
+    min: 0
+    max: 1
+    default: 1
+    ui: checkbox
+    group: Switches
+    help: Time dependence of turbulent fields (1=time-dependent, 0=frozen fields)
+
+  - name: USE_polar
+    kind: int
+    min: 0
+    max: 1
+    default: 0
+    ui: checkbox
+    group: Switches
+    help: Polarization-drift effects (1=yes, 0=no)
+
+  - name: USE_PC
+    kind: int
+    min: 0
+    max: 1
+    default: 0
+    ui: checkbox
+    group: Switches
+    help: Canonical-momentum flux tube (1=yes, 0=no)
+
+  - name: USE_real
+    kind: int
+    min: 0
+    max: 1
+    default: 0
+    ui: checkbox
+    group: Switches
+    help: Field realizations (1=yes - a single realization; 0=no - one field realization per particle)
+
+  - name: USE_corr
+    kind: int
+    min: 0
+    max: 1
+    default: 0
+    ui: checkbox
+    group: Switches
+    help: Save/compute Lagrangian correlations
+
+  - name: USE_balloon
+    kind: int
+    min: 0
+    max: 1
+    default: 0
+    ui: checkbox
+    group: Switches
+    help: Ballooning effects [g(z) = exp(cos(z)*lbalonz**2?)] (1=yes, 0=no)
+
+  - name: USE_tilt
+    kind: int
+    min: 0
+    max: 1
+    default: 0
+    ui: checkbox
+    group: Switches
+    help: Tilting effects ~ s ky z (1=yes, 0=no)
+
+  - name: USE_testing
+    kind: int
+    min: 0
+    max: 1
+    default: 0
+    ui: checkbox
+    group: Switches
+    help: Run test routines (1=yes, 0=no)
+    
   # --- Numerics time / iterations etc ---
   - name: t0
     kind: float
@@ -444,112 +562,18 @@ parameters:
         label: fixed_energy
       - value: 2
         label: Boltzmann
-
-  # --- Switches (0/1 integers for Fortran) ---
-  - name: USE_larmor
-    kind: int
-    min: 0
-    max: 1
+        
+  - name: Lns
+    kind: float
+    units: "adim; R0/Ln"
     default: 0
-    ui: checkbox
-    group: Switches
-    help: Finite-Larmor-radius effects [J0] (1=yes, 0=no)
+    group: "Particle Initial Conditions"
+    help: Density gradient of the species (relevant only when method=1 - deltaF)
 
-  - name: USE_coll
-    kind: int
-    min: 0
-    max: 1
+  - name: Lts
+    kind: float
+    units: "adim; R0/LT"
     default: 0
-    ui: checkbox
-    group: Switches
-    help: Collisional effects (1=yes, 0=no)
+    group: "Particle Initial Conditions"
+    help: Temperature gradient of the species (relevant only when method=1 - deltaF)
 
-  - name: USE_turb
-    kind: int
-    min: 0
-    max: 1
-    default: 1
-    ui: checkbox
-    group: Switches
-    help: Turbulence effects (1=yes, 0=no)
-
-  - name: USE_magnturb
-    kind: int
-    min: 0
-    max: 1
-    default: 0
-    ui: checkbox
-    group: Switches
-    help: RMP presence (1=yes, 0=no)
-
-  - name: USE_freq
-    kind: int
-    min: 0
-    max: 1
-    default: 1
-    ui: checkbox
-    group: Switches
-    help: Time dependence of turbulent fields (1=time-dependent, 0=frozen fields)
-
-  - name: USE_polar
-    kind: int
-    min: 0
-    max: 1
-    default: 0
-    ui: checkbox
-    group: Switches
-    help: Polarization-drift effects (1=yes, 0=no)
-
-  - name: USE_PC
-    kind: int
-    min: 0
-    max: 1
-    default: 0
-    ui: checkbox
-    group: Switches
-    help: Canonical-momentum flux tube (1=yes, 0=no)
-
-  - name: USE_real
-    kind: int
-    min: 0
-    max: 1
-    default: 0
-    ui: checkbox
-    group: Switches
-    help: Field realizations (1=yes - a single realization; 0=no - one field realization per particle)
-
-  - name: USE_corr
-    kind: int
-    min: 0
-    max: 1
-    default: 0
-    ui: checkbox
-    group: Switches
-    help: Save/compute Lagrangian correlations
-
-  - name: USE_balloon
-    kind: int
-    min: 0
-    max: 1
-    default: 0
-    ui: checkbox
-    group: Switches
-    help: Ballooning effects [g(z) = exp(cos(z)*lbalonz**2?)] (1=yes, 0=no)
-
-  - name: USE_tilt
-    kind: int
-    min: 0
-    max: 1
-    default: 0
-    ui: checkbox
-    group: Switches
-    help: Tilting effects ~ s ky z (1=yes, 0=no)
-
-  - name: USE_testing
-    kind: int
-    min: 0
-    max: 1
-    default: 0
-    ui: checkbox
-    group: Switches
-    help: Run test routines (1=yes, 0=no)

@@ -43,6 +43,25 @@ MODULE constants
    REAL(KIND=rp), PARAMETER :: eps_B     = 1.0e-15_rp
    REAL(KIND=rp), PARAMETER :: eps_Bsp   = 1.0e-15_rp
    REAL(KIND=rp), PARAMETER :: eps_omega = 1.0e-15_rp
+   REAL(KIND=rp), PARAMETER :: eps_large = 1.0e-6_rp
+
+
+   !---------------------------------------------------------------------------------
+   ! Switches
+   !---------------------------------------------------------------------------------
+!   INTEGER       :: Method                         ! Full-f or delta-f (0=full, fluxtube, 0=deltaf_ala_ORB5)
+   INTEGER       :: USE_larmor                     ! FLR effects: 0=OFF, 1=ON
+   INTEGER       :: USE_coll                       ! collisions: 0=OFF, 1=ON
+   INTEGER       :: USE_turb                       ! turbulence: 0=OFF, 1=ON
+   INTEGER       :: USE_magnturb                   ! RMP: 0=OFF, 1=ON
+   INTEGER       :: USE_freq                       ! mode freqs: 0=frozen, 1=real frequencies
+   INTEGER       :: USE_polar                      ! polarization drift: 0=OFF, 1=ON
+   INTEGER       :: USE_PC                         ! initial condition constancy psi/Pc
+   INTEGER       :: USE_real                       ! same/different turbulence realizations across particles
+   INTEGER       :: USE_corr                       ! compute/export Lagrangian correlations
+   INTEGER       :: USE_balloon                    ! 0=homogeneous kz, 1=ballooning g(z)
+   INTEGER       :: USE_tilt                       ! tilting switch
+   INTEGER       :: USE_testing                    ! testing switch
 
    !---------------------------------------------------------------------------------
    ! Numerical parameters
@@ -160,26 +179,12 @@ MODULE constants
    REAL(KIND=rp) :: As                             ! ion mass number
    REAL(KIND=rp) :: Zs                             ! ionization state
    REAL(KIND=rp) :: taucc                          ! inverse collision frequency [R0/vth]
+   REAL(KIND=rp) :: Lns                            ! density gradient for the species
+   REAL(KIND=rp) :: Lts                            ! temperature gradient of the species
    
    INTEGER       :: position_type                  ! init position: 1-fixed point, ...
    INTEGER       :: pitch_type                     ! init pitch: 1-fixed, 2-random uniform
    INTEGER       :: energy_type                    ! init energy: 1-fixed, 2-Boltzmann
-
-   !---------------------------------------------------------------------------------
-   ! Switches
-   !---------------------------------------------------------------------------------
-   INTEGER       :: USE_larmor                     ! FLR effects: 0=OFF, 1=ON
-   INTEGER       :: USE_coll                       ! collisions: 0=OFF, 1=ON
-   INTEGER       :: USE_turb                       ! turbulence: 0=OFF, 1=ON
-   INTEGER       :: USE_magnturb                   ! RMP: 0=OFF, 1=ON
-   INTEGER       :: USE_freq                       ! mode freqs: 0=frozen, 1=real frequencies
-   INTEGER       :: USE_polar                      ! polarization drift: 0=OFF, 1=ON
-   INTEGER       :: USE_PC                         ! initial condition constancy psi/Pc
-   INTEGER       :: USE_real                       ! same/different turbulence realizations across particles
-   INTEGER       :: USE_corr                       ! compute/export Lagrangian correlations
-   INTEGER       :: USE_balloon                    ! 0=homogeneous kz, 1=ballooning g(z)
-   INTEGER       :: USE_tilt                       ! tilting switch
-   INTEGER       :: USE_testing                    ! testing switch
 
    REAL(KIND=rp) :: usetilt, balloon, noballoon, norm ! helpers
 
@@ -213,6 +218,20 @@ CONTAINS
       !---------------------------------------------------------------------------------
       ! Import parameters
       !---------------------------------------------------------------------------------
+!	Method         = int(pp(param_index("Method")))
+	USE_larmor     = int(pp(param_index("USE_larmor")))
+	USE_coll       = int(pp(param_index("USE_coll")))
+	USE_turb       = int(pp(param_index("USE_turb")))
+	USE_magnturb   = int(pp(param_index("USE_magnturb")))
+	USE_freq       = int(pp(param_index("USE_freq")))
+	USE_polar      = int(pp(param_index("USE_polar")))
+	USE_PC         = int(pp(param_index("USE_PC")))
+	USE_real       = int(pp(param_index("USE_real")))
+	USE_corr       = int(pp(param_index("USE_corr")))
+	USE_balloon    = int(pp(param_index("USE_balloon")))
+	USE_tilt       = int(pp(param_index("USE_tilt")))
+	USE_testing    = int(pp(param_index("USE_testing")))
+
 	t0             = pp(param_index("t0"))
 	tc             = pp(param_index("tc"))
 	tt             = pp(param_index("tt"))
@@ -277,19 +296,9 @@ CONTAINS
 	position_type  = int(pp(param_index("position_type")))
 	pitch_type     = int(pp(param_index("pitch_type")))
 	energy_type    = int(pp(param_index("energy_type")))
+	Lns            = int(pp(param_index("Lns")))
+	Lts            = int(pp(param_index("Lts")))
 
-	USE_larmor     = int(pp(param_index("USE_larmor")))
-	USE_coll       = int(pp(param_index("USE_coll")))
-	USE_turb       = int(pp(param_index("USE_turb")))
-	USE_magnturb   = int(pp(param_index("USE_magnturb")))
-	USE_freq       = int(pp(param_index("USE_freq")))
-	USE_polar      = int(pp(param_index("USE_polar")))
-	USE_PC         = int(pp(param_index("USE_PC")))
-	USE_real       = int(pp(param_index("USE_real")))
-	USE_corr       = int(pp(param_index("USE_corr")))
-	USE_balloon    = int(pp(param_index("USE_balloon")))
-	USE_tilt       = int(pp(param_index("USE_tilt")))
-	USE_testing    = int(pp(param_index("USE_testing")))
       ! End of import parameters
       Nqua = 16   ! number of quantities stored on the EFIT-like grid
 
@@ -442,7 +451,7 @@ CONTAINS
       norm = 1.0_rp / sqrt(real(Nc, rp)/2.0_rp)
       
 !     dmmax = 2
-      dmmax = 1 + int(sqrt(-2.0_rp*log(0.05_rp)/lbalonz))
+      dmmax = 3 + int(sqrt(-2.0_rp*log(0.05_rp)/lbalonz))
 
    END SUBROUTINE parameters
 

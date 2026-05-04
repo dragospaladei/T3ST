@@ -61,6 +61,9 @@ CycloneBaseZhang:
   position_type: 2
   pitch_type: 2
   energy_type: 2
+  Lns: 0
+  Lts: 0
+#  Method: 0
   USE_larmor: 1
   USE_coll: 0
   USE_turb: 1
@@ -133,6 +136,9 @@ MAST-U:
   position_type: 2
   pitch_type: 2
   energy_type: 2
+  Lns: 0
+  Lts: 0
+#  Method: 0
   USE_larmor: 1
   USE_coll: 0
   USE_turb: 1
@@ -205,6 +211,9 @@ TCV:
   position_type: 2
   pitch_type: 2
   energy_type: 2
+  Lns: 0
+  Lts: 0
+#  Method: 0
   USE_larmor: 1
   USE_coll: 0
   USE_turb: 1
@@ -277,6 +286,9 @@ WEST:
   position_type: 2
   pitch_type: 2
   energy_type: 2
+  Lns: 0
+  Lts: 0
+#  Method: 0
   USE_larmor: 1
   USE_coll: 0
   USE_turb: 1
@@ -349,6 +361,9 @@ CycloneBaseCase:
   position_type: 2
   pitch_type: 2
   energy_type: 2
+  Lns: 0
+  Lts: 0
+#  Method: 0
   USE_larmor: 1
   USE_coll: 0
   USE_turb: 1

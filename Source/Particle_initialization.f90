@@ -9,13 +9,13 @@
     !      !  01/01/2024   |     D. I. Palade       |   Remake
     !  ========================================================================================================================================================
 
-    SUBROUTINE initial_conditions(X, Y, Z, mu, Vp, pb)
+    SUBROUTINE initial_conditions(X, Y, Z, mu, Vp, pb, Weight, FM0)
        USE constants
        USE random_numbers
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT) :: X, Y, Z, mu, vp, pb
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT) :: X, Y, Z, mu, vp, pb, Weight, FM0
 
        ! Local variables
        REAL(KIND=rp), DIMENSION(Np)                 :: En, PA, aux
@@ -40,6 +40,7 @@
        ! ------------------------------------------------------------------------------------------------------------------------
        ! Energy En distribution :: note, these are kinetic energies only.
        ! ------------------------------------------------------------------------------------------------------------------------
+       Ts = Ts + 1.0e-18_rp! avoid pure zero's in energy
 
        IF (energy_type == 1) THEN
           En = Es
@@ -47,7 +48,7 @@
           CALL PDF_Boltz(Np, Ts, En)                                ! the distribution of real kinetic energies mv^2/2
        ELSE
           WRITE (*, *) 'Error [initial_conditions]: unknown type for energy distribution specification'
-       END IF
+       END IF       
 
        Vp = SQRT(2.0*En/As)*PA                      !SQRT(2*(En-Phi*Zw*phi0)/As)*COS(PA)
 
@@ -71,17 +72,19 @@
        ! Note:: the energies are shifted with the potential value directly in "mu, vp" for simplicity
 
        IF (USE_turb == ON) THEN
-          pb = E**(-Zs*(Phi*phi1 + phi2)/Ts- 0.5*(Zs*Phi/Ts)**2)
+          pb = E**(-Zs*(0.0*Phi*phi1 + phi2)/Ts- 0.0*0.5*(Zs*Phi/Ts)**2)
        ELSE
           pb = E**(-Zs*phi2/Ts)
        END IF
 
        pb = pb*X
-       write(*,*) 'lets not forget that we have putted a weight of R on all particles to compensate the toroidal geometrical effects'
 
        pb = pb*Np/sum(pb)
-
        mu = En/B*(1.0 - PA**2.)                               !(En-Phi*Zw*phi0)/normB*SIN(PA)**2.
+
+
+       Weight = 0.0_rp
+       FM0 = exp(-En/Ts)/Ts**(1.5_rp)       
 
     END SUBROUTINE
 

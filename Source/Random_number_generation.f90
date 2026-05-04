@@ -426,7 +426,7 @@ END SUBROUTINE PDF_abcap  !=====================================================
   ! PDF_ky (chunked accept-reject; same math as your revised code)
   !=============================================================================
   SUBROUTINE PDF_ky(n, zlam, zk0, xf)
-    USE constants, ONLY: rp, pi, E
+    USE constants
     IMPLICIT NONE
 
     INTEGER,               INTENT(IN)  :: n
@@ -440,7 +440,7 @@ END SUBROUTINE PDF_abcap  !=====================================================
     REAL(KIND=rp), ALLOCATABLE :: x1(:), x2(:), y1(:), y2(:)
     LOGICAL,       ALLOCATABLE :: keep(:)
 
-    IF (n < 10) THEN
+    IF ((n < 10).and.(USE_real.eq.0)) THEN
       PRINT *, 'ERROR: generate at least 10 numbers ~ PDF_ky'
       STOP
     END IF

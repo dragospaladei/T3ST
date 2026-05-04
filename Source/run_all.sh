@@ -3,7 +3,7 @@
 # Set to 1 (Sim) or 2 (DB)
 FILE_TYPE=1
 
-for val in {1..1}; do
+for val in {1..2}; do
     echo "====================================="
     echo " RUNNING SIMULATION NO. : $val"
     echo " Using script: run_all.sh"
