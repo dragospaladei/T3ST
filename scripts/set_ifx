@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# --- Intel oneAPI compiler environment ---
+# (adjust this path only if your oneAPI install location/version changes)
+source "$HOME/intel/oneapi/compiler/2024.1/env/vars.sh"
+
+# --- Allow large stack for numerical codes ---
+ulimit -s unlimited
