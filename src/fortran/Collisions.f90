@@ -1,5 +1,13 @@
-    !      ! Subroutine :: Collisions
-    !      ! Purpose    :: Collisions
+!========================================================================================================
+! Legacy / inactive collision routines.
+!
+! This file is intentionally not part of src/fortran/Makefile. The active runtime collision path is
+! collision_kicks in Gyro_center_kernels.f90, called directly from T3ST_main.f90. These older vector
+! routines are kept only as reference material for the legacy pusher in Legacy_unused.f90.
+!========================================================================================================
+
+    !      ! Subroutine :: collision_operator
+    !      ! Purpose    :: collision_operator
     !      ! ??????????????????????????
     !      ! ??????
     !  ========================================================================================================================================================
@@ -9,7 +17,7 @@
     !      !  01/01/2024   |     D. I. Palade       |   Remake
     !  ========================================================================================================================================================
 
-    SUBROUTINE Collisions(dt, X, Y, Z, Vp, mut, vcolx, vcoly, vcolz, vcolm, vcolp, B, Bx, By, Bz)
+    SUBROUTINE collision_operator(dt, X, Y, Z, Vp, mut, vcolx, vcoly, vcolz, vcolm, vcolp, B, Bx, By, Bz)
        USE constants
        USE random_numbers
        IMPLICIT NONE
@@ -82,9 +90,9 @@
 
        !       call print_error(X,Y,Z,Vp,mut,v,zeta,ene,B,xx,Fpsi,Fphi,rpar,rperp,rparprim,DifR,vcolx,vcoly,vcolz,vcolm,vcolp,Spp,Spm,Smp,Smm)
 
-    END SUBROUTINE Collisions
+    END SUBROUTINE collision_operator
 
-    SUBROUTINE Coll_Lorentz(dt, X, Y, Z, Vp, mut, vcolx, vcoly, vcolz, vcolm, vcolp, B)
+    SUBROUTINE lorentz_collision_operator(dt, X, Y, Z, Vp, mut, vcolx, vcoly, vcolz, vcolm, vcolp, B)
        USE constants
        USE random_numbers
        IMPLICIT NONE
@@ -141,9 +149,9 @@
        vcolm = 0.0
        vcolp = 0.0
 
-    END SUBROUTINE Coll_Lorentz
+    END SUBROUTINE lorentz_collision_operator
 
-    SUBROUTINE Coll_Lorentz_drag(dt, X, Y, Z, Vp, mut, vcolx, vcoly, vcolz, vcolm, vcolp, B, Bx, By, Bz)
+    SUBROUTINE lorentz_drag_collision_operator(dt, X, Y, Z, Vp, mut, vcolx, vcoly, vcolz, vcolm, vcolp, B, Bx, By, Bz)
        USE constants
        USE random_numbers
        IMPLICIT NONE
@@ -198,4 +206,4 @@
        vcolm = (ene/B*(1.0 - zeta**2) - mut)/dt
        vcolp = (v*zeta - Vp)/dt
 
-    END SUBROUTINE Coll_Lorentz_drag
+    END SUBROUTINE lorentz_drag_collision_operator

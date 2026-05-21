@@ -43,17 +43,17 @@ contains
   !=============================================================================
   ! Main entry point
   !=============================================================================
-  subroutine testing_T3ST(X, Y, Z, Vp, mu, weight, pb, Vstar1, Vstar2, Vstar3, no_errors, gnorm_local)
-    real(rp), intent(in)  :: X(:), Y(:), Z(:), Vp(:), mu(:), pb(:), weight(:)
+  subroutine testing_T3ST(X, Y, Z, Vp, mu, F0, G0, FM, betaF, betaD, Vstar1, Vstar2, Vstar3, no_errors)
+    real(rp), intent(in)  :: X(:), Y(:), Z(:), Vp(:), mu(:)
+    real(rp), intent(in)  :: F0(:), G0(:), FM(:), betaF(:), betaD(:)
     real(rp), intent(in)  :: Vstar1, Vstar2, Vstar3
     integer,  intent(out) :: no_errors
 
     integer  :: Np_partial, Nt_partial, np_avail
-    real(rp) :: dt, ratio32,  gnorm_local
+    real(rp) :: dt, ratio32
 
     real(rp), allocatable :: Xh(:,:), Yh(:,:), Zh(:,:), Vph(:,:), muh(:,:)
-    real(rp), allocatable :: Hh(:,:), Pch(:,:), c1h(:,:), c2h(:,:), c3h(:,:),  Vtx(:,:),  Vty(:,:)
-    real(rp), allocatable :: Xaux(:), Yaux(:), Zaux(:), Vpaux(:), muaux(:)
+    real(rp), allocatable :: Hh(:,:), Pch(:,:), c1h(:,:), c2h(:,:), c3h(:,:),  Vtx(:,:),  VFx(:,:)
 
     integer  :: nstep_eff
     real(rp) :: T, compare
@@ -80,10 +80,7 @@ contains
              c2h(1:Nt_partial, 1:Np_partial), &
              c3h(1:Nt_partial, 1:Np_partial),&
              Vtx(1:Nt_partial, 1:Np_partial), &
-             Vty(1:Nt_partial, 1:Np_partial))
-
-    allocate(Xaux(Np), Yaux(Np), Zaux(Np), Vpaux(Np), muaux(Np))
-    Xaux=X; Yaux=Y; Zaux=Z; Vpaux=Vp; muaux=mu;
+             VFx(1:Nt_partial, 1:Np_partial))
 
     call alerts_reset()
     call banner_begin()
@@ -98,7 +95,11 @@ contains
     call check_nan("Z",      Z,      no_errors)
     call check_nan("Vp",     Vp,     no_errors)
     call check_nan("mu",     mu,     no_errors)
-    call check_nan("pb",     pb,     no_errors)
+    call check_nan("F0",     F0,     no_errors)
+    call check_nan("G0",     G0,     no_errors)
+    call check_nan("FM",     FM,     no_errors)
+    call check_nan("betaF",  betaF,  no_errors)
+    call check_nan("betaD",  betaD,  no_errors)
     call check_nan("Vstar1", Vstar1, no_errors)
     call check_nan("Vstar2", Vstar2, no_errors)
     call check_nan("Vstar3", Vstar3, no_errors)
@@ -156,7 +157,7 @@ contains
     ! Input consistency checks
     ! -------------------------
     call section("Input consistency checks")
-    call check_inputs(X, Y, Z, Vp, mu, pb, a0, 1.0e-12_rp, no_errors)
+    call check_inputs(X, Y, Z, Vp, mu, F0, G0, FM, betaF, betaD, a0, 1.0e-12_rp, no_errors)
 
     ! -------------------------
     ! Wave moment/symmetry checks (same switch)
@@ -181,8 +182,8 @@ contains
     call log_val("[INFO ]", "dt", dt)
 
 
-!    call rk4_propagation(gnorm_local, X, Y, Z, Vp, mu, weight, pb, dt, Nt_partial, Np_partial, &
- !                        Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtx, Vty)
+    call rk4_propagation(X, Y, Z, Vp, mu, betaF, betaD, dt, Nt_partial, Np_partial, &
+                         Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtx, VFx)
                          
     nstep_eff = max(1, Nt_partial - 1)
     T         = dt * real(nstep_eff, rp)
@@ -236,9 +237,6 @@ contains
  
     call print_gaussianity_slice("phiy", c3h, 1, Np_partial, no_errors, compare)
 
-!    call rk4_propagation(gnorm_local, Xaux, Yaux, Zaux, Vpaux, muaux, weight, pb, dt, 1, Np_partial, &
- !                        Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtx, Vty)
-
     if (USE_real.eq.OFF) then
       compare = ((R0/rhoi*Phi)**2)*sum(ky**2)/real(Np*Nc,rp)
     elseif (USE_real.eq.ON) then
@@ -257,7 +255,7 @@ contains
     call log_raw(' --------------------------------------------------------------')
     call log_raw(' ------ A ballistic/QL estimation of neoclassical transport ------')
     write(TMP,'(A,' // FVAL // ',A,' // FVAL // ',A,' // FVAL // ')') &
-      '  E[Vnx] =', sum(Vty(1,:)-Vtx(1,:))/Np_partial, ' E[Vnx^2] =', sum((Vty(1,:)-Vtx(1,:))**2)/Np_partial,  ' compared to (only if theta=pi/2)', compare
+      '  E[Vnx] =', sum(VFx(1,:)-Vtx(1,:))/Np_partial, ' E[Vnx^2] =', sum((VFx(1,:)-Vtx(1,:))**2)/Np_partial,  ' compared to (only if theta=pi/2)', compare
     call log_raw(TMP)
 
     ! -------------------------
@@ -273,23 +271,23 @@ contains
   !=============================================================================
   ! RK4 propagation (unchanged numerics; formatting/indent only)
   !=============================================================================
-  subroutine rk4_propagation(gnorm_local, X, Y, Z, Vp, mu, weight, pb, dt, Nt_partial, Np_partial, &
-                             Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtxall, Vtyall)
+  subroutine rk4_propagation(X, Y, Z, Vp, mu, betaF, betaD, dt, Nt_partial, Np_partial, &
+                             Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtxall, VFxall)
 
-    real(rp), intent(in) :: X(:), Y(:), Z(:), Vp(:), mu(:), pb(:), weight(:)
+    real(rp), intent(in) :: X(:), Y(:), Z(:), Vp(:), mu(:), betaF(:), betaD(:)
     integer,  intent(in) :: Np_partial, Nt_partial
     real(rp), intent(in) :: dt
 
     real(rp), intent(out) :: Xh(:,:), Yh(:,:), Zh(:,:), Vph(:,:), muh(:,:)
-    real(rp), intent(out) :: Hh(:,:), Pch(:,:), c1h(:,:), c2h(:,:), c3h(:,:), Vtxall(:,:), Vtyall(:,:)
+    real(rp), intent(out) :: Hh(:,:), Pch(:,:), c1h(:,:), c2h(:,:), c3h(:,:), Vtxall(:,:), VFxall(:,:)
 
     real(rp), pointer, contiguous :: Qx(:), Qy(:), Qz(:), Qw(:), Qph(:)
 
-    real(rp) :: xi, yi, zi, mui, vpi, pbi, weighti
-    real(rp) :: vx, vy, vz, vm, ap, vw, vq, heat
-    real(rp) :: Wx, Wy, Wz, Wm, Wp, Ww
-    real(rp) :: q1, q2, q3, gnorm_local
-    real(rp) :: Hi, B, Vtx, Vty, Pc
+    real(rp) :: xi, yi, zi, mui, vpi, betaFi, betaDi
+    real(rp) :: vx, vy, vz, vm, ap, vbF, vbD, kin
+    real(rp) :: Wx, Wy, Wz, Wm, Wp, WbF, WbD
+    real(rp) :: q1, q2, q3
+    real(rp) :: Hi, FMi, B, Vtx, VFx, Pc
     real(rp) :: check_1, check_2, check_3, time
     integer  :: ias, k
 
@@ -315,17 +313,16 @@ contains
       zi  = Z(ias)
       mui = mu(ias)
       vpi = Vp(ias)
-      pbi = pb(ias)
-      weighti = weight(ias)
-      call ignore_unused(pbi)
+      betaFi = betaF(ias)
+      betaDi = betaD(ias)
 
       do k = 1, Nt_partial
 
         time = dt * real(k - 1, rp)
 
-call Drift2(dt, xi, yi, zi, vpi, mui, weighti, q1, q2, q3, time,          &
-            vx, vy, vz, ap, vm, vw, vq, heat, Hi, Pc, B, Vtx, Vty,            &
-            check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, gnorm_local)
+call gyrocenter_drifts(xi, yi, zi, vpi, mui, q1, q2, q3, time,                       &
+            vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx,     &
+            check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph)
             
         Xh(k, ias)  = xi
         Yh(k, ias)  = yi
@@ -338,57 +335,61 @@ call Drift2(dt, xi, yi, zi, vpi, mui, weighti, q1, q2, q3, time,          &
         c2h(k, ias) = check_2
         c3h(k, ias) = check_3
         Vtxall(k,ias) = Vtx
-        Vtyall(k,ias) = Vty
+        VFxall(k,ias) = VFx
 
         Wx = vx / 6.0_rp
         Wy = vy / 6.0_rp
         Wz = vz / 6.0_rp
         Wm = vm / 6.0_rp
-        Ww = vw / 6.0_rp
+        WbF = vbF / 6.0_rp
+        WbD = vbD / 6.0_rp
         Wp = ap / 6.0_rp
 
-call Drift2(dt, xi + vx*dt/2.0_rp, yi + vy*dt/2.0_rp, zi + vz*dt/2.0_rp, &
-            vpi + ap*dt/2.0_rp, mui + vm*dt/2.0_rp, weighti + vw*dt/2.0_rp, &
+call gyrocenter_drifts(xi + vx*dt/2.0_rp, yi + vy*dt/2.0_rp, zi + vz*dt/2.0_rp,      &
+            vpi + ap*dt/2.0_rp, mui + vm*dt/2.0_rp,                       &
             q1, q2, q3, time + dt/2.0_rp,                                  &
-            vx, vy, vz, ap, vm, vw, vq, heat, Hi, Pc, B, Vtx, Vty,            &
-            check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, gnorm_local)
+            vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx,     &
+            check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph)
                           
         Wx = Wx + vx / 3.0_rp
         Wy = Wy + vy / 3.0_rp
         Wz = Wz + vz / 3.0_rp
         Wm = Wm + vm / 3.0_rp
-        Ww = Ww + vw / 3.0_rp
+        WbF = WbF + vbF / 3.0_rp
+        WbD = WbD + vbD / 3.0_rp
         Wp = Wp + ap / 3.0_rp
 
 
 ! RK2b
-call Drift2(dt, xi + vx*dt/2.0_rp, yi + vy*dt/2.0_rp, zi + vz*dt/2.0_rp, &
-            vpi + ap*dt/2.0_rp, mui + vm*dt/2.0_rp, weighti + vw*dt/2.0_rp, &
+call gyrocenter_drifts(xi + vx*dt/2.0_rp, yi + vy*dt/2.0_rp, zi + vz*dt/2.0_rp,      &
+            vpi + ap*dt/2.0_rp, mui + vm*dt/2.0_rp,                       &
             q1, q2, q3, time + dt/2.0_rp,                                  &
-            vx, vy, vz, ap, vm, vw, vq, heat, Hi, Pc, B, Vtx, Vty,            &
-            check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, gnorm_local)
+            vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx,     &
+            check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph)
 
 
         Wx = Wx + vx / 3.0_rp
         Wy = Wy + vy / 3.0_rp
         Wz = Wz + vz / 3.0_rp
         Wm = Wm + vm / 3.0_rp
-        Ww = Ww + vw / 3.0_rp
+        WbF = WbF + vbF / 3.0_rp
+        WbD = WbD + vbD / 3.0_rp
         Wp = Wp + ap / 3.0_rp
 
 ! RK4
-call Drift2(dt, xi + vx*dt, yi + vy*dt, zi + vz*dt,                       &
-            vpi + ap*dt, mui + vm*dt, weighti + vw*dt,                     &
+call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                            &
+            vpi + ap*dt, mui + vm*dt,                                      &
             q1, q2, q3, time + dt,                                         &
-            vx, vy, vz, ap, vm, vw, vq, heat, Hi, Pc, B, Vtx, Vty,            &
-            check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, gnorm_local)
+            vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx,     &
+            check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph)
             
             
         Wx = Wx + vx / 6.0_rp
         Wy = Wy + vy / 6.0_rp
         Wz = Wz + vz / 6.0_rp
         Wm = Wm + vm / 6.0_rp
-        Ww = Ww + vw / 6.0_rp
+        WbF = WbF + vbF / 6.0_rp
+        WbD = WbD + vbD / 6.0_rp
         Wp = Wp + ap / 6.0_rp
 
         xi  = xi  + dt * Wx
@@ -396,7 +397,8 @@ call Drift2(dt, xi + vx*dt, yi + vy*dt, zi + vz*dt,                       &
         zi  = zi  + dt * Wz
         vpi = vpi + dt * Wp
         mui = mui + dt * Wm
-        weighti = weighti + dt * Ww
+        betaFi = betaFi + dt * WbF
+        betaDi = betaDi + dt * WbD
 
       end do
     end do
@@ -472,23 +474,27 @@ call Drift2(dt, xi + vx*dt, yi + vy*dt, zi + vz*dt,                       &
   !=============================================================================
   ! Input checks (uniform messages + formatted numbers)
   !=============================================================================
-  subroutine check_inputs(X, Y, Z, Vp, mu, pb, a1, tol, no_errors)
-    real(rp), intent(in)    :: X(:), Y(:), Z(:), Vp(:), mu(:), pb(:)
+  subroutine check_inputs(X, Y, Z, Vp, mu, F0, G0, FM, betaF, betaD, a1, tol, no_errors)
+    real(rp), intent(in)    :: X(:), Y(:), Z(:), Vp(:), mu(:)
+    real(rp), intent(in)    :: F0(:), G0(:), FM(:), betaF(:), betaD(:)
     real(rp), intent(in)    :: a1, tol
     integer,  intent(inout) :: no_errors
 
     integer  :: n, nbad
-    real(rp) :: pii, mean_pb
+    real(rp) :: pii, max_betaF_err, max_betaD_err
 
     n   = size(X)
     pii = 3.14159265358979323846_rp
 
-    if (any([ size(Y), size(Z), size(Vp), size(mu), size(pb) ] /= n)) then
+    if (any([ size(Y), size(Z), size(Vp), size(mu), size(F0), size(G0), size(FM), size(betaF), size(betaD) ] /= n)) then
       no_errors = no_errors + 1
       call log_alert("Input arrays have inconsistent sizes")
       write(TMP,'(a,1x,a,": X=",1x,'//FINT//',", Y=",1x,'//FINT//',", Z=",1x,'//FINT//', &
-                   ", Vp=",1x,'//FINT//',", mu=",1x,'//FINT//',", pb=",1x,'//FINT//')') &
-        "[INFO ]", pad_label("sizes"), size(X), size(Y), size(Z), size(Vp), size(mu), size(pb)
+                   ", Vp=",1x,'//FINT//',", mu=",1x,'//FINT//',", F0=",1x,'//FINT//', &
+                   ", G0=",1x,'//FINT//',", FM=",1x,'//FINT//',", betaF=",1x,'//FINT//', &
+                   ", betaD=",1x,'//FINT//')') &
+        "[INFO ]", pad_label("sizes"), size(X), size(Y), size(Z), size(Vp), size(mu), &
+        size(F0), size(G0), size(FM), size(betaF), size(betaD)
       call log_raw(TMP)
       return
     else
@@ -533,25 +539,53 @@ call Drift2(dt, xi + vx*dt, yi + vy*dt, zi + vz*dt,                       &
       call log_ok("mu > 0 everywhere")
     end if
 
-    nbad = count(pb <= 0.0_rp)
+    nbad = count(F0 <= 0.0_rp)
     if (nbad > 0) then
       no_errors = no_errors + 1
-      call log_alert("Condition failed: pb must be > 0")
+      call log_alert("Condition failed: F0 must be > 0")
       call log_count("violations", nbad, n)
     else
-      call log_ok("pb > 0 everywhere")
+      call log_ok("F0 > 0 everywhere")
     end if
 
-    mean_pb = sum(pb) / real(n, rp)
-    if (abs(mean_pb - 1.0_rp) > tol) then
+    nbad = count(G0 <= 0.0_rp)
+    if (nbad > 0) then
       no_errors = no_errors + 1
-      call log_alert("Condition failed: mean(pb) must be 1")
-      call log_val("[INFO ]", "mean(pb)", mean_pb)
-      call log_val("[INFO ]", "tol",      tol)
+      call log_alert("Condition failed: G0 must be > 0")
+      call log_count("violations", nbad, n)
     else
-      call log_ok("mean(pb) = 1 within tolerance")
-      call log_val("[INFO ]", "mean(pb)", mean_pb)
-      call log_val("[INFO ]", "tol",      tol)
+      call log_ok("G0 > 0 everywhere")
+    end if
+
+    nbad = count(FM <= 0.0_rp)
+    if (nbad > 0) then
+      no_errors = no_errors + 1
+      call log_alert("Condition failed: FM must be > 0")
+      call log_count("violations", nbad, n)
+    else
+      call log_ok("FM > 0 everywhere")
+    end if
+
+    if (all((F0 > 0.0_rp) .and. (FM > 0.0_rp))) then
+      max_betaF_err = maxval(abs(FM * exp(betaF) / F0 - 1.0_rp))
+      max_betaD_err = maxval(abs(FM * exp(betaD) / F0 - 1.0_rp))
+
+      if (max_betaF_err > tol) then
+        no_errors = no_errors + 1
+        call log_alert("Condition failed: FM*exp(betaF)/F0 must be 1")
+      else
+        call log_ok("FM*exp(betaF)/F0 = 1 within tolerance")
+      end if
+      call log_val("[INFO ]", "max betaF identity error", max_betaF_err)
+
+      if (max_betaD_err > tol) then
+        no_errors = no_errors + 1
+        call log_alert("Condition failed: FM*exp(betaD)/F0 must be 1")
+      else
+        call log_ok("FM*exp(betaD)/F0 = 1 within tolerance")
+      end if
+      call log_val("[INFO ]", "max betaD identity error", max_betaD_err)
+      call log_val("[INFO ]", "tol", tol)
     end if
 
     nbad = count(sqrt((X - 1.0_rp)**2 + Y**2) >= a1)

@@ -535,11 +535,19 @@ parameters:
     help: Initial position distribution
     choices:
       - value: 1
-        label: fixed_point
+        label: single_point
       - value: 2
         label: flux_surface
       - value: 3
-        label: annulus
+        label: local_annulus
+
+  - name: annulus_width
+    kind: float
+    min: 0
+    max: 1
+    default: 0.1
+    group: "Particle Initial Conditions"
+    help: Full radial width of the local-annulus initial distribution, in normalized minor-radius units
 
   - name: pitch_type
     kind: enum
@@ -568,12 +576,12 @@ parameters:
     units: "adim; R0/Ln"
     default: 0
     group: "Particle Initial Conditions"
-    help: Density gradient of the species (relevant only when method=1 - deltaF)
+    help: Density gradient of the species (Note - its usually < 0 !!!)
 
   - name: Lts
     kind: float
     units: "adim; R0/LT"
     default: 0
     group: "Particle Initial Conditions"
-    help: Temperature gradient of the species (relevant only when method=1 - deltaF)
+    help: Temperature gradient of the species (Note - its usually < 0 !!!)
 

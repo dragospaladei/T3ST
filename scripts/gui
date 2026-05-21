@@ -1,0 +1,22 @@
+#!/bin/bash
+
+gui_main() (
+    set -o pipefail
+
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+    GUI_ENTRY="$PROJECT_ROOT/src/gui/T3ST_GUI.py"
+
+    if [[ ! -f "$GUI_ENTRY" ]]; then
+        echo "ERROR: GUI entry point not found: $GUI_ENTRY" >&2
+        return 1
+    fi
+
+    cd "$PROJECT_ROOT"
+    python3 "$GUI_ENTRY"
+)
+
+gui_main "$@"
+status=$?
+unset -f gui_main
+return "$status" 2>/dev/null || exit "$status"

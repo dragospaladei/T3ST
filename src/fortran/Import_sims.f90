@@ -2,9 +2,24 @@
 ! Module: sims
 !
 ! Purpose:
-!   Import parameters for many simulations from the file "Sim_XX.dat" or "DB_XX.dat"
+!   Import parameters for many simulations from the file "Sim_XXX.dat" or "DB_XXX.dat"
 !   into array1. The files are placed in .../Sims/ and generated externally
 !   (T3ST GUI). This module should be called in main only once, before the run loop.
+!
+! Expected file layout:
+!   optional comment line beginning with '#'
+!   number of runs
+!   number of parameter columns
+!   one header row containing parameter names
+!   one numeric row per run
+!
+! Example:
+!   # mode=manual | scenario=CycloneBaseCase | ...
+!   2
+!   73
+!   USE_larmor USE_coll ... Lns Lts
+!   0 0 ... 0 0
+!   0 0 ... 1 0
 !
 ! Record of revisions:
 !    Date       | Programmer          | Description
@@ -21,21 +36,27 @@ MODULE sims
    SAVE
 
    !---------------------------------------------------------------------------------
-   ! Public data
+   ! Public data shared with the main program and constants module.
+   !
+   ! array1(run, parameter_index) stores the numeric values read from the selected
+   ! Sim_XXX.dat or DB_XXX.dat file. The constants module later accesses values by
+   ! parameter name through parameter_index(), so column order can change safely as long
+   ! as the header row is correct.
    !---------------------------------------------------------------------------------
-   INTEGER, PARAMETER :: rp = selected_real_kind(7)      ! requested precision across the entire code
+   INTEGER, PARAMETER :: rp = selected_real_kind(7)
 
-   REAL(KIND=rp), ALLOCATABLE, DIMENSION(:, :) :: array1 ! storage of simulation parameters
-   INTEGER                                    :: rows1  ! number of runs/scenarios in the file
-   INTEGER                                    :: cols1  ! number of parameters per run
+   REAL(KIND=rp), ALLOCATABLE, DIMENSION(:, :) :: array1
+   INTEGER                                     :: rows1
+   INTEGER                                     :: cols1
 
-   CHARACTER(LEN=2)  :: noofsimstr
-   INTEGER           :: noofsim
-   INTEGER, PARAMETER   :: name_len = 64
+   CHARACTER(LEN=3)                    :: noofsimstr
+   INTEGER                             :: noofsim
+   INTEGER, PARAMETER                  :: name_len = 64
    CHARACTER(LEN=name_len), ALLOCATABLE :: param_names(:)
-   CHARACTER(LEN=:), ALLOCATABLE :: project_root
+   CHARACTER(LEN=:), ALLOCATABLE      :: project_root
 
-   ! 'Sim' or 'DB' — set during sim_values, used by the rest of the program if needed
+   ! 'Sim' or 'DB'. This selects Sims/Sim_XXX.dat or Sims/DB_XXX.dat and also
+   ! determines the output folder name under data/.
    CHARACTER(LEN=3)   :: file_type
 
    ! First-line comment from the .dat file, e.g.:
@@ -44,27 +65,37 @@ MODULE sims
    ! Accessible anywhere via USE sims.
    CHARACTER(LEN=512) :: sim_comment
 
-   PUBLIC :: sim_values, array1, rows1, cols1, param_index, file_type, sim_comment, project_root
+   PUBLIC :: load_simulation_matrix, array1, rows1, cols1, parameter_index, parameter_exists, file_type, sim_comment, project_root
 
 CONTAINS
 
    !=====================================================================================================
-   ! sim_values
-   !   - asks user whether to load a Sim or DB file
-   !   - asks user for file number (1..99)
-   !   - reads Sims/Sim_XX.dat  (or DB_XX.dat) into array1
-   !   - mirrors the file into data/Sim_XX/  (or data/DB_XX/)
-   !   - ensures data/Sim_XX (or data/DB_XX) and its Run_XXXX folders exist
+   ! load_simulation_matrix
+   !
+   ! Main entry point for this module.
+   !
+   ! It supports two modes:
+   !   1. Interactive mode: main calls load_simulation_matrix(type_choice), and this routine asks
+   !      the user which file type and file number to load.
+   !   2. Command-line mode: main passes type_choice_arg and sim_number_arg, usually
+   !      from T3ST 1 1 or T3ST 2 3.
+   !
+   ! On return:
+   !   - array1 contains all run rows from the selected file.
+   !   - rows1 is the number of runs in that file.
+   !   - cols1 is the number of parameters per run.
+   !   - param_names stores the header names, used for name-based lookup.
+   !   - data/Sim_XXX or data/DB_XXX and Run_XXXXX folders exist.
    !=====================================================================================================
-   SUBROUTINE sim_values(type_choice, type_choice_arg, sim_number_arg)
-      CHARACTER(LEN=10000)          :: CWD          ! current working directory
-      CHARACTER(LEN=:), ALLOCATABLE :: source       ! input Sim/DB file
+   SUBROUTINE load_simulation_matrix(type_choice, type_choice_arg, sim_number_arg)
+      CHARACTER(LEN=10000)          :: CWD
+      CHARACTER(LEN=:), ALLOCATABLE :: source
       CHARACTER(LEN=:), ALLOCATABLE :: output_dir
       CHARACTER(LEN=:), ALLOCATABLE :: run_dir
-      CHARACTER(LEN=35)             :: aux          ! run index as string for folder naming
+      CHARACTER(LEN=35)             :: aux
       LOGICAL                       :: exists
       INTEGER                       :: i
-      CHARACTER(LEN=512)            :: first_line   ! first line read from file (may be a comment)
+      CHARACTER(LEN=512)            :: first_line
       CHARACTER(LEN=10000)          :: header_line
       INTEGER, INTENT(OUT)          :: type_choice
       INTEGER, INTENT(IN), OPTIONAL :: type_choice_arg
@@ -77,8 +108,8 @@ CONTAINS
          type_choice = type_choice_arg
       ELSE
          PRINT *, 'Please select the file type to load:'
-         PRINT *, '  1 - Sim (Sims/Sim_XX.dat)'
-         PRINT *, '  2 - DB  (Sims/DB_XX.dat)'
+         PRINT *, '  1 - Sim (Sims/Sim_XXX.dat)'
+         PRINT *, '  2 - DB  (Sims/DB_XXX.dat)'
          READ  *, type_choice
       END IF
 
@@ -113,19 +144,23 @@ CONTAINS
          READ  *, noofsim
       END IF
 
-      DO WHILE (noofsim /= INT(noofsim) .OR. noofsim < 1 .OR. noofsim > 99)
+      DO WHILE (noofsim /= INT(noofsim) .OR. noofsim < 1 .OR. noofsim > 999)
          IF (PRESENT(sim_number_arg)) THEN
-            ERROR STOP 'Invalid file number argument. Use an integer from 1 to 99.'
+            ERROR STOP 'Invalid file number argument. Use an integer from 1 to 999.'
          END IF
          PRINT *, 'The number does not exist, please try again!'
          READ  *, noofsim
       END DO
 
-      WRITE(noofsimstr, '(I2.2)') noofsim
+      WRITE(noofsimstr, '(I3.3)') noofsim
       source = project_root//'/Sims/'//TRIM(file_type)//'_'//noofsimstr//'.dat'
 
       !---------------------------------------------------------------------------------
-      ! Open parameter file in Sims/
+      ! Open the selected parameter file in Sims/.
+      !
+      ! Example:
+      !   type_choice = 1, noofsim = 1  ->  Sims/Sim_001.dat
+      !   type_choice = 2, noofsim = 4  ->  Sims/DB_004.dat
       !---------------------------------------------------------------------------------
       OPEN(UNIT=999, FILE=source, STATUS='old', ACTION='read')
 
@@ -152,7 +187,11 @@ CONTAINS
       END IF
 
       !---------------------------------------------------------------------------------
-      ! Prepare output folder: .../data/Sim_XX  or  .../data/DB_XX
+      ! Prepare output folder: .../data/Sim_XXX  or  .../data/DB_XXX.
+      !
+      ! The simulation outputs are written into this folder. The original parameter
+      ! file is also mirrored here, which makes each data folder self-describing even
+      ! if the original Sims/ file is later changed.
       !---------------------------------------------------------------------------------
       output_dir = project_root//'/data/'//TRIM(file_type)//'_'//noofsimstr
 
@@ -169,18 +208,22 @@ CONTAINS
          WRITE(*,*) '------------------------------------------------------------------------------'
       END IF
 
-      ! Mirror the parameters into data/Sim_XX/Sim_XX.dat  or  data/DB_XX/DB_XX.dat
+      ! Mirror the parameters into data/Sim_XXX/Sim_XXX.dat or data/DB_XXX/DB_XXX.dat.
       OPEN(UNIT=998, FILE=output_dir//'/'//TRIM(file_type)//'_'//noofsimstr//'.dat', &
            FORM='formatted', ACCESS='stream', STATUS='replace')
 
-      ! Write comment line first (if present), then rows1 — mirrors the source format exactly
+      ! Write comment line first (if present), then rows1. The remaining file content
+      ! is mirrored below as it is read.
       IF (LEN_TRIM(sim_comment) > 0) THEN
          WRITE(998, '(A)') '# '//TRIM(sim_comment)
       END IF
       WRITE(998, *) rows1
 
       !---------------------------------------------------------------------------------
-      ! Read rows, pre-create Run folders
+      ! Pre-create one output folder for each run row.
+      !
+      ! Run row 1 -> Run_00001, row 2 -> Run_00002, etc.
+      ! T3ST_main later opens binary outputs inside these folders.
       !---------------------------------------------------------------------------------
       DO i = 1, rows1
          WRITE(aux, '(I5.5)') i
@@ -189,7 +232,10 @@ CONTAINS
       END DO
 
       !---------------------------------------------------------------------------------
-      ! Read cols and the full parameter matrix
+      ! Read cols1, header names, and the full parameter matrix.
+      !
+      ! cols1 is checked against the number of names found in the header. This avoids
+      ! silent misalignment between numeric values and parameter names.
       !---------------------------------------------------------------------------------
       READ (999, *) cols1
       WRITE(998, *) cols1
@@ -197,10 +243,12 @@ CONTAINS
       ! Read and mirror the parameter-name header row
       READ (999, '(A)') header_line
       WRITE(998, '(A)') TRIM(header_line)
-      CALL parse_header_names(header_line, cols1, param_names)
+      CALL parse_parameter_header(header_line, cols1, param_names)
 
       ALLOCATE(array1(rows1, cols1))
 
+      ! Read each simulation row. The main program loops over rows1 and calls
+      ! load_run_parameters(run), which copies array1(run, :) into named constants.
       DO i = 1, rows1
          READ (999, *) array1(i, :)
          WRITE(998, *) array1(i, :)
@@ -209,10 +257,16 @@ CONTAINS
       CLOSE(999)
       CLOSE(998)
 
-   END SUBROUTINE sim_values
+   END SUBROUTINE load_simulation_matrix
 
 
    FUNCTION find_project_root(start_dir) RESULT(root)
+      !---------------------------------------------------------------------------------
+      ! Walk upward from start_dir until the repository root is found.
+      !
+      ! This lets the executable be launched from the project root, scripts/,
+      ! build/, or src/fortran/ without hard-coding absolute paths.
+      !---------------------------------------------------------------------------------
       IMPLICIT NONE
       CHARACTER(LEN=*), INTENT(IN) :: start_dir
       CHARACTER(LEN=:), ALLOCATABLE :: root
@@ -224,6 +278,8 @@ CONTAINS
       current = TRIM(start_dir)
 
       DO
+         ! The project root is identified by the three directories that define this
+         ! codebase layout.
          INQUIRE(DIRECTORY=TRIM(current)//'/config', EXIST=has_config)
          INQUIRE(DIRECTORY=TRIM(current)//'/Sims', EXIST=has_sims)
          INQUIRE(DIRECTORY=TRIM(current)//'/src', EXIST=has_src)
@@ -233,6 +289,7 @@ CONTAINS
             RETURN
          END IF
 
+         ! Move one directory upward. If there is no parent left, fail below.
          slash = INDEX(TRIM(current), '/', BACK=.TRUE.)
          IF (slash <= 1) EXIT
 
@@ -246,6 +303,11 @@ CONTAINS
 
 
    SUBROUTINE ensure_directory(path)
+      !---------------------------------------------------------------------------------
+      ! Create a directory only if it does not already exist.
+      !
+      ! mkdir -p is used because it also creates missing parent directories.
+      !---------------------------------------------------------------------------------
       IMPLICIT NONE
       CHARACTER(LEN=*), INTENT(IN) :: path
       LOGICAL :: exists
@@ -257,7 +319,16 @@ CONTAINS
    END SUBROUTINE ensure_directory
 
 
-   SUBROUTINE parse_header_names(line, n_expected, names)
+   SUBROUTINE parse_parameter_header(line, n_expected, names)
+      !---------------------------------------------------------------------------------
+      ! Split the parameter-name header row into names(:).
+      !
+      ! The header is space-separated, for example:
+      !   USE_larmor USE_coll ... annulus_width pitch_type
+      !
+      ! The resulting names array is the bridge between human-readable parameter
+      ! names and numeric columns in array1.
+      !---------------------------------------------------------------------------------
       IMPLICIT NONE
       CHARACTER(LEN=*), INTENT(IN)               :: line
       INTEGER, INTENT(IN)                        :: n_expected
@@ -275,13 +346,16 @@ CONTAINS
       n = 0
       p = 1
       DO WHILE (p <= L)
-         ! skip spaces
+         ! Skip any spaces before the next name.
          DO WHILE (p <= L .AND. s(p:p) == ' ')
             p = p + 1
          END DO
          IF (p > L) EXIT
 
          start = p
+
+         ! Advance until the next space or the end of the line. The substring
+         ! start:finish is one parameter name.
          DO WHILE (p <= L .AND. s(p:p) /= ' ')
             p = p + 1
          END DO
@@ -298,16 +372,25 @@ CONTAINS
       IF (n /= n_expected) THEN
          ERROR STOP "Header name count does not match cols1"
       END IF
-   END SUBROUTINE parse_header_names
+   END SUBROUTINE parse_parameter_header
 
 
-   INTEGER FUNCTION param_index(name) RESULT(idx)
+   INTEGER FUNCTION parameter_index(name) RESULT(idx)
+      !---------------------------------------------------------------------------------
+      ! Return the column index associated with a parameter name.
+      !
+      ! This is used throughout Run_parameters.f90 as:
+      !   Ti = pp(parameter_index("Ti"))
+      !
+      ! If a required parameter is absent, stop immediately. A missing required
+      ! parameter would otherwise shift physics silently.
+      !---------------------------------------------------------------------------------
       IMPLICIT NONE
       CHARACTER(LEN=*), INTENT(IN) :: name
       INTEGER :: i
 
       IF (.NOT. ALLOCATED(param_names)) THEN
-         ERROR STOP "param_names not allocated: did you call sim_values()?"
+         ERROR STOP "param_names not allocated: did you call load_simulation_matrix()?"
       END IF
 
       idx = 0
@@ -319,7 +402,33 @@ CONTAINS
       END DO
 
       ERROR STOP "Parameter not found in header: "//TRIM(name)
-   END FUNCTION param_index
+   END FUNCTION parameter_index
+
+
+   LOGICAL FUNCTION parameter_exists(name) RESULT(found)
+      !---------------------------------------------------------------------------------
+      ! Check whether an optional parameter exists in the input header.
+      !
+      ! This is useful when adding a new parameter while still allowing older
+      ! Sim_XXX.dat files to run with a default value.
+      !---------------------------------------------------------------------------------
+      IMPLICIT NONE
+      CHARACTER(LEN=*), INTENT(IN) :: name
+      INTEGER :: i
+
+      found = .FALSE.
+
+      IF (.NOT. ALLOCATED(param_names)) THEN
+         ERROR STOP "param_names not allocated: did you call load_simulation_matrix()?"
+      END IF
+
+      DO i = 1, SIZE(param_names)
+         IF (TRIM(param_names(i)) == TRIM(name)) THEN
+            found = .TRUE.
+            RETURN
+         END IF
+      END DO
+   END FUNCTION parameter_exists
 
 
 END MODULE sims

@@ -1,8 +1,19 @@
 #!/bin/bash
 
-set -e
+compile_main() (
+    set -o pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-make -C "$PROJECT_ROOT/src/fortran"
+    make -C "$PROJECT_ROOT/src/fortran"
+)
+
+compile_main "$@"
+status=$?
+unset -f compile_main
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
+    return "$status"
+else
+    exit "$status"
+fi

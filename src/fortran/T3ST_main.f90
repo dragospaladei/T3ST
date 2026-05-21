@@ -21,7 +21,7 @@
 !  01/01/2024   | D. I. Palade        | Remake
 !  01/02/2025   | D. I. Palade        | Further smaller corrections
 !  01/09/2025   | D. I. Palade        | Parallelization over Np; performance boost
-!  --/--/2026   | D. I. Palade        | Continuous improvements
+!  --/--/2026   | D. I. Palade        | Continuous improvements (new day, new code, old me)
 !========================================================================================================
 
 PROGRAM T3ST
@@ -56,7 +56,7 @@ PROGRAM T3ST
    !-----------------------------------------------------------------------------------------------------
    ! Timing
    !-----------------------------------------------------------------------------------------------------
-   INTEGER           :: count0, count1, count2, count3
+   INTEGER           :: count0, count3
    INTEGER           :: count_rate, count_max
    CHARACTER(LEN=18) :: date_time
 
@@ -64,21 +64,20 @@ PROGRAM T3ST
    ! Random seeds
    !-----------------------------------------------------------------------------------------------------
    INTEGER, ALLOCATABLE :: seed(:)
-   INTEGER              :: ne, clock, ja
+   INTEGER              :: ne, clock
 
    !-----------------------------------------------------------------------------------------------------
    ! Trajectory variables
    !-----------------------------------------------------------------------------------------------------
    REAL(KIND=rp), ALLOCATABLE :: X(:), Y(:), Z(:)
-   REAL(KIND=rp), ALLOCATABLE :: Vp(:), mu(:), Ham(:), Pb(:), Pcc(:)
+   REAL(KIND=rp), ALLOCATABLE :: Vp(:), mu(:), Ham(:), Pcc(:)
    REAL(KIND=rp), ALLOCATABLE :: ck1(:), ck2(:), ck3(:)
-   REAL(KIND=rp), ALLOCATABLE :: Weight(:), FM0(:)
+   REAL(KIND=rp), ALLOCATABLE :: F0(:), G0(:), FM(:), betaF(:), betaD(:)
    REAL(KIND=rp), ALLOCATABLE :: q1al(:), q2al(:), q3al(:)
 
-   REAL(KIND=rp), ALLOCATABLE :: q1tot(:, :), q2tot(:, :), q3tot(:, :)
-
    REAL(KIND=rp), ALLOCATABLE :: Xtraj(:, :), Ytraj(:, :), Ztraj(:, :)
-   REAL(KIND=rp), ALLOCATABLE :: Vptraj(:, :), mutraj(:, :), Wetraj(:, :)
+   REAL(KIND=rp), ALLOCATABLE :: Vptraj(:, :), mutraj(:, :)
+   REAL(KIND=rp), ALLOCATABLE :: betaFtraj(:, :), betaDtraj(:, :), FMtraj(:, :)
    REAL(KIND=rp), ALLOCATABLE :: Htraj(:, :), Pctraj(:, :)
    REAL(KIND=rp), ALLOCATABLE :: q1traj(:, :), q2traj(:, :), q3traj(:, :)
    REAL(KIND=rp), ALLOCATABLE :: ck1traj(:, :), ck2traj(:, :), ck3traj(:, :)
@@ -89,13 +88,13 @@ PROGRAM T3ST
    !-----------------------------------------------------------------------------------------------------
    ! Transport quantities
    !-----------------------------------------------------------------------------------------------------
-   REAL(KIND=rp), ALLOCATABLE :: Obs_full(:, :), Obs_delta(:, :)
+   REAL(KIND=rp), ALLOCATABLE :: Obs_GF(:, :), Obs_FF(:, :), Obs_FD(:, :), Obs_DF(:, :), Obs_DD(:, :)
    REAL(KIND=rp), ALLOCATABLE :: Vcorff(:, :), VcorTT(:, :), VcorTN(:, :), VcorNT(:, :)
 
    !-----------------------------------------------------------------------------------------------------
    ! Numerical and auxiliary variables
    !-----------------------------------------------------------------------------------------------------
-   INTEGER :: i, j, k, m, re, lene, k2, i8
+   INTEGER :: i, k, re, lene, k2, i8
    INTEGER :: filled, ias, eror_flag
    INTEGER :: type_choice
    INTEGER :: arg_count, arg_type_choice, arg_sim_number, arg_status
@@ -108,17 +107,13 @@ PROGRAM T3ST
    REAL(KIND=rp), ALLOCATABLE :: Lagr_ref(:)
    REAL(KIND=rp), ALLOCATABLE :: Lagr_corr(:)
 
-   REAL(KIND=rp) :: dt1, dt2, dt, dt_half
-   INTEGER, PARAMETER :: nq = 21
+   REAL(KIND=rp) :: dt, dt_half
+   INTEGER, PARAMETER :: nq = 51
    REAL(rp) :: quan(nq)
-   REAL(KIND=rp) :: gnorm_local
-
    REAL(rp), POINTER, CONTIGUOUS :: Qx(:), Qy(:), Qz(:), Qw(:), Qph(:)
 
    CHARACTER(LEN=80) :: bar
    CHARACTER(LEN=80) :: arg
-
-   LOGICAL :: has_nan, ok
 
 !========================================================================================================
 ! ADDRESS DECLARATION FOR EXPORTING DATA
@@ -127,7 +122,7 @@ PROGRAM T3ST
    arg_count = COMMAND_ARGUMENT_COUNT()
 
    IF (arg_count == 0) THEN
-      CALL sim_values(type_choice)
+      CALL load_simulation_matrix(type_choice)
    ELSEIF (arg_count == 2) THEN
       CALL GET_COMMAND_ARGUMENT(1, arg)
       READ(arg, *, IOSTAT=arg_status) arg_type_choice
@@ -141,7 +136,7 @@ PROGRAM T3ST
          ERROR STOP 'Second argument must be the Sim/DB file number.'
       END IF
 
-      CALL sim_values(type_choice, arg_type_choice, arg_sim_number)
+      CALL load_simulation_matrix(type_choice, arg_type_choice, arg_sim_number)
    ELSE
       ERROR STOP 'Usage: T3ST [file_type file_number], where file_type is 1=Sim or 2=DB.'
    END IF
@@ -181,7 +176,7 @@ PROGRAM T3ST
 
       CALL DATE_AND_TIME(date=date_time(1:8), time=date_time(9:18))
       CALL SYSTEM_CLOCK(count0, count_rate, count_max)
-      CALL parameters(run)
+      CALL load_run_parameters(run)
 
 !========================================================================================================
 ! FOLDER DECLARATION
@@ -199,19 +194,20 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
 
       lene = LEN(folder)
 
-      CALL printing(runs, nsim, date_time, folder, lene, simf, simi, 333)
+      CALL print_run_header(runs, nsim, date_time, folder, lene, simf, simi, 333)
 
 !========================================================================================================
 ! VARIABLE ALLOCATION
 !========================================================================================================
 
-      ALLOCATE( X(Np), Xtraj(Nt + 1, ntraj), Obs_full(10, Nt + 1), Obs_delta(10, Nt + 1), &
+      ALLOCATE( X(Np), Xtraj(Nt + 1, ntraj), Obs_GF(10, Nt + 1), Obs_FF(10, Nt + 1), &
+                Obs_FD(10, Nt + 1), Obs_DF(10, Nt + 1), Obs_DD(10, Nt + 1), &
                 Vcorff(Nt + 1, Nt + 1), t(Nt + 1) )
 
-      ALLOCATE( Y, Z, Vp, mu, Ham, Pb, Weight, FM0, q1al, q2al, q3al, Pcc, &
+      ALLOCATE( Y, Z, Vp, mu, Ham, F0, G0, FM, betaF, betaD, q1al, q2al, q3al, Pcc, &
                 ck1, ck2, ck3, MOLD=X )
 
-      ALLOCATE( Ytraj, Ztraj, Vptraj, mutraj, Wetraj, Htraj, q1traj, q2traj, &
+      ALLOCATE( Ytraj, Ztraj, Vptraj, mutraj, betaFtraj, betaDtraj, FMtraj, Htraj, q1traj, q2traj, &
                 q3traj, Pctraj, ck1traj, ck2traj, ck3traj, MOLD=Xtraj )
 
       ALLOCATE( VcorTT, VcorTN, VcorNT, MOLD=Vcorff )
@@ -232,7 +228,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
          "turb_model", "x_corr", "y_corr", "t_corr", "Phi", "turbprof", "Ai", "Ae", &
          "lambdax", "lambday", "lambdaz", "lbalonz", "tauc", "k0i", "k0e", "gamma_ZF", "gamma_E", &
          "X0", "Y0", "Z0", "Ts", "Es", "pitch", "As", "Zs", "taucc", &
-         "position_type", "pitch_type", "energy_type", "Lns", "Lts", &
+         "position_type", "annulus_width", "pitch_type", "energy_type", "Lns", "Lts", &
           "USE_larmor", "USE_coll", "USE_turb", "USE_magnturb", "USE_freq", "USE_polar", &
          "USE_PC", "USE_real", "USE_corr", "USE_balloon", "USE_tilt", "USE_testing", &
          "C1", "C2", "C3" ]
@@ -246,7 +242,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
          REAL(turb_model, rp), REAL(x_corr, rp), REAL(y_corr, rp), REAL(t_corr, rp), &
          Phi, turbprof, Ai, Ae, lambdax, lambday, lambdaz, lbalonz, tauc, k0i, k0e, &
          gamma_ZF, gamma_E, X0, Y0, Z0, Ts, Es, pitch, As, Zs, taucc, &
-         REAL(position_type, rp), REAL(pitch_type, rp), REAL(energy_type, rp), &
+         REAL(position_type, rp), annulus_width, REAL(pitch_type, rp), REAL(energy_type, rp), &
          REAL(Lns, rp), REAL(Lts, rp),  REAL(USE_larmor, rp), &
          REAL(USE_coll, rp), REAL(USE_turb, rp), REAL(USE_magnturb, rp), REAL(USE_freq, rp), &
          REAL(USE_polar, rp), REAL(USE_PC, rp), REAL(USE_real, rp), REAL(USE_corr, rp), &
@@ -270,17 +266,17 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
          DO k2 = 1, Nloop
 
             CALL dispersion(normB, Vstar1, Vstar2, Vstar3, gees)
-            CALL wavenum_unified(normB, Vstar1, Vstar2, Vstar3, gees, USE_real, gnorm_local)
-            CALL initial_conditions(X, Y, Z, mu, Vp, Pb, Weight, FM0)
+            CALL wavenum_unified(normB, Vstar1, Vstar2, Vstar3, gees, USE_real)
+            CALL initialize_particles(X, Y, Z, mu, Vp, F0, G0, FM, betaF, betaD)
             CALL Larmor(USE_larmor, mu)
 
             IF (USE_testing == ON) THEN
-               CALL testing_T3ST(X, Y, Z, Vp, mu, Weight, Pb, Vstar1, Vstar2, Vstar3, &
-                                 eror_flag, gnorm_local)
+               CALL testing_T3ST(X, Y, Z, Vp, mu, F0, G0, FM, betaF, betaD, Vstar1, Vstar2, Vstar3, &
+                                 eror_flag)
                STOP
             END IF
 
-            CALL write_initial_state(X, Y, Z, Vp, mu, Weight, Pb)
+            CALL write_initial_state(X, Y, Z, Vp, mu, betaF, betaD, FM)
 
 !========================================================================================================
 ! TIME PROPAGATION
@@ -299,12 +295,13 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                DO i = 1, Np
                   BLOCK
 
-                     REAL(rp) :: xi, yi, zi, mui, weighti, vpi, pbi
+                     REAL(rp) :: xi, yi, zi, mui, betaFi, betaDi, vpi
                      REAL(rp) :: mask, maskR, maskZ
-                     REAL(rp) :: vx, vy, vz, vm, vw, vq, ap
-                     REAL(rp) :: Wx, Wy, Wz, Wm, Wp, Ww
-                     REAL(rp) :: q1, q2, q3, Vrt, Vrr, temp, pbW, FMi, FM0i
-                     REAL(rp) :: Hi, B, Vtx, Vty, sm1, sm2, Pc, heat
+                     REAL(rp) :: vx, vy, vz, vm, ap, vbF, vbD
+                     REAL(rp) :: Wx, Wy, Wz, Wm, Wp, WbF, WbD
+                     REAL(rp) :: q1, q2, q3, Vrt, Vrr, FMi, F0i, G0i
+                     REAL(rp) :: pbGF, pbFF, pbFD, pbDF, pbDD
+                     REAL(rp) :: Hi, B, Vtx, VFx, sm1, sm2, Pc, kin
                      REAL(rp) :: check_1, check_2, check_3
 
                      ! Select per-particle or single-spectrum arrays.
@@ -328,9 +325,10 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                      zi      = Z(i)
                      mui     = mu(i)
                      vpi     = Vp(i)
-                     pbi     = Pb(i)
-                     weighti = Weight(i)
-                     FM0i    = FM0(i)
+                     F0i     = F0(i)
+                     G0i     = G0(i)
+                     betaFi  = betaF(i)
+                     betaDi  = betaD(i)
 
                      ! Half-collisional Euler-Maruyama step.
                      ! This keeps the Stratonovich interpretation in play.
@@ -339,28 +337,27 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                         sm1 = rng_uniform()
                         sm2 = rng_uniform()
 
-                        CALL Drift2(dt, xi, yi, zi, vpi, mui, weighti, q1, q2, q3, t(k), &
-                                    vx, vy, vz, ap, vm, vw, vq, heat, Hi, Pc, B, Vtx, Vty, &
-                                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, &
-                                    gnorm_local)
+                        CALL gyrocenter_drifts(xi, yi, zi, vpi, mui, q1, q2, q3, t(k), &
+                                    vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
+                                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph)
 
-                        CALL collisions_1_MP(sm1, sm2, dt_half, xi, yi, zi, vpi, mui, &
-                                             weighti, B, vx, vy, vz, vm, vw, ap)
+                        CALL collision_kicks(sm1, sm2, dt_half, xi, yi, zi, vpi, mui, &
+                                            B, vx, vy, vz, vm, ap)
 
                         xi      = xi      + dt_half * vx
                         yi      = yi      + dt_half * vy
                         zi      = zi      + dt_half * vz
                         vpi     = vpi     + dt_half * ap
                         mui     = mui     + dt_half * vm
-                        weighti = weighti + dt_half * vw
+                        betaFi  = betaFi  + dt_half * vbF
+                        betaDi  = betaDi  + dt_half * vbD
 
                      END IF
 
                      ! RK4 stage 1.
-                     CALL Drift2(dt, xi, yi, zi, vpi, mui, weighti, q1, q2, q3, t(k), &
-                                 vx, vy, vz, ap, vm, vw, vq, heat, Hi, Pc, B, Vtx, Vty, &
-                                 check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, &
-                                 gnorm_local)
+                     CALL gyrocenter_drifts(xi, yi, zi, vpi, mui, q1, q2, q3, t(k), &
+                                 vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
+                                 check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph)
 
                      IF (k == 1) Lagr_ref(i) = Vtx
 
@@ -369,7 +366,8 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                      Wz = vz / 6.0_rp
                      Wm = vm / 6.0_rp
                      Wp = ap / 6.0_rp
-                     Ww = vw / 6.0_rp
+                     WbF = vbF / 6.0_rp
+                     WbD = vbD / 6.0_rp
 
                      ! Mask for particles outside the domain.
                      mask = 1.0_rp
@@ -382,67 +380,75 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
 
                      ! Observables.
                      IF (.NOT. ISNAN(q1)) THEN
-                        FMi = EXP(-Hi / Ts) / Ts**(1.5_rp)
-                        pbW = weighti * FMi / FM0i * Xi !  Xi is here for the same reason as in the initial Pb: the initial sampling (uniform theta) is not consistent with the jacobian of the toroidal coordinates and flux surface homogeneity
+                        pbGF = 1.0_rp/Np
+                        pbFF = FMi*exp(betaFi)/G0i/Np
+                        pbFD = FMi*exp(betaDi)/G0i/Np
+                        pbDF = FMi*(exp(betaFi)-1.0_rp)/G0i/Np
+                        pbDD = FMi*(exp(betaDi)-1.0_rp)/G0i/Np
                         
-                        quan(1:10)   = quan(1:10)   + pbi/Np*mask * [vq, q1, vpi, Hi, Vtx, vq**2, q1**2, vpi**2, Hi**2, Vtx**2]
-                        quan(11:20)  = quan(11:20)  + pbW/Np*mask * [vq, q1, vpi, Hi, vq*heat, vq**2, q1**2, vpi**2, Hi**2, vq*heat]
-                        quan(21)     = quan(21)     + pbi/Np*mask * (Lagr_ref(i) * Vtx)
+                        ! Obs columns: Vtx1, Q1, Vp1, H1, Heat1, Vtx2, Q2, Vp2, H2, Heat2.
+                        quan(1:10)   = quan(1:10)   + pbGF*mask * [Vtx, q1, vpi, Hi, Vtx*kin, Vtx**2, q1**2, vpi**2, Hi**2, Vtx*kin] !green function
+                        quan(11:20)  = quan(11:20)  + pbFF*mask * [Vtx, q1, vpi, Hi, Vtx*kin, Vtx**2, q1**2, vpi**2, Hi**2, Vtx*kin] !fullF + full V
+                        quan(21:30)  = quan(21:30)  + pbFD*mask * [Vtx, q1, vpi, Hi, Vtx*kin, Vtx**2, q1**2, vpi**2, Hi**2, Vtx*kin] !fullF + delta V
+                        quan(31:40)  = quan(31:40)  + pbDF*mask * [Vtx, q1, vpi, Hi, Vtx*kin, Vtx**2, q1**2, vpi**2, Hi**2, Vtx*kin] !deltaF + full V
+                        quan(41:50)  = quan(41:50)  + pbDD*mask * [Vtx, q1, vpi, Hi, Vtx*kin, Vtx**2, q1**2, vpi**2, Hi**2, Vtx*kin] !deltaF + delta V
+                        quan(51)     = quan(51)     + pbGF*mask * (Lagr_ref(i) * Vtx)    ! green function
 
                      END IF
-
-                     ! RK4 stage 2.
-                     CALL Drift2(dt, xi + vx * dt / 2.0_rp, &
+!                    IF (i == 12) THEN
+ !                     WRITE(*, '("particle | ",I0,"| FM*Exp/F0 | ",G0.6,"| FM/F0-1.0 | ",G0.6,"| beta | ",G0.6,"| dbeta/dt | ",G0.6)') &
+  !                       i, 100.0*(FMi*exp(betaFi)/F0i-1.0), 100.0*(FMi/F0i-1.0_rp), betaFi, vbF/Vtx
+   !               END IF
+                ! RK4 stage 2.
+                     CALL gyrocenter_drifts(xi + vx * dt / 2.0_rp, &
                                      yi + vy * dt / 2.0_rp, &
                                      zi + vz * dt / 2.0_rp, &
                                      vpi + ap * dt / 2.0_rp, &
                                      mui + vm * dt / 2.0_rp, &
-                                     weighti + vw * dt / 2.0_rp, &
                                      q1, q2, q3, t(k) + dt / 2.0_rp, &
-                                     vx, vy, vz, ap, vm, vw, vq, heat, Hi, Pc, B, Vtx, Vty, &
-                                     check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, &
-                                     gnorm_local)
+                                     vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
+                                     check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph)
 
                      Wx = Wx + vx / 3.0_rp
                      Wy = Wy + vy / 3.0_rp
                      Wz = Wz + vz / 3.0_rp
                      Wm = Wm + vm / 3.0_rp
                      Wp = Wp + ap / 3.0_rp
-                     Ww = Ww + vw / 3.0_rp
+                     WbF = WbF + vbF / 3.0_rp
+                     WbD = WbD + vbD / 3.0_rp
 
                      ! RK4 stage 3.
-                     CALL Drift2(dt, xi + vx * dt / 2.0_rp, &
+                     CALL gyrocenter_drifts(xi + vx * dt / 2.0_rp, &
                                      yi + vy * dt / 2.0_rp, &
                                      zi + vz * dt / 2.0_rp, &
                                      vpi + ap * dt / 2.0_rp, &
                                      mui + vm * dt / 2.0_rp, &
-                                     weighti + vw * dt / 2.0_rp, &
                                      q1, q2, q3, t(k) + dt / 2.0_rp, &
-                                     vx, vy, vz, ap, vm, vw, vq, heat, Hi, Pc, B, Vtx, Vty, &
-                                     check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, &
-                                     gnorm_local)
+                                     vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
+                                     check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph)
 
                      Wx = Wx + vx / 3.0_rp
                      Wy = Wy + vy / 3.0_rp
                      Wz = Wz + vz / 3.0_rp
                      Wm = Wm + vm / 3.0_rp
                      Wp = Wp + ap / 3.0_rp
-                     Ww = Ww + vw / 3.0_rp
+                     WbF = WbF + vbF / 3.0_rp
+                     WbD = WbD + vbD / 3.0_rp
 
                      ! RK4 stage 4.
-                     CALL Drift2(dt, xi + vx * dt, yi + vy * dt, zi + vz * dt, &
-                                 vpi + ap * dt, mui + vm * dt, weighti + vw * dt, &
+                     CALL gyrocenter_drifts(xi + vx * dt, yi + vy * dt, zi + vz * dt, &
+                                 vpi + ap * dt, mui + vm * dt, &
                                  q1, q2, q3, t(k) + dt, &
-                                 vx, vy, vz, ap, vm, vw, vq, heat, Hi, Pc, B, Vtx, Vty, &
-                                 check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, &
-                                 gnorm_local)
+                                 vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
+                                 check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph)
 
                      Wx = Wx + vx / 6.0_rp
                      Wy = Wy + vy / 6.0_rp
                      Wz = Wz + vz / 6.0_rp
                      Wm = Wm + vm / 6.0_rp
                      Wp = Wp + ap / 6.0_rp
-                     Ww = Ww + vw / 6.0_rp
+                     WbF = WbF + vbF / 6.0_rp
+                     WbD = WbD + vbD / 6.0_rp
 
                      ! Commit back.
                      X(i)      = xi      + dt * Wx
@@ -450,9 +456,11 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                      Z(i)      = zi      + dt * Wz
                      Vp(i)     = vpi     + dt * Wp
                      mu(i)     = mui     + dt * Wm
-                     Weight(i) = weighti + dt * Ww
+                     betaF(i)  = betaFi  + dt * WbF
+                     betaD(i)  = betaDi  + dt * WbD
 
                      Ham(i)  = Hi
+                     FM(i)   = FMi
                      Pcc(i)  = Pc
                      q1al(i) = q1
                      q2al(i) = q2
@@ -469,26 +477,26 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                         zi      = Z(i)
                         mui     = mu(i)
                         vpi     = Vp(i)
-                        pbi     = Pb(i)
-                        weighti = Weight(i)
+                        betaFi  = betaF(i)
+                        betaDi  = betaD(i)
 
                         sm1 = rng_uniform()
                         sm2 = rng_uniform()
 
-                        CALL Drift2(dt, xi, yi, zi, vpi, mui, weighti, q1, q2, q3, t(k), &
-                                    vx, vy, vz, ap, vm, vw, vq, heat, Hi, Pc, B, Vtx, Vty, &
-                                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph, &
-                                    gnorm_local)
+                        CALL gyrocenter_drifts(xi, yi, zi, vpi, mui, q1, q2, q3, t(k), &
+                                    vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
+                                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph)
 
-                        CALL collisions_1_MP(sm1, sm2, dt_half, xi, yi, zi, vpi, mui, &
-                                             weighti, B, vx, vy, vz, vm, vw, ap)
+                        CALL collision_kicks(sm1, sm2, dt_half, xi, yi, zi, vpi, mui, &
+                                             B, vx, vy, vz, vm, ap)
 
                         X(i)      = X(i)      + dt_half * vx
                         Y(i)      = Y(i)      + dt_half * vy
                         Z(i)      = Z(i)      + dt_half * vz
                         Vp(i)     = Vp(i)     + dt_half * ap
                         mu(i)     = mu(i)     + dt_half * vm
-                        Weight(i) = Weight(i) + dt_half * vw
+                        betaF(i)  = betaF(i)  + dt_half * vbF
+                        betaD(i)  = betaD(i)  + dt_half * vbD
 
                      END IF
 
@@ -499,16 +507,21 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
 
                !$omp single
 
-               Obs_full(:, k)  = quan(1:10) 
-               Obs_delta(:, k) = quan(11:20)
-               Lagr_corr(k) = quan(21) / Np
+               Obs_GF(:, k) = quan(1:10)    ! green function
+               Obs_FF(:, k) = quan(11:20)  ! fullF+fullV
+               Obs_FD(:, k) = quan(21:30)
+               Obs_DF(:, k) = quan(31:40)  ! fullF+fullV
+               Obs_DD(:, k) = quan(41:50)
+               Lagr_corr(k) = quan(51)
 
                Xtraj(k, :)  = X(1:ntraj)
                Ytraj(k, :)  = Y(1:ntraj)
                Ztraj(k, :)  = Z(1:ntraj)
                Vptraj(k, :) = Vp(1:ntraj)
                mutraj(k, :) = mu(1:ntraj)
-               Wetraj(k, :) = Weight(1:ntraj)
+               betaFtraj(k, :) = betaF(1:ntraj)
+               betaDtraj(k, :) = betaD(1:ntraj)
+               FMtraj(k, :) = FM(1:ntraj)
                Htraj(k, :)  = Ham(1:ntraj)
                Pctraj(k, :) = Pcc(1:ntraj)
 
@@ -531,12 +544,12 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
 !========================================================================================================
 ! EXPORT DATA
 !========================================================================================================
-            CALL write_trajectories(Xtraj, Ytraj, Ztraj, Vptraj, mutraj, Wetraj, Htraj, &
+            CALL write_trajectories(Xtraj, Ytraj, Ztraj, Vptraj, mutraj, betaFtraj, betaDtraj, FMtraj, Htraj, &
                                     q1traj, q2traj, q3traj, Pctraj, ck1traj, ck2traj, ck3traj)
 
-            CALL write_transport(Obs_full, Obs_delta)
-            CALL write_final_state(X, Y, Z, Vp, mu, Weight, Pb, Ham, q1al, q2al)
-            CALL write_lagrangian_and_pb(Lagr_corr, Pb)
+            CALL write_transport(Obs_GF, Obs_FF, Obs_FD, Obs_DF, Obs_DD)
+            CALL write_final_state(X, Y, Z, Vp, mu, betaF, betaD, FM, Ham, q1al, q2al)
+            CALL write_lagrangian(Lagr_corr)
 
             IF (USE_corr == 1) THEN
                CALL write_correlations(Vcorff, VcorTT, VcorTN, VcorNT)
@@ -601,8 +614,8 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
       WRITE(333, *) 'Total computation time  = ', REAL(count3 - count0) / REAL(count_rate)
       WRITE(333, *) '------------------------------------------------------------------------------'
 
-      DEALLOCATE( X, Y, Z, Vp, mu, Ham, Pb, Weight, FM0, Obs_delta, Obs_full, &
-                  Xtraj, Ytraj, Ztraj, Vptraj, mutraj, Wetraj, Htraj, &
+      DEALLOCATE( X, Y, Z, Vp, mu, Ham, F0, G0, FM, betaF, betaD, Obs_GF, Obs_FF, Obs_FD, Obs_DF, Obs_DD, &
+                  Xtraj, Ytraj, Ztraj, Vptraj, mutraj, betaFtraj, betaDtraj, FMtraj, Htraj, &
                   q1traj, q2traj, q3traj, Vcorff, VcorTT, VcorTN, VcorNT, &
                   t, q1al, q2al, q3al, Pcc, ck1, ck2, ck3, Pctraj, &
                   ck1traj, ck2traj, ck3traj, Lagr_ref, Lagr_corr )

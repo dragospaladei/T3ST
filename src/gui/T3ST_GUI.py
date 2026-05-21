@@ -17,7 +17,7 @@ Main idea:
 - Manual mode: current GUI values + up to 3 sweeps
 - Database mode: choose a database + selection, then export selected runs
 
-Dependencies: tkinter, numpy, matplotlib, sv_ttk, pyyaml
+Dependencies: tkinter, numpy, sv_ttk, pyyaml
 """
 
 from __future__ import annotations
@@ -32,10 +32,6 @@ import numpy as np
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import tkinter.font as tkFont
-
-import matplotlib
-matplotlib.use("TkAgg")
-import matplotlib.pyplot as plt
 
 import sv_ttk
 import yaml
@@ -53,7 +49,6 @@ TOOLTIP_FONT_FAMILY = "tahoma"
 TOOLTIP_FONT_SIZE = 11
 TOOLTIP_WRAP_PX = 420
 
-MAX_PREVIEW_ROWS = 20
 MAX_EXPORT_ROWS = 100_000
 
 
@@ -728,6 +723,9 @@ class SimulationGUI:
         self.param_widgets: List[ParamWidget] = []
         self.param_rows: List[Tuple[ttk.Label, tk.Widget]] = []
         self.sweeps: List[SweepWidgets] = []
+        self._manual_baseline: Dict[str, str] = {}
+        self._manual_changed: set[str] = set()
+        self._manual_change_tracking_enabled = True
 
         self.mode_var = tk.StringVar(value="manual")
         self.database_var = tk.StringVar()
@@ -928,10 +926,6 @@ class SimulationGUI:
                 return
             typed = cb.get().strip().lower()
             refresh_dropdown(all_values if not typed else [x for x in all_values if typed in x.lower()])
-            try:
-                cb.event_generate("<Down>")
-            except Exception:
-                pass
 
         cb.bind("<KeyRelease>", on_keyrelease)
         cb.bind("<FocusIn>", lambda e: refresh_dropdown(all_values))
@@ -989,17 +983,21 @@ class SimulationGUI:
         self.scenario_dropdown.bind("<<ComboboxSelected>>", self.on_scenario_change)
         ToolTip(self.scenario_dropdown, "Load a named scenario to pre-fill all parameters below.")
 
-        ttk.Label(tab, text="Sim no.:").grid(row=1, column=2, sticky="e", padx=(2, 2), pady=4)
+        self.manual_changed_var = tk.StringVar(value="")
+        self.manual_changed_label = ttk.Label(tab, textvariable=self.manual_changed_var, foreground="#e07b00")
+        self.manual_changed_label.grid(row=1, column=2, padx=(0, 12), pady=4, sticky="w")
+
+        ttk.Label(tab, text="Sim no.:").grid(row=1, column=3, sticky="e", padx=(2, 2), pady=4)
         self.manual_sim_no_var = tk.StringVar(value="1")
         self.manual_sim_no_entry = ttk.Spinbox(
-            tab, from_=1, to=9999, textvariable=self.manual_sim_no_var, width=10
+            tab, from_=1, to=999, textvariable=self.manual_sim_no_var, width=10
         )
-        self.manual_sim_no_entry.grid(row=1, column=3, padx=(0, 12), pady=4, sticky="w")
-        ToolTip(self.manual_sim_no_entry, "Output: Sims/Sim_NN.dat")
-        ttk.Label(tab, text="Filter:").grid(row=1, column=4, sticky="e", padx=(2, 2), pady=4)
+        self.manual_sim_no_entry.grid(row=1, column=4, padx=(0, 12), pady=4, sticky="w")
+        ToolTip(self.manual_sim_no_entry, "Output: Sims/Sim_NNN.dat")
+        ttk.Label(tab, text="Filter:").grid(row=1, column=5, sticky="e", padx=(2, 2), pady=4)
         self.filter_var = tk.StringVar()
         filter_entry = ttk.Entry(tab, textvariable=self.filter_var, width=24)
-        filter_entry.grid(row=1, column=5, sticky="w", padx=5, pady=4)
+        filter_entry.grid(row=1, column=6, sticky="w", padx=5, pady=4)
         ToolTip(filter_entry, "Type to filter parameter names (substring match).")
         self.filter_var.trace_add("write", lambda *_: self.apply_filter())
 
@@ -1104,6 +1102,7 @@ class SimulationGUI:
                 self.param_widgets.append(pw)
                 self.param_rows.append((lbl, pw.widget))
                 self._group_param_rows[g].append((lbl, pw.widget))
+                self._bind_manual_change_tracking(pw)
 
             cur_row += (len(params_in_group) + UI_PARAM_COLS_PER_ROW - 1) // UI_PARAM_COLS_PER_ROW
 
@@ -1124,6 +1123,63 @@ class SimulationGUI:
             else:
                 lbl.grid()
                 widget.grid()
+
+    def _bind_manual_change_tracking(self, pw: ParamWidget):
+        """Attach Manual-tab changed-from-scenario tracking to one parameter widget."""
+        if isinstance(pw.widget, ttk.Entry):
+            pw.widget.bind("<KeyRelease>", lambda e, _pw=pw: self._refresh_manual_change_marker(_pw), add="+")
+            pw.widget.bind("<FocusOut>", lambda e, _pw=pw: self._refresh_manual_change_marker(_pw), add="+")
+        elif isinstance(pw.widget, ttk.Combobox):
+            pw.widget.bind("<<ComboboxSelected>>", lambda e, _pw=pw: self._refresh_manual_change_marker(_pw), add="+")
+        elif pw.pdef.ui == "checkbox" and isinstance(pw.var, tk.IntVar):
+            pw.var.trace_add("write", lambda *_args, _pw=pw: self._refresh_manual_change_marker(_pw))
+
+    def _manual_export_string(self, pw: ParamWidget) -> Optional[str]:
+        value, err = pw.get_export_value()
+        if err:
+            return None
+        return str(value)
+
+    def _set_manual_baseline_from_current(self):
+        self._manual_baseline.clear()
+        for pw in self.param_widgets:
+            value = self._manual_export_string(pw)
+            if value is not None:
+                self._manual_baseline[pw.pdef.name] = value
+
+    def _refresh_manual_change_marker(self, pw: ParamWidget):
+        if not getattr(self, "_manual_change_tracking_enabled", True):
+            return
+
+        name = pw.pdef.name
+        current = self._manual_export_string(pw)
+        baseline = self._manual_baseline.get(name)
+        changed = baseline is not None and (current is None or current != baseline)
+
+        pw.label.config(foreground="#e07b00" if changed else "")
+        if changed:
+            self._manual_changed.add(name)
+        else:
+            self._manual_changed.discard(name)
+        self._update_manual_changed_count()
+
+    def _refresh_all_manual_change_markers(self):
+        self._manual_changed.clear()
+        for pw in self.param_widgets:
+            self._refresh_manual_change_marker(pw)
+        self._update_manual_changed_count()
+
+    def _clear_manual_change_markers(self):
+        self._manual_changed.clear()
+        for pw in self.param_widgets:
+            pw.label.config(foreground="")
+        self._update_manual_changed_count()
+
+    def _update_manual_changed_count(self):
+        if not hasattr(self, "manual_changed_var"):
+            return
+        n = len(self._manual_changed)
+        self.manual_changed_var.set("" if n == 0 else f"{n} changed from scenario")
 
     def _build_sweep_rows(self, tab):
         self.sweeps = []
@@ -1204,10 +1260,10 @@ class SimulationGUI:
         ttk.Label(tab, text="Sim no.:").grid(row=2, column=2, sticky="e", padx=(2, 2), pady=4)
         self.db_sim_no_var = tk.StringVar(value="1")
         self.db_sim_no_entry = ttk.Spinbox(
-            tab, from_=1, to=9999, textvariable=self.db_sim_no_var, width=10
+            tab, from_=1, to=999, textvariable=self.db_sim_no_var, width=10
         )
         self.db_sim_no_entry.grid(row=2, column=3, padx=(0, 12), pady=4, sticky="w")
-        ToolTip(self.db_sim_no_entry, "Output: Sims/DB_NN.dat")
+        ToolTip(self.db_sim_no_entry, "Output: Sims/DB_NNN.dat")
 
         # Live status labels (these are dynamic info, not explanatory — keep visible)
         self.db_info_label = ttk.Label(tab, text="Database: —", justify="left", wraplength=900)
@@ -1662,6 +1718,7 @@ class SimulationGUI:
                 pw.var.set(0)
             elif isinstance(pw.widget, ttk.Entry):
                 pw.widget.delete(0, tk.END)
+        self._refresh_all_manual_change_markers()
 
     def on_scenario_change(self, event=None):
         scenario = self.scenario_var.get().strip()
@@ -1672,8 +1729,14 @@ class SimulationGUI:
         values = self.scenarios[scenario]
 
         if isinstance(values, dict):
-            for pw in self.param_widgets:
-                pw.set_value(values.get(pw.pdef.name, pw.pdef.default if pw.pdef.default is not None else ""))
+            self._manual_change_tracking_enabled = False
+            try:
+                for pw in self.param_widgets:
+                    pw.set_value(values.get(pw.pdef.name, pw.pdef.default if pw.pdef.default is not None else ""))
+                self._set_manual_baseline_from_current()
+                self._clear_manual_change_markers()
+            finally:
+                self._manual_change_tracking_enabled = True
             self.set_status(f"Loaded scenario: {scenario}")
             return
 
@@ -1684,8 +1747,14 @@ class SimulationGUI:
                     f"Scenario '{scenario}' has {len(values)} values, expected {len(self.labels)}."
                 )
                 return
-            for i, pw in enumerate(self.param_widgets):
-                pw.set_value(values[i])
+            self._manual_change_tracking_enabled = False
+            try:
+                for i, pw in enumerate(self.param_widgets):
+                    pw.set_value(values[i])
+                self._set_manual_baseline_from_current()
+                self._clear_manual_change_markers()
+            finally:
+                self._manual_change_tracking_enabled = True
             return
 
         messagebox.showerror("Scenario error", f"Scenario '{scenario}' has unsupported format: {type(values)}")
@@ -1728,6 +1797,7 @@ class SimulationGUI:
         for pw in self.param_widgets:
             val = snap.get(pw.pdef.name, "")
             pw.set_value(val)
+        self._refresh_all_manual_change_markers()
 
     def _push_undo(self):
         """Save current state onto the undo stack and clear redo."""
@@ -1879,7 +1949,7 @@ class SimulationGUI:
         self.set_status(f"Database base scenario changed to: {scenario_name}")
 
     # -----------------------------
-    # Sweeps parsing / preview
+    # Sweeps parsing
     # -----------------------------
 
     def parse_sweeps(self) -> Tuple[List[Tuple[int, np.ndarray, str]], List[str]]:
@@ -2146,13 +2216,21 @@ class SimulationGUI:
             if not sim_no_txt.isdigit():
                 messagebox.showerror("Invalid Input", "Simulation number must be an integer.")
                 return
-            file_path = self.get_sims_dir() / f"DB_{int(sim_no_txt):02d}.dat"
+            sim_no = int(sim_no_txt)
+            if sim_no < 1 or sim_no > 999:
+                messagebox.showerror("Invalid Input", "Simulation number must be between 1 and 999.")
+                return
+            file_path = self.get_sims_dir() / f"DB_{sim_no:03d}.dat"
         else:
             sim_no_txt = self.manual_sim_no_var.get().strip()
             if not sim_no_txt.isdigit():
                 messagebox.showerror("Invalid Input", "Simulation number must be an integer.")
                 return
-            file_path = self.get_sims_dir() / f"Sim_{int(sim_no_txt):02d}.dat"
+            sim_no = int(sim_no_txt)
+            if sim_no < 1 or sim_no > 999:
+                messagebox.showerror("Invalid Input", "Simulation number must be between 1 and 999.")
+                return
+            file_path = self.get_sims_dir() / f"Sim_{sim_no:03d}.dat"
 
         if file_path.exists() and not messagebox.askyesno("Overwrite?", f"{file_path.name} exists. Overwrite?"):
             return
@@ -2212,6 +2290,7 @@ class SimulationGUI:
             self._push_undo()
             for pw in self.param_widgets:
                 pw.set_value(name_to_val.get(pw.pdef.name, ""))
+            self._refresh_all_manual_change_markers()
 
             info = f"Loaded parameters from {file_path}\n(total rows in file: {rows})"
             if comment_lines:

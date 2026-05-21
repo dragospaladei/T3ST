@@ -2,6 +2,81 @@
 # The canonical parameter list + UI order is in parameters.yaml.
 # Any missing parameter can be filled by GUI defaults; extra keys should be treated as an error.
 
+CycloneBaseCase:
+  t0: 0
+  tc: -1
+  tt: -1
+  tmax: 50
+  Nt: 1000
+  Nreal: 1
+  Nc: 50
+  Nloop: 1
+  Np: 50000
+  ntraj: 10
+  Ti: 3.0
+  Te: 3.0
+  Zeff: 1.0
+  Aeff: 1.0
+  ndens: 5.0
+  Ln: 2.2
+  Li: 6.9
+  Le: 6.9
+  magnetic_model: 4
+  B0: 2.5
+  R0: 1.65
+  a0: 0.600
+  s1: 0.84
+  s2: 0.0
+  s3: 2.24
+  amp: 1.0
+  elong: 1.2
+  device: 3
+  shot: 54178
+  shotslice: 6
+  Omgt0: 0
+  Omgtprim: 0
+  turb_model: 2
+  x_corr: 1
+  y_corr: 1
+  t_corr: 1
+  Phi: 0.01
+  turbprof: 5.0
+  Ai: 1.0
+  lambdax: 5.0
+  lambday: 5.0
+  lambdaz: 100.0
+  lbalonz: 1.5
+  tauc: 10.0
+  k0i: 0.05
+  k0e: 0.05
+  gamma_ZF: 0.0
+  X0: 1.95
+  Y0: 0
+  Z0: 0
+  Ts: 1.0
+  Es: 1.0e-01
+  pitch: 0.4
+  As: 1.0
+  Zs: 1.0
+  position_type: 3
+  pitch_type: 2
+  energy_type: 2
+  Lns: 0
+  Lts: 0
+#  Method: 0
+  USE_larmor: 1
+  USE_coll: 0
+  USE_turb: 1
+  USE_magnturb: 0
+  USE_freq: 1
+  USE_polar: 0
+  USE_PC: 0
+  USE_real: 0
+  USE_corr: 0
+  USE_balloon: 1
+  USE_tilt: 1
+  USE_testing: 0
+
 CycloneBaseZhang:
   t0: 0
   tc: -1
@@ -299,81 +374,6 @@ WEST:
   USE_real: 0
   USE_corr: 0
   USE_balloon: 0
-  USE_tilt: 1
-  USE_testing: 0
-
-CycloneBaseCase:
-  t0: 0
-  tc: -1
-  tt: -1
-  tmax: 50
-  Nt: 1000
-  Nreal: 1
-  Nc: 50
-  Nloop: 1
-  Np: 50000
-  ntraj: 10
-  Ti: 3.0
-  Te: 3.0
-  Zeff: 1.0
-  Aeff: 1.0
-  ndens: 5.0
-  Ln: 2.2
-  Li: 6.9
-  Le: 6.9
-  magnetic_model: 4
-  B0: 2.5
-  R0: 1.65
-  a0: 0.600
-  s1: 0.84
-  s2: 0.0
-  s3: 2.24
-  amp: 1.0
-  elong: 1.2
-  device: 3
-  shot: 54178
-  shotslice: 6
-  Omgt0: 0
-  Omgtprim: 0
-  turb_model: 2
-  x_corr: 2
-  y_corr: 1
-  t_corr: 2
-  Phi: 0.01
-  turbprof: 5.0
-  Ai: 1.0
-  lambdax: 5.0
-  lambday: 5.0
-  lambdaz: 1.0
-  lbalonz: 1.0
-  tauc: 10.0
-  k0i: 0.05
-  k0e: 0.05
-  gamma_ZF: 0.0
-  X0: 1.95
-  Y0: 0
-  Z0: 0
-  Ts: 1.0
-  Es: 1.0e-01
-  pitch: 0.4
-  As: 1.0
-  Zs: 1.0
-  position_type: 2
-  pitch_type: 2
-  energy_type: 2
-  Lns: 0
-  Lts: 0
-#  Method: 0
-  USE_larmor: 1
-  USE_coll: 0
-  USE_turb: 1
-  USE_magnturb: 0
-  USE_freq: 1
-  USE_polar: 0
-  USE_PC: 0
-  USE_real: 0
-  USE_corr: 0
-  USE_balloon: 1
   USE_tilt: 1
   USE_testing: 0
 

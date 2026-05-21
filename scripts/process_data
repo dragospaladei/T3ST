@@ -1,0 +1,30 @@
+#!/bin/bash
+
+process_data_main() (
+    set -o pipefail
+
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+    NOTEBOOK="$PROJECT_ROOT/scripts/Process_data.nb"
+
+    if [[ ! -f "$NOTEBOOK" ]]; then
+        echo "ERROR: notebook not found: $NOTEBOOK" >&2
+        return 1
+    fi
+
+    if command -v wolframnb >/dev/null 2>&1; then
+        wolframnb "$NOTEBOOK" "$@"
+    elif command -v mathematica >/dev/null 2>&1; then
+        mathematica "$NOTEBOOK" "$@"
+    elif command -v xdg-open >/dev/null 2>&1; then
+        xdg-open "$NOTEBOOK"
+    else
+        echo "ERROR: could not find wolframnb, mathematica, or xdg-open in PATH." >&2
+        return 1
+    fi
+)
+
+process_data_main "$@"
+status=$?
+unset -f process_data_main
+return "$status" 2>/dev/null || exit "$status"

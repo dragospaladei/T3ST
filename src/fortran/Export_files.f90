@@ -14,17 +14,20 @@ INTEGER, PARAMETER, PUBLIC :: f_Yinit      = f_Xinit      + 1
 INTEGER, PARAMETER, PUBLIC :: f_Zinit      = f_Yinit      + 1
 INTEGER, PARAMETER, PUBLIC :: f_Vpinit     = f_Zinit      + 1
 INTEGER, PARAMETER, PUBLIC :: f_muinit     = f_Vpinit     + 1
-INTEGER, PARAMETER, PUBLIC :: f_Weinit     = f_muinit     + 1
-INTEGER, PARAMETER, PUBLIC :: f_Pbinit     = f_Weinit     + 1
+INTEGER, PARAMETER, PUBLIC :: f_betaFinit  = f_muinit     + 1
+INTEGER, PARAMETER, PUBLIC :: f_betaDinit  = f_betaFinit  + 1
+INTEGER, PARAMETER, PUBLIC :: f_FMinit     = f_betaDinit  + 1
 
 ! ---- trajectories ----
-INTEGER, PARAMETER, PUBLIC :: f_Xtraj      = f_Pbinit     + 1
+INTEGER, PARAMETER, PUBLIC :: f_Xtraj      = f_FMinit     + 1
 INTEGER, PARAMETER, PUBLIC :: f_Ytraj      = f_Xtraj      + 1
 INTEGER, PARAMETER, PUBLIC :: f_Ztraj      = f_Ytraj      + 1
 INTEGER, PARAMETER, PUBLIC :: f_Vptraj     = f_Ztraj      + 1
 INTEGER, PARAMETER, PUBLIC :: f_mutraj     = f_Vptraj     + 1
-INTEGER, PARAMETER, PUBLIC :: f_Wetraj     = f_mutraj     + 1
-INTEGER, PARAMETER, PUBLIC :: f_Htraj      = f_Wetraj     + 1
+INTEGER, PARAMETER, PUBLIC :: f_betaFtraj  = f_mutraj     + 1
+INTEGER, PARAMETER, PUBLIC :: f_betaDtraj  = f_betaFtraj  + 1
+INTEGER, PARAMETER, PUBLIC :: f_FMtraj     = f_betaDtraj  + 1
+INTEGER, PARAMETER, PUBLIC :: f_Htraj      = f_FMtraj     + 1
 INTEGER, PARAMETER, PUBLIC :: f_q1traj     = f_Htraj      + 1
 INTEGER, PARAMETER, PUBLIC :: f_q2traj     = f_q1traj     + 1
 INTEGER, PARAMETER, PUBLIC :: f_q3traj     = f_q2traj     + 1
@@ -34,18 +37,22 @@ INTEGER, PARAMETER, PUBLIC :: f_ck2traj    = f_ck1traj    + 1
 INTEGER, PARAMETER, PUBLIC :: f_ck3traj    = f_ck2traj    + 1
 
 ! ---- transport ----
-INTEGER, PARAMETER, PUBLIC :: f_Obs_full   = f_ck3traj    + 1
-INTEGER, PARAMETER, PUBLIC :: f_Obs_delta  = f_Obs_full   + 1
+INTEGER, PARAMETER, PUBLIC :: f_Obs_GF     = f_ck3traj    + 1
+INTEGER, PARAMETER, PUBLIC :: f_Obs_FF     = f_Obs_GF     + 1
+INTEGER, PARAMETER, PUBLIC :: f_Obs_FD     = f_Obs_FF     + 1
+INTEGER, PARAMETER, PUBLIC :: f_Obs_DF     = f_Obs_FD     + 1
+INTEGER, PARAMETER, PUBLIC :: f_Obs_DD     = f_Obs_DF     + 1
 
 ! ---- final state ----
-INTEGER, PARAMETER, PUBLIC :: f_Xout       = f_Obs_delta  + 1
+INTEGER, PARAMETER, PUBLIC :: f_Xout       = f_Obs_DD     + 1
 INTEGER, PARAMETER, PUBLIC :: f_Yout       = f_Xout       + 1
 INTEGER, PARAMETER, PUBLIC :: f_Zout       = f_Yout       + 1
 INTEGER, PARAMETER, PUBLIC :: f_Vpout      = f_Zout       + 1
 INTEGER, PARAMETER, PUBLIC :: f_muout      = f_Vpout      + 1
-INTEGER, PARAMETER, PUBLIC :: f_Weout      = f_muout      + 1
-INTEGER, PARAMETER, PUBLIC :: f_Pbout      = f_Weout      + 1
-INTEGER, PARAMETER, PUBLIC :: f_Hout       = f_Pbout      + 1
+INTEGER, PARAMETER, PUBLIC :: f_betaFout   = f_muout      + 1
+INTEGER, PARAMETER, PUBLIC :: f_betaDout   = f_betaFout   + 1
+INTEGER, PARAMETER, PUBLIC :: f_FMout      = f_betaDout   + 1
+INTEGER, PARAMETER, PUBLIC :: f_Hout       = f_FMout      + 1
 INTEGER, PARAMETER, PUBLIC :: f_q1out      = f_Hout       + 1
 INTEGER, PARAMETER, PUBLIC :: f_q2out      = f_q1out      + 1
 
@@ -56,8 +63,7 @@ INTEGER, PARAMETER, PUBLIC :: f_VcorTN     = f_VcorTT     + 1
 INTEGER, PARAMETER, PUBLIC :: f_VcorNT     = f_VcorTN     + 1
 
 INTEGER, PARAMETER, PUBLIC :: f_Lagr_corr  = f_VcorNT     + 1
-INTEGER, PARAMETER, PUBLIC :: f_Pb         = f_Lagr_corr  + 1
-INTEGER, PARAMETER, PUBLIC :: f_mask       = f_Pb         + 1
+INTEGER, PARAMETER, PUBLIC :: f_mask       = f_Lagr_corr  + 1
 
 ! ---- total number of files ----
 INTEGER, PARAMETER, PUBLIC :: nfiles = f_mask
@@ -81,7 +87,7 @@ INTEGER, PARAMETER, PUBLIC :: nfiles = f_mask
   PUBLIC :: write_transport
   PUBLIC :: write_final_state
   PUBLIC :: write_correlations
-  PUBLIC :: write_lagrangian_and_pb
+  PUBLIC :: write_lagrangian
   PUBLIC :: write_mask
 CONTAINS
 
@@ -104,15 +110,18 @@ CONTAINS
     fname(f_Zinit)      = 'Zinit'
     fname(f_Vpinit)     = 'Vpinit'
     fname(f_muinit)     = 'muinit'
-    fname(f_Weinit)     = 'Weinit'
-    fname(f_Pbinit)     = 'Pbinit'
+    fname(f_betaFinit)  = 'betaFinit'
+    fname(f_betaDinit)  = 'betaDinit'
+    fname(f_FMinit)     = 'FMinit'
 
     fname(f_Xtraj)      = 'Xtraj'
     fname(f_Ytraj)      = 'Ytraj'
     fname(f_Ztraj)      = 'Ztraj'
     fname(f_Vptraj)     = 'Vptraj'
     fname(f_mutraj)     = 'mutraj'
-    fname(f_Wetraj)     = 'Wetraj'
+    fname(f_betaFtraj)  = 'betaFtraj'
+    fname(f_betaDtraj)  = 'betaDtraj'
+    fname(f_FMtraj)     = 'FMtraj'
     fname(f_Htraj)      = 'Htraj'
     fname(f_q1traj)     = 'q1traj'
     fname(f_q2traj)     = 'q2traj'
@@ -122,16 +131,20 @@ CONTAINS
     fname(f_ck2traj)    = 'ck2traj'
     fname(f_ck3traj)    = 'ck3traj'
 
-    fname(f_Obs_full)   = 'Obs_full'
-    fname(f_Obs_delta)        = 'Obs_delta'
+    fname(f_Obs_GF)     = 'Obs_GF'
+    fname(f_Obs_FF)     = 'Obs_FF'
+    fname(f_Obs_FD)     = 'Obs_FD'
+    fname(f_Obs_DF)     = 'Obs_DF'
+    fname(f_Obs_DD)     = 'Obs_DD'
 
     fname(f_Xout)       = 'Xout'
     fname(f_Yout)       = 'Yout'
     fname(f_Zout)       = 'Zout'
     fname(f_Vpout)      = 'Vpout'
     fname(f_muout)      = 'muout'
-    fname(f_Weout)      = 'Weout'
-    fname(f_Pbout)     = 'Pbout'
+    fname(f_betaFout)   = 'betaFout'
+    fname(f_betaDout)   = 'betaDout'
+    fname(f_FMout)      = 'FMout'
     fname(f_Hout)       = 'Hout'
     fname(f_q1out)      = 'q1out'
     fname(f_q2out)      = 'q2out'
@@ -141,10 +154,7 @@ CONTAINS
     fname(f_VcorTN)     = 'VcorTN'
     fname(f_VcorNT)     = 'VcorNT'
     fname(f_Lagr_corr)  = 'Lagr_corr'
-    fname(f_Pb)         = 'Pb'
     fname(f_mask)       = 'mask'
-
-    enabled(f_Pb)       = .FALSE.
 
   END SUBROUTINE init_output_files
 
@@ -249,24 +259,26 @@ CONTAINS
 
   END FUNCTION valid_file_id
 
-SUBROUTINE write_initial_state(X, Y, Z, Vp, mu, Weight, Pb)
+SUBROUTINE write_initial_state(X, Y, Z, Vp, mu, betaF, betaD, FM)
    REAL(rp), INTENT(IN) :: X(:), Y(:), Z(:)
-   REAL(rp), INTENT(IN) :: Vp(:), mu(:), Weight(:), Pb(:)
+   REAL(rp), INTENT(IN) :: Vp(:), mu(:), betaF(:), betaD(:), FM(:)
 
    WRITE(funit(f_Xinit))  X
    WRITE(funit(f_Yinit))  Y
    WRITE(funit(f_Zinit))  Z
    WRITE(funit(f_Vpinit)) Vp
    WRITE(funit(f_muinit)) mu
-   WRITE(funit(f_Weinit)) Weight
-   WRITE(funit(f_Pbinit)) Pb
+   WRITE(funit(f_betaFinit)) betaF
+   WRITE(funit(f_betaDinit)) betaD
+   WRITE(funit(f_FMinit))    FM
 END SUBROUTINE write_initial_state
 
 
-SUBROUTINE write_trajectories(Xtraj, Ytraj, Ztraj, Vptraj, mutraj, Wetraj, Htraj, &
+SUBROUTINE write_trajectories(Xtraj, Ytraj, Ztraj, Vptraj, mutraj, betaFtraj, betaDtraj, FMtraj, Htraj, &
                               q1traj, q2traj, q3traj, Pctraj, ck1traj, ck2traj, ck3traj)
    REAL(rp), INTENT(IN) :: Xtraj(:, :), Ytraj(:, :), Ztraj(:, :)
-   REAL(rp), INTENT(IN) :: Vptraj(:, :), mutraj(:, :), Wetraj(:, :)
+   REAL(rp), INTENT(IN) :: Vptraj(:, :), mutraj(:, :)
+   REAL(rp), INTENT(IN) :: betaFtraj(:, :), betaDtraj(:, :), FMtraj(:, :)
    REAL(rp), INTENT(IN) :: Htraj(:, :), Pctraj(:, :)
    REAL(rp), INTENT(IN) :: q1traj(:, :), q2traj(:, :), q3traj(:, :)
    REAL(rp), INTENT(IN) :: ck1traj(:, :), ck2traj(:, :), ck3traj(:, :)
@@ -276,7 +288,9 @@ SUBROUTINE write_trajectories(Xtraj, Ytraj, Ztraj, Vptraj, mutraj, Wetraj, Htraj
    WRITE(funit(f_Ztraj))   Ztraj
    WRITE(funit(f_Vptraj))  Vptraj
    WRITE(funit(f_mutraj))  mutraj
-   WRITE(funit(f_Wetraj))  Wetraj
+   WRITE(funit(f_betaFtraj)) betaFtraj
+   WRITE(funit(f_betaDtraj)) betaDtraj
+   WRITE(funit(f_FMtraj))    FMtraj
    WRITE(funit(f_Htraj))   Htraj
 
    WRITE(funit(f_q1traj))  q1traj
@@ -290,17 +304,20 @@ SUBROUTINE write_trajectories(Xtraj, Ytraj, Ztraj, Vptraj, mutraj, Wetraj, Htraj
 END SUBROUTINE write_trajectories
 
 
-SUBROUTINE write_transport(Obs_full, Obs_delta)
-   REAL(rp), INTENT(IN) :: Obs_full(:, :), Obs_delta(:, :)
+SUBROUTINE write_transport(Obs_GF, Obs_FF, Obs_FD, Obs_DF, Obs_DD)
+   REAL(rp), INTENT(IN) :: Obs_GF(:, :), Obs_FF(:, :), Obs_FD(:, :), Obs_DF(:, :), Obs_DD(:, :)
 
-   WRITE(funit(f_Obs_full)) Obs_full
-   WRITE(funit(f_Obs_delta)) Obs_delta
+   WRITE(funit(f_Obs_GF)) Obs_GF
+   WRITE(funit(f_Obs_FF)) Obs_FF
+   WRITE(funit(f_Obs_FD)) Obs_FD
+   WRITE(funit(f_Obs_DF)) Obs_DF
+   WRITE(funit(f_Obs_DD)) Obs_DD
 END SUBROUTINE write_transport
 
 
-SUBROUTINE write_final_state(X, Y, Z, Vp, mu, Weight, Pb, Ham, q1al, q2al)
+SUBROUTINE write_final_state(X, Y, Z, Vp, mu, betaF, betaD, FM, Ham, q1al, q2al)
    REAL(rp), INTENT(IN) :: X(:), Y(:), Z(:)
-   REAL(rp), INTENT(IN) :: Vp(:), mu(:), Weight(:), Ham(:), Pb(:)
+   REAL(rp), INTENT(IN) :: Vp(:), mu(:), betaF(:), betaD(:), FM(:), Ham(:)
    REAL(rp), INTENT(IN) :: q1al(:), q2al(:)
 
    WRITE(funit(f_Xout))  X
@@ -308,8 +325,9 @@ SUBROUTINE write_final_state(X, Y, Z, Vp, mu, Weight, Pb, Ham, q1al, q2al)
    WRITE(funit(f_Zout))  Z
    WRITE(funit(f_Vpout)) Vp
    WRITE(funit(f_muout)) mu
-   WRITE(funit(f_Weout)) Weight
-   WRITE(funit(f_Pbout)) Pb
+   WRITE(funit(f_betaFout)) betaF
+   WRITE(funit(f_betaDout)) betaD
+   WRITE(funit(f_FMout))    FM
    WRITE(funit(f_Hout))  Ham
    WRITE(funit(f_q1out)) q1al
    WRITE(funit(f_q2out)) q2al
@@ -327,13 +345,11 @@ SUBROUTINE write_correlations(Vcorff, VcorTT, VcorTN, VcorNT)
 END SUBROUTINE write_correlations
 
 
-SUBROUTINE write_lagrangian_and_pb(Lagr_corr, Pb)
+SUBROUTINE write_lagrangian(Lagr_corr)
    REAL(rp), INTENT(IN) :: Lagr_corr(:)
-   REAL(rp), INTENT(IN) :: Pb(:)
 
    WRITE(funit(f_Lagr_corr)) Lagr_corr
-!   WRITE(funit(f_Pb))        Pb
-END SUBROUTINE write_lagrangian_and_pb
+END SUBROUTINE write_lagrangian
 
 
 SUBROUTINE write_mask(mask_value)
