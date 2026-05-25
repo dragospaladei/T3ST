@@ -17,9 +17,11 @@ INTEGER, PARAMETER, PUBLIC :: f_muinit     = f_Vpinit     + 1
 INTEGER, PARAMETER, PUBLIC :: f_betaFinit  = f_muinit     + 1
 INTEGER, PARAMETER, PUBLIC :: f_betaDinit  = f_betaFinit  + 1
 INTEGER, PARAMETER, PUBLIC :: f_FMinit     = f_betaDinit  + 1
+INTEGER, PARAMETER, PUBLIC :: f_F0init     = f_FMinit     + 1
+INTEGER, PARAMETER, PUBLIC :: f_G0init     = f_F0init     + 1
 
 ! ---- trajectories ----
-INTEGER, PARAMETER, PUBLIC :: f_Xtraj      = f_FMinit     + 1
+INTEGER, PARAMETER, PUBLIC :: f_Xtraj      = f_G0init     + 1
 INTEGER, PARAMETER, PUBLIC :: f_Ytraj      = f_Xtraj      + 1
 INTEGER, PARAMETER, PUBLIC :: f_Ztraj      = f_Ytraj      + 1
 INTEGER, PARAMETER, PUBLIC :: f_Vptraj     = f_Ztraj      + 1
@@ -113,6 +115,8 @@ CONTAINS
     fname(f_betaFinit)  = 'betaFinit'
     fname(f_betaDinit)  = 'betaDinit'
     fname(f_FMinit)     = 'FMinit'
+    fname(f_F0init)     = 'F0init'
+    fname(f_G0init)     = 'G0init'
 
     fname(f_Xtraj)      = 'Xtraj'
     fname(f_Ytraj)      = 'Ytraj'
@@ -259,9 +263,9 @@ CONTAINS
 
   END FUNCTION valid_file_id
 
-SUBROUTINE write_initial_state(X, Y, Z, Vp, mu, betaF, betaD, FM)
+SUBROUTINE write_initial_state(X, Y, Z, Vp, mu, betaF, betaD, FM, F0, G0)
    REAL(rp), INTENT(IN) :: X(:), Y(:), Z(:)
-   REAL(rp), INTENT(IN) :: Vp(:), mu(:), betaF(:), betaD(:), FM(:)
+   REAL(rp), INTENT(IN) :: Vp(:), mu(:), betaF(:), betaD(:), FM(:), F0(:), G0(:)
 
    WRITE(funit(f_Xinit))  X
    WRITE(funit(f_Yinit))  Y
@@ -271,6 +275,8 @@ SUBROUTINE write_initial_state(X, Y, Z, Vp, mu, betaF, betaD, FM)
    WRITE(funit(f_betaFinit)) betaF
    WRITE(funit(f_betaDinit)) betaD
    WRITE(funit(f_FMinit))    FM
+   WRITE(funit(f_F0init))    F0
+   WRITE(funit(f_G0init))    G0
 END SUBROUTINE write_initial_state
 
 

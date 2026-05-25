@@ -928,16 +928,19 @@ END SUBROUTINE PDF_abcap  !=====================================================
     END IF
 
     !-----------------------------------------------------------------
-    ! Preserve your "first sample has no turbulence" convention
+    ! "first sample has no turbulence" convention
+    ! "second sample has frozen turbulence" convention
     !-----------------------------------------------------------------
     IF (USE_real_flag == ON) THEN
       phs(1) = 0.0_rp; phrmps(1) = 0.0_rp; phxs(1) = 0.0_rp; phys(1) = 0.0_rp
       kxs(1) = 0.0_rp; kys(1)    = 0.0_rp; kzs(1)  = 0.0_rp
       ws(1)  = 0.0_rp; wcs(1)    = 0.0_rp; kperps(1) = 0.0_rp
+      ws(2)  = 0.0_rp; wcs(2)    = 0.0_rp
     ELSE
       ph(:,1)    = 0.0_rp; phrmp(:,1) = 0.0_rp; phx(:,1) = 0.0_rp; phy(:,1) = 0.0_rp
       kx(:,1)    = 0.0_rp; ky(:,1)    = 0.0_rp; kz(:,1)  = 0.0_rp
       w(:,1)     = 0.0_rp; wc(:,1)    = 0.0_rp; kperp(:,1) = 0.0_rp
+      w(:,2)     = 0.0_rp; wc(:,2)    = 0.0_rp
     END IF
 
     DEALLOCATE(tmp4, kyrow, kxrow, kzrow, wrow, wcrow, phrow, phxrow, phyrow, phrmprow, dmrow)

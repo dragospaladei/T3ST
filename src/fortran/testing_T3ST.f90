@@ -8,6 +8,7 @@ module testing_T3ST_mod
   private
 
   public :: testing_T3ST
+  public :: diagnose_saved_trajectories
 
   ! -------------------------
   ! Unified formatting knobs
@@ -40,6 +41,83 @@ module testing_T3ST_mod
   character(len=MSG_LEN) :: alert_msgs(MAX_ALERTS)
 
 contains
+  subroutine diagnose_saved_trajectories(F0, FMtraj, betaFtraj, Htraj, Pctraj, &
+                                         Obs_FF, Obs_FD, Obs_DF, Obs_DD, no_errors)
+    real(rp), intent(in)  :: F0(:)
+    real(rp), intent(in)  :: FMtraj(:, :), betaFtraj(:, :)
+    real(rp), intent(in)  :: Htraj(:, :), Pctraj(:, :)
+    real(rp), intent(in)  :: Obs_FF(:, :), Obs_FD(:, :), Obs_DF(:, :), Obs_DD(:, :)
+    integer,  intent(out) :: no_errors
+
+    real(rp), parameter :: tol_identity = 1.0e-3_rp
+    real(rp), parameter :: tol_obs_abs  = 1.0e-6_rp
+    real(rp), parameter :: tol_obs_rel  = 1.0e-5_rp
+    real(rp), parameter :: tol_H1       = 1.0e-5_rp
+    real(rp), parameter :: tol_H2       = 2.0e-2_rp
+    real(rp), parameter :: tol_Pc1      = 1.0e-4_rp
+    real(rp), parameter :: eps_ref      = 1.0e-12_rp
+
+    integer :: ntime, nsaved
+    integer :: i, k
+    real(rp) :: max_identity_err
+    real(rp) :: value
+
+    no_errors = 0
+    ntime = size(FMtraj, 1)
+    nsaved = size(FMtraj, 2)
+
+    if (ntime < 1 .or. nsaved < 1) then
+      no_errors = no_errors + 1
+      return
+    end if
+
+    if (size(betaFtraj, 1) /= ntime .or. size(betaFtraj, 2) /= nsaved .or. size(F0) < nsaved) then
+      no_errors = no_errors + 1
+      return
+    end if
+
+    max_identity_err = 0.0_rp
+    do i = 1, nsaved
+      if (F0(i) <= 0.0_rp) then
+        no_errors = no_errors + 1
+        return
+      end if
+
+      do k = 1, ntime
+        value = FMtraj(k, i) * exp(betaFtraj(k, i)) / F0(i)
+        max_identity_err = max(max_identity_err, abs(value - 1.0_rp))
+      end do
+    end do
+
+    call check_scalar_tolerance("FM*exp(betaF)/F0 over saved trajectories", max_identity_err, tol_identity, no_errors)
+
+    if (size(Htraj, 2) >= 1) then
+      call check_time_constancy("Htraj(:,1)", Htraj(:, 1), tol_H1, eps_ref, no_errors)
+    else
+      no_errors = no_errors + 1
+    end if
+
+    if (size(Htraj, 2) >= 2) then
+      call check_time_constancy("Htraj(:,2)", Htraj(:, 2), tol_H2, eps_ref, no_errors)
+    else
+      no_errors = no_errors + 1
+    end if
+
+    if (size(Pctraj, 2) >= 1) then
+      call check_time_constancy("Pctraj(:,1)", Pctraj(:, 1), tol_Pc1, eps_ref, no_errors)
+    else
+      no_errors = no_errors + 1
+    end if
+
+    call check_observable_identity("Obs_FF - Obs_FD = Obs_DF - Obs_DD", &
+                                   Obs_FF - Obs_FD, Obs_DF - Obs_DD, &
+                                   tol_obs_abs, tol_obs_rel, eps_ref, no_errors)
+
+    call check_observable_identity("Obs_FD - Obs_DD = Obs_FF - Obs_DF", &
+                                   Obs_FD - Obs_DD, Obs_FF - Obs_DF, &
+                                   tol_obs_abs, tol_obs_rel, eps_ref, no_errors)
+  end subroutine diagnose_saved_trajectories
+
   !=============================================================================
   ! Main entry point
   !=============================================================================
@@ -440,7 +518,6 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
     end if
   end subroutine check_nan
 
-
   !=============================================================================
   ! Section header
   !=============================================================================
@@ -722,6 +799,68 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
       call log_moment("[  OK ]", label, val, ref, relerr, tol)
     end if
   end subroutine check_moment
+
+  subroutine check_scalar_tolerance(label, err, tol, no_errors)
+    character(len=*), intent(in)    :: label
+    real(rp),         intent(in)    :: err, tol
+    integer,          intent(inout) :: no_errors
+
+    if (ieee_is_nan(err) .or. err > tol) then
+      no_errors = no_errors + 1
+    end if
+  end subroutine check_scalar_tolerance
+
+  subroutine check_time_constancy(label, x, tol, eps_ref, no_errors)
+    character(len=*), intent(in)    :: label
+    real(rp),         intent(in)    :: x(:)
+    real(rp),         intent(in)    :: tol, eps_ref
+    integer,          intent(inout) :: no_errors
+
+    real(rp) :: err
+    real(rp) :: ref
+
+    if (size(x) < 1) then
+      no_errors = no_errors + 1
+      return
+    end if
+
+    if (any(ieee_is_nan(x))) then
+      no_errors = no_errors + 1
+      return
+    end if
+
+    ref = x(1)
+    err = maxval(abs(x - ref)) / max(abs(ref), eps_ref)
+    call check_scalar_tolerance(trim(label) // " time constancy", err, tol, no_errors)
+  end subroutine check_time_constancy
+
+  subroutine check_observable_identity(label, lhs, rhs, abs_tol, rel_tol, eps_ref, no_errors)
+    character(len=*), intent(in)    :: label
+    real(rp),         intent(in)    :: lhs(:, :), rhs(:, :)
+    real(rp),         intent(in)    :: abs_tol, rel_tol, eps_ref
+    integer,          intent(inout) :: no_errors
+
+    real(rp) :: err, scale
+
+    if (size(lhs, 1) /= size(rhs, 1) .or. size(lhs, 2) /= size(rhs, 2)) then
+      no_errors = no_errors + 1
+      return
+    end if
+
+    if (any(ieee_is_nan(lhs)) .or. any(ieee_is_nan(rhs))) then
+      no_errors = no_errors + 1
+      return
+    end if
+
+    err = maxval(abs(lhs - rhs))
+    scale = max(maxval(abs(lhs)), maxval(abs(rhs)), eps_ref)
+
+    if (err > abs_tol + rel_tol * scale) then
+      no_errors = no_errors + 1
+    end if
+
+    call ignore_unused(real(len_trim(label), rp))
+  end subroutine check_observable_identity
 
 
   subroutine log_moment(tag, label, val, ref, relerr, tol)

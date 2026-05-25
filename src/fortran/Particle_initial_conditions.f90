@@ -22,7 +22,7 @@
        REAL(KIND=rp), DIMENSION(Np), INTENT(OUT) :: X, Y, Z, mu, vp, F0, G0, FM, betaF, betaD
 
        ! Local variables
-       REAL(KIND=rp), DIMENSION(Np)                 :: En, PA, aux
+       REAL(KIND=rp), DIMENSION(Np)                 :: En, PA, aux, Jac
        REAL(KIND=rp), DIMENSION(Np)                 :: phi0, phi1, phi2, B, Bx, By, Bz, q1, q2, q3
        REAL(KIND=rp), DIMENSION(Np)                 :: rhot, delta_q1, temp, dens
        REAL(KIND=rp)                                :: m1, m2
@@ -93,27 +93,32 @@
       q1 = C1*rhot
       delta_q1 = q1 - C1*q10
 
-      temp = Ts*exp(delta_q1*a0/C1/R0*Lts)  !Ts*(1.0_rp + delta_q1*a0/C1/R0*Lts)
-      dens= 1.0*exp(delta_q1*a0/C1/R0*Lns)  !1.0*(1.0_rp + delta_q1*a0/C1/R0*Lns)
+      temp = Ts*exp(delta_q1*a0/C1*Lts) !Ts*(1.0_rp + delta_q1*a0/C1*Lts)
+      dens= 1.0*exp(delta_q1*a0/C1*Lns) !1.0*(1.0_rp + delta_q1*a0/C1*Lns)
 
 ! here we define 3 "weights": 
 ! 1) G0 the marker distribution in the z phase space implemented :: it is a pure Maxwellian in energy (no jacobian resulting from there); the rhot*a0*X = r*R comes from the jacobian of the transformation between uniform (r,theta,varphi) coordinates and real space (x,y,z) - cartesian
 ! 2) F0 the initial distribution function (in practice its a maxwellian with exponential profiles)
 ! 3) beta the exponential weight associated with our modified deltaF scheme
 
-      FM  = dens*exp(-En / temp) / temp**1.5_rp
-      F0  = dens*exp(-En / temp) / temp**1.5_rp
-      G0  = exp(-En/Ts)/Ts**(1.5_rp)/(rhot*a0*X)
-      FM  = FM/(sum(FM*(rhot*a0*X))/Np)               ! normalization of JF_0
-      F0  = F0/(sum(F0*(rhot*a0*X))/Np)               ! normalization of JF_0
-      G0  = G0/(sum(G0*(rhot*a0*X))/Np)               ! normalization of JG_0
+      Jac = (rhot*a0*X)
+      FM  = dens*exp(-En/temp)/temp**1.5_rp
+      F0  = dens*exp(-En/temp)/temp**1.5_rp
+      G0  =  1.0*exp(-En/Ts)/Ts**(1.5_rp)/Jac
+!      FM  = FM/(sum(FM*Jac)/Np)               ! normalization of JF_M
+ !     F0  = F0/(sum(F0*Jac)/Np)               ! normalization of JF_0
+      G0  = G0/(sum(G0*Jac)/Np)               ! normalization of JG_0
+
+       G0 = G0*sum(F0/G0)/Np
+
       betaF = log(F0/FM)
       betaD = log(F0/FM)
       
-  !    write(*,*) sum(G0)/Np, sum(F0)/Np,sum(F0/G0)/Np
-!      pause
- !     stop
-    END SUBROUTINE
+!      write(*,*) sum(G0*Jac)/Np,sum(F0*Jac)/Np,sum(FM*Jac)/Np,sum(F0/G0)/Np
+ !     pause
+  !    stop
+      
+END SUBROUTINE
 
 
     !      ! Subroutine :: initialize_particle_positions

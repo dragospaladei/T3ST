@@ -96,6 +96,7 @@ PROGRAM T3ST
    !-----------------------------------------------------------------------------------------------------
    INTEGER :: i, k, re, lene, k2, i8
    INTEGER :: filled, ias, eror_flag
+   INTEGER :: diag_loops_checked, diag_loops_failed, diag_checks_failed
    INTEGER :: type_choice
    INTEGER :: arg_count, arg_type_choice, arg_sim_number, arg_status
 
@@ -249,7 +250,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
          REAL(USE_balloon, rp), REAL(USE_tilt, rp), REAL(USE_testing, rp), C1, C2, C3 ]
 
 !========================================================================================================
-! TIME GRID
+! TIME GRID   & minimal diagnostic counters
 !========================================================================================================
 
       dt       = (tmax - t0) / REAL(Nt)
@@ -257,6 +258,10 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
       t        = [(i8 * dt + t0, i8 = 0, Nt)]
       Lagr_ref = 0.0_rp
       Lagr_corr = 0.0_rp
+
+      diag_loops_checked = 0
+      diag_loops_failed  = 0
+      diag_checks_failed = 0
 
 !========================================================================================================
 ! REALIZATIONS LOOP
@@ -276,7 +281,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                STOP
             END IF
 
-            CALL write_initial_state(X, Y, Z, Vp, mu, betaF, betaD, FM)
+            CALL write_initial_state(X, Y, Z, Vp, mu, betaF, betaD, FM, F0, G0)
 
 !========================================================================================================
 ! TIME PROPAGATION
@@ -395,10 +400,13 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                         quan(51)     = quan(51)     + pbGF*mask * (Lagr_ref(i) * Vtx)    ! green function
 
                      END IF
-!                    IF (i == 12) THEN
- !                     WRITE(*, '("particle | ",I0,"| FM*Exp/F0 | ",G0.6,"| FM/F0-1.0 | ",G0.6,"| beta | ",G0.6,"| dbeta/dt | ",G0.6)') &
-  !                       i, 100.0*(FMi*exp(betaFi)/F0i-1.0), 100.0*(FMi/F0i-1.0_rp), betaFi, vbF/Vtx
-   !               END IF
+
+ !             IF (i == 12) THEN
+!               write(*,*) 'rk', exp((q1 - C1*q10)*a0/C1/R0*Lns), q1 - C1*q10, kin, FMi, F0i, exp((q1 - C1*q10)*a0/C1/R0*Lns)*exp(-kin/ Ts) / Ts**1.5_rp
+ !             write(*,*) 'rk', exp((q1 - C1*q10)*a0/C1/R0*Lns), FMi!, F0i, exp((q1 - C1*q10)*a0/C1/R0*Lns)*exp(-kin/ Ts) / Ts**1.5_rp
+  !                  WRITE(*, '("particle | ",I0,"| FM*Exp/F0 | ",G0.6,"| deltaFM/F0 | ",G0.6,"| kin/Ts | ",G0.6)') &
+   !                    i, 100.0*(FMi*exp(betaFi)/F0i-1.0), 100.0*(FMi/F0i-1.0_rp), kin-Hi
+    !           END IF
                 ! RK4 stage 2.
                      CALL gyrocenter_drifts(xi + vx * dt / 2.0_rp, &
                                      yi + vy * dt / 2.0_rp, &
@@ -541,6 +549,16 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
 
             !$omp end parallel
 
+            CALL diagnose_saved_trajectories(F0, FMtraj, betaFtraj, Htraj, Pctraj, &
+                                             Obs_FF, Obs_FD, Obs_DF, Obs_DD, eror_flag)
+
+            diag_loops_checked = diag_loops_checked + 1
+            diag_checks_failed = diag_checks_failed + eror_flag
+
+            IF (eror_flag > 0) THEN
+               diag_loops_failed = diag_loops_failed + 1
+            END IF
+
 !========================================================================================================
 ! EXPORT DATA
 !========================================================================================================
@@ -598,6 +616,23 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
          PRINT *, ''
 
       END DO
+!========================================================================================================
+! MINIMAL DIAGNOSIS RESULTS
+!========================================================================================================
+      IF (diag_loops_failed == 0) THEN
+         WRITE(*, *) 'Minimal diagnosis check: PASSED'
+      ELSE
+         WRITE(*, *) 'Minimal diagnosis check: FAILED'
+         WRITE(*, *) '  checked loops: ', diag_loops_checked
+         WRITE(*, *) '  failed loops : ', diag_loops_failed
+         WRITE(*, *) '  failed checks: ', diag_checks_failed
+      END IF
+
+      WRITE(333, *) 'Saved-trajectory diagnostics: ', MERGE('GOOD', 'BAD ', diag_loops_failed == 0)
+      WRITE(333, *) '  checked loops: ', diag_loops_checked
+      WRITE(333, *) '  failed loops : ', diag_loops_failed
+      WRITE(333, *) '  failed checks: ', diag_checks_failed
+      WRITE(333, *) '------------------------------------------------------------------------------'
 
 !========================================================================================================
 ! CLOSE FILES / TIMING / DEALLOCATIONS

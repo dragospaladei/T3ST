@@ -612,7 +612,7 @@ contains
       Hi0 = As*vpi*vpi*0.5_rp + mui*B - As*xi2*Omega*Omega*0.5_rp &
            + Zs*xi2*Omega*Omega*0.5_rp*tau*(1.0_rp - R02avrg/xi2) 
       Pc = psi - As/Zs*rhoi/R0*Fpsi/B*(vpi + 1.0_rp*Fpsi/B*Omega)
-      kin = 0.5_rp*vpi*vpi + mui*B         ! note that this form is pure kinetic energy, without rotational or potential contributions
+      kin = As*0.5_rp*vpi*vpi + mui*B         ! note that this form is pure kinetic energy, without rotational or potential contributions
       check_1 = phi0
       check_2 = phix
       check_3 = phiy
@@ -626,8 +626,7 @@ contains
       vbD = -(-ap_1*As*vpi/temp - mui/temp*(vx_1*gradBx + vy_1*gradBy + vz_1*gradBz) + Vtx*a0/C1*(Lns + Lts*(Hi0/temp - 1.5_rp))) ! atentie la semnul lui Lns!
       vbF = -(-ap*As*vpi/temp - mui/temp*(vx*gradBx + vy*gradBy + vz*gradBz) + VFx*a0/C1*(Lns + Lts*(Hi0/temp - 1.5_rp))) ! atentie la semnul lui Lns!
       FMi = dens*exp(-Hi0 / temp) / temp**1.5_rp
-     
-   end subroutine gyrocenter_drifts
+end subroutine gyrocenter_drifts
 
    pure subroutine collision_kicks(sm1, sm2, dt_local, xi, yi, zi, vpi, mui, B, vcolx, vcoly, vcolz, vcolm, vcolp)
       !$omp declare simd(collision_kicks) uniform(dt_local) notinbranch
