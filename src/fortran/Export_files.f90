@@ -44,9 +44,10 @@ INTEGER, PARAMETER, PUBLIC :: f_Obs_FF     = f_Obs_GF     + 1
 INTEGER, PARAMETER, PUBLIC :: f_Obs_FD     = f_Obs_FF     + 1
 INTEGER, PARAMETER, PUBLIC :: f_Obs_DF     = f_Obs_FD     + 1
 INTEGER, PARAMETER, PUBLIC :: f_Obs_DD     = f_Obs_DF     + 1
+INTEGER, PARAMETER, PUBLIC :: f_Obs_SS     = f_Obs_DD     + 1
 
 ! ---- final state ----
-INTEGER, PARAMETER, PUBLIC :: f_Xout       = f_Obs_DD     + 1
+INTEGER, PARAMETER, PUBLIC :: f_Xout       = f_Obs_SS     + 1
 INTEGER, PARAMETER, PUBLIC :: f_Yout       = f_Xout       + 1
 INTEGER, PARAMETER, PUBLIC :: f_Zout       = f_Yout       + 1
 INTEGER, PARAMETER, PUBLIC :: f_Vpout      = f_Zout       + 1
@@ -57,9 +58,11 @@ INTEGER, PARAMETER, PUBLIC :: f_FMout      = f_betaDout   + 1
 INTEGER, PARAMETER, PUBLIC :: f_Hout       = f_FMout      + 1
 INTEGER, PARAMETER, PUBLIC :: f_q1out      = f_Hout       + 1
 INTEGER, PARAMETER, PUBLIC :: f_q2out      = f_q1out      + 1
+INTEGER, PARAMETER, PUBLIC :: f_Vtxout     = f_q2out      + 1
+INTEGER, PARAMETER, PUBLIC :: f_mask2out   = f_Vtxout     + 1
 
 ! ---- correlations ----
-INTEGER, PARAMETER, PUBLIC :: f_Vcorff     = f_q2out      + 1
+INTEGER, PARAMETER, PUBLIC :: f_Vcorff     = f_mask2out   + 1
 INTEGER, PARAMETER, PUBLIC :: f_VcorTT     = f_Vcorff     + 1
 INTEGER, PARAMETER, PUBLIC :: f_VcorTN     = f_VcorTT     + 1
 INTEGER, PARAMETER, PUBLIC :: f_VcorNT     = f_VcorTN     + 1
@@ -140,6 +143,7 @@ CONTAINS
     fname(f_Obs_FD)     = 'Obs_FD'
     fname(f_Obs_DF)     = 'Obs_DF'
     fname(f_Obs_DD)     = 'Obs_DD'
+    fname(f_Obs_SS)     = 'Obs_SS'
 
     fname(f_Xout)       = 'Xout'
     fname(f_Yout)       = 'Yout'
@@ -152,6 +156,8 @@ CONTAINS
     fname(f_Hout)       = 'Hout'
     fname(f_q1out)      = 'q1out'
     fname(f_q2out)      = 'q2out'
+    fname(f_Vtxout)     = 'Vtxout'
+    fname(f_mask2out)   = 'mask2out'
 
     fname(f_Vcorff)     = 'Vcorff'
     fname(f_VcorTT)     = 'VcorTT'
@@ -310,21 +316,23 @@ SUBROUTINE write_trajectories(Xtraj, Ytraj, Ztraj, Vptraj, mutraj, betaFtraj, be
 END SUBROUTINE write_trajectories
 
 
-SUBROUTINE write_transport(Obs_GF, Obs_FF, Obs_FD, Obs_DF, Obs_DD)
+SUBROUTINE write_transport(Obs_GF, Obs_FF, Obs_FD, Obs_DF, Obs_DD, Obs_SS)
    REAL(rp), INTENT(IN) :: Obs_GF(:, :), Obs_FF(:, :), Obs_FD(:, :), Obs_DF(:, :), Obs_DD(:, :)
+   REAL(rp), INTENT(IN) :: Obs_SS(:, :)
 
    WRITE(funit(f_Obs_GF)) Obs_GF
    WRITE(funit(f_Obs_FF)) Obs_FF
    WRITE(funit(f_Obs_FD)) Obs_FD
    WRITE(funit(f_Obs_DF)) Obs_DF
    WRITE(funit(f_Obs_DD)) Obs_DD
+   WRITE(funit(f_Obs_SS)) Obs_SS
 END SUBROUTINE write_transport
 
 
-SUBROUTINE write_final_state(X, Y, Z, Vp, mu, betaF, betaD, FM, Ham, q1al, q2al)
+SUBROUTINE write_final_state(X, Y, Z, Vp, mu, betaF, betaD, FM, Ham, q1al, q2al, Vtxal, mask2al)
    REAL(rp), INTENT(IN) :: X(:), Y(:), Z(:)
    REAL(rp), INTENT(IN) :: Vp(:), mu(:), betaF(:), betaD(:), FM(:), Ham(:)
-   REAL(rp), INTENT(IN) :: q1al(:), q2al(:)
+   REAL(rp), INTENT(IN) :: q1al(:), q2al(:), Vtxal(:), mask2al(:)
 
    WRITE(funit(f_Xout))  X
    WRITE(funit(f_Yout))  Y
@@ -337,6 +345,8 @@ SUBROUTINE write_final_state(X, Y, Z, Vp, mu, betaF, betaD, FM, Ham, q1al, q2al)
    WRITE(funit(f_Hout))  Ham
    WRITE(funit(f_q1out)) q1al
    WRITE(funit(f_q2out)) q2al
+   WRITE(funit(f_Vtxout)) Vtxal
+   WRITE(funit(f_mask2out)) mask2al
 END SUBROUTINE write_final_state
 
 

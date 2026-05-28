@@ -73,7 +73,9 @@ PROGRAM T3ST
    REAL(KIND=rp), ALLOCATABLE :: Vp(:), mu(:), Ham(:), Pcc(:)
    REAL(KIND=rp), ALLOCATABLE :: ck1(:), ck2(:), ck3(:)
    REAL(KIND=rp), ALLOCATABLE :: F0(:), G0(:), FM(:), betaF(:), betaD(:)
+   REAL(KIND=rp), ALLOCATABLE :: alpha_1(:), alpha_2(:), alpha_3(:)
    REAL(KIND=rp), ALLOCATABLE :: q1al(:), q2al(:), q3al(:)
+   REAL(KIND=rp), ALLOCATABLE :: Vtxal(:), mask2al(:)
 
    REAL(KIND=rp), ALLOCATABLE :: Xtraj(:, :), Ytraj(:, :), Ztraj(:, :)
    REAL(KIND=rp), ALLOCATABLE :: Vptraj(:, :), mutraj(:, :)
@@ -89,6 +91,7 @@ PROGRAM T3ST
    ! Transport quantities
    !-----------------------------------------------------------------------------------------------------
    REAL(KIND=rp), ALLOCATABLE :: Obs_GF(:, :), Obs_FF(:, :), Obs_FD(:, :), Obs_DF(:, :), Obs_DD(:, :)
+   REAL(KIND=rp), ALLOCATABLE :: Obs_SS(:, :)
    REAL(KIND=rp), ALLOCATABLE :: Vcorff(:, :), VcorTT(:, :), VcorTN(:, :), VcorNT(:, :)
 
    !-----------------------------------------------------------------------------------------------------
@@ -97,6 +100,8 @@ PROGRAM T3ST
    INTEGER :: i, k, re, lene, k2, i8
    INTEGER :: filled, ias, eror_flag
    INTEGER :: diag_loops_checked, diag_loops_failed, diag_checks_failed
+   INTEGER, PARAMETER :: n_diag_fail_types = 8
+   INTEGER :: diag_fail_counts(n_diag_fail_types), diag_fail_counts_loop(n_diag_fail_types)
    INTEGER :: type_choice
    INTEGER :: arg_count, arg_type_choice, arg_sim_number, arg_status
 
@@ -106,10 +111,12 @@ PROGRAM T3ST
 
    REAL(KIND=rp), ALLOCATABLE :: t(:)
    REAL(KIND=rp), ALLOCATABLE :: Lagr_ref(:)
+   REAL(KIND=rp), ALLOCATABLE :: kin_init(:)
    REAL(KIND=rp), ALLOCATABLE :: Lagr_corr(:)
 
    REAL(KIND=rp) :: dt, dt_half
-   INTEGER, PARAMETER :: nq = 51
+   REAL(KIND=rp) :: q1min, q1max
+   INTEGER, PARAMETER :: nq = 55
    REAL(rp) :: quan(nq)
    REAL(rp), POINTER, CONTIGUOUS :: Qx(:), Qy(:), Qz(:), Qw(:), Qph(:)
 
@@ -203,17 +210,17 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
 
       ALLOCATE( X(Np), Xtraj(Nt + 1, ntraj), Obs_GF(10, Nt + 1), Obs_FF(10, Nt + 1), &
                 Obs_FD(10, Nt + 1), Obs_DF(10, Nt + 1), Obs_DD(10, Nt + 1), &
-                Vcorff(Nt + 1, Nt + 1), t(Nt + 1) )
+                Obs_SS(4, Nt + 1), Vcorff(Nt + 1, Nt + 1), t(Nt + 1) )
 
-      ALLOCATE( Y, Z, Vp, mu, Ham, F0, G0, FM, betaF, betaD, q1al, q2al, q3al, Pcc, &
-                ck1, ck2, ck3, MOLD=X )
+      ALLOCATE( Y, Z, Vp, mu, Ham, F0, G0, FM, betaF, betaD, q1al, q2al, q3al, Vtxal, mask2al, Pcc, &
+                ck1, ck2, ck3, alpha_1, alpha_2, alpha_3, MOLD=X )
 
       ALLOCATE( Ytraj, Ztraj, Vptraj, mutraj, betaFtraj, betaDtraj, FMtraj, Htraj, q1traj, q2traj, &
                 q3traj, Pctraj, ck1traj, ck2traj, ck3traj, MOLD=Xtraj )
 
       ALLOCATE( VcorTT, VcorTN, VcorNT, MOLD=Vcorff )
 
-      ALLOCATE( Lagr_ref(Np), Lagr_corr(Nt + 1) )
+      ALLOCATE( Lagr_ref(Np), kin_init(Np), Lagr_corr(Nt + 1) )
 
 !========================================================================================================
 ! EXPORT PARAMETERS OF THIS RUN
@@ -258,10 +265,13 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
       t        = [(i8 * dt + t0, i8 = 0, Nt)]
       Lagr_ref = 0.0_rp
       Lagr_corr = 0.0_rp
+      q1min = C1 * MAX(0.0_rp, q10 - 0.1_rp*annulus_width)
+      q1max = C1 * MIN(1.0_rp, q10 + 0.1_rp*annulus_width)
 
       diag_loops_checked = 0
       diag_loops_failed  = 0
       diag_checks_failed = 0
+      diag_fail_counts   = 0
 
 !========================================================================================================
 ! REALIZATIONS LOOP
@@ -272,7 +282,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
 
             CALL dispersion(normB, Vstar1, Vstar2, Vstar3, gees)
             CALL wavenum_unified(normB, Vstar1, Vstar2, Vstar3, gees, USE_real)
-            CALL initialize_particles(X, Y, Z, mu, Vp, F0, G0, FM, betaF, betaD)
+            CALL initialize_particles(X, Y, Z, mu, Vp, F0, G0, FM, betaF, betaD, alpha_1, alpha_2, alpha_3)
             CALL Larmor(USE_larmor, mu)
 
             IF (USE_testing == ON) THEN
@@ -301,13 +311,15 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                   BLOCK
 
                      REAL(rp) :: xi, yi, zi, mui, betaFi, betaDi, vpi
-                     REAL(rp) :: mask, maskR, maskZ
+                     REAL(rp) :: alpha_1i, alpha_2i, alpha_3i
+                     REAL(rp) :: mask, mask2, maskR, maskZ
                      REAL(rp) :: vx, vy, vz, vm, ap, vbF, vbD
                      REAL(rp) :: Wx, Wy, Wz, Wm, Wp, WbF, WbD
+                     REAL(rp) :: Walpha_1, Walpha_2, Walpha_3
                      REAL(rp) :: q1, q2, q3, Vrt, Vrr, FMi, F0i, G0i
-                     REAL(rp) :: pbGF, pbFF, pbFD, pbDF, pbDD
+                     REAL(rp) :: pbGF, pbFF, pbFD, pbDF, pbDD, pbSS
                      REAL(rp) :: Hi, B, Vtx, VFx, sm1, sm2, Pc, kin
-                     REAL(rp) :: check_1, check_2, check_3
+                     REAL(rp) :: check_1, check_2, check_3, vs_1, vs_2, vs_3
 
                      ! Select per-particle or single-spectrum arrays.
                      IF (USE_real == OFF) THEN
@@ -334,6 +346,9 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                      G0i     = G0(i)
                      betaFi  = betaF(i)
                      betaDi  = betaD(i)
+                     alpha_1i = alpha_1(i)
+                     alpha_2i = alpha_2(i)
+                     alpha_3i = alpha_3(i)
 
                      ! Half-collisional Euler-Maruyama step.
                      ! This keeps the Stratonovich interpretation in play.
@@ -344,7 +359,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
 
                         CALL gyrocenter_drifts(xi, yi, zi, vpi, mui, q1, q2, q3, t(k), &
                                     vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
-                                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph)
+                                    check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
 
                         CALL collision_kicks(sm1, sm2, dt_half, xi, yi, zi, vpi, mui, &
                                             B, vx, vy, vz, vm, ap)
@@ -356,15 +371,21 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                         mui     = mui     + dt_half * vm
                         betaFi  = betaFi  + dt_half * vbF
                         betaDi  = betaDi  + dt_half * vbD
+                        alpha_1i = alpha_1i + dt_half * vs_1
+                        alpha_2i = alpha_2i + dt_half * vs_2
+                        alpha_3i = alpha_3i + dt_half * vs_3
 
                      END IF
 
                      ! RK4 stage 1.
                      CALL gyrocenter_drifts(xi, yi, zi, vpi, mui, q1, q2, q3, t(k), &
                                  vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
-                                 check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph)
+                                 check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
 
-                     IF (k == 1) Lagr_ref(i) = Vtx
+                     IF (k == 1) THEN
+                        Lagr_ref(i) = Vtx
+                        kin_init(i) = kin
+                     END IF
 
                      Wx = vx / 6.0_rp
                      Wy = vy / 6.0_rp
@@ -373,6 +394,9 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                      Wp = ap / 6.0_rp
                      WbF = vbF / 6.0_rp
                      WbD = vbD / 6.0_rp
+                     Walpha_1 = vs_1 / 6.0_rp
+                     Walpha_2 = vs_2 / 6.0_rp
+                     Walpha_3 = vs_3 / 6.0_rp
 
                      ! Mask for particles outside the domain.
                      mask = 1.0_rp
@@ -382,6 +406,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                         maskZ = (yi - minZ) * (maxZ - yi)
                         mask  = MERGE(1.0_rp, 0.0_rp, (maskR >= 0.0) .AND. (maskZ >= 0.0))
                      END IF
+                     mask2 = MERGE(1.0_rp, 0.0_rp, (q1 > q1min) .AND. (q1 < q1max))
 
                      ! Observables.
                      IF (.NOT. ISNAN(q1)) THEN
@@ -390,6 +415,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                         pbFD = FMi*exp(betaDi)/G0i/Np
                         pbDF = FMi*(exp(betaFi)-1.0_rp)/G0i/Np
                         pbDD = FMi*(exp(betaDi)-1.0_rp)/G0i/Np
+                        pbSS = F0i/G0i/Np
                         
                         ! Obs columns: Vtx1, Q1, Vp1, H1, Heat1, Vtx2, Q2, Vp2, H2, Heat2.
                         quan(1:10)   = quan(1:10)   + pbGF*mask * [Vtx, q1, vpi, Hi, Vtx*kin, Vtx**2, q1**2, vpi**2, Hi**2, Vtx*kin] !green function
@@ -397,7 +423,11 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                         quan(21:30)  = quan(21:30)  + pbFD*mask * [Vtx, q1, vpi, Hi, Vtx*kin, Vtx**2, q1**2, vpi**2, Hi**2, Vtx*kin] !fullF + delta V
                         quan(31:40)  = quan(31:40)  + pbDF*mask * [Vtx, q1, vpi, Hi, Vtx*kin, Vtx**2, q1**2, vpi**2, Hi**2, Vtx*kin] !deltaF + full V
                         quan(41:50)  = quan(41:50)  + pbDD*mask * [Vtx, q1, vpi, Hi, Vtx*kin, Vtx**2, q1**2, vpi**2, Hi**2, Vtx*kin] !deltaF + delta V
-                        quan(51)     = quan(51)     + pbGF*mask * (Lagr_ref(i) * Vtx)    ! green function
+                        quan(51)     = quan(51)     + pbSS*mask * Lagr_ref(i) * Vtx   ! green function
+                        quan(52)     = quan(52)     + pbSS*mask * Lagr_ref(i) * alpha_1i
+                        quan(53)     = quan(53)     - pbSS*mask * Lagr_ref(i) * alpha_2i
+                        quan(54)     = quan(54)     - pbSS*mask * Lagr_ref(i) * alpha_3i
+                        quan(55)     = quan(55)     - pbSS*mask * Lagr_ref(i) * alpha_3i * kin_init(i)
 
                      END IF
 
@@ -415,7 +445,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                                      mui + vm * dt / 2.0_rp, &
                                      q1, q2, q3, t(k) + dt / 2.0_rp, &
                                      vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
-                                     check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph)
+                                     check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
 
                      Wx = Wx + vx / 3.0_rp
                      Wy = Wy + vy / 3.0_rp
@@ -424,6 +454,9 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                      Wp = Wp + ap / 3.0_rp
                      WbF = WbF + vbF / 3.0_rp
                      WbD = WbD + vbD / 3.0_rp
+                     Walpha_1 = Walpha_1 + vs_1 / 3.0_rp
+                     Walpha_2 = Walpha_2 + vs_2 / 3.0_rp
+                     Walpha_3 = Walpha_3 + vs_3 / 3.0_rp
 
                      ! RK4 stage 3.
                      CALL gyrocenter_drifts(xi + vx * dt / 2.0_rp, &
@@ -433,7 +466,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                                      mui + vm * dt / 2.0_rp, &
                                      q1, q2, q3, t(k) + dt / 2.0_rp, &
                                      vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
-                                     check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph)
+                                     check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
 
                      Wx = Wx + vx / 3.0_rp
                      Wy = Wy + vy / 3.0_rp
@@ -442,13 +475,16 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                      Wp = Wp + ap / 3.0_rp
                      WbF = WbF + vbF / 3.0_rp
                      WbD = WbD + vbD / 3.0_rp
+                     Walpha_1 = Walpha_1 + vs_1 / 3.0_rp
+                     Walpha_2 = Walpha_2 + vs_2 / 3.0_rp
+                     Walpha_3 = Walpha_3 + vs_3 / 3.0_rp
 
                      ! RK4 stage 4.
                      CALL gyrocenter_drifts(xi + vx * dt, yi + vy * dt, zi + vz * dt, &
                                  vpi + ap * dt, mui + vm * dt, &
                                  q1, q2, q3, t(k) + dt, &
                                  vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
-                                 check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph)
+                                 check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
 
                      Wx = Wx + vx / 6.0_rp
                      Wy = Wy + vy / 6.0_rp
@@ -457,6 +493,9 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                      Wp = Wp + ap / 6.0_rp
                      WbF = WbF + vbF / 6.0_rp
                      WbD = WbD + vbD / 6.0_rp
+                     Walpha_1 = Walpha_1 + vs_1 / 6.0_rp
+                     Walpha_2 = Walpha_2 + vs_2 / 6.0_rp
+                     Walpha_3 = Walpha_3 + vs_3 / 6.0_rp
 
                      ! Commit back.
                      X(i)      = xi      + dt * Wx
@@ -466,6 +505,9 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                      mu(i)     = mui     + dt * Wm
                      betaF(i)  = betaFi  + dt * WbF
                      betaD(i)  = betaDi  + dt * WbD
+                     alpha_1(i) = alpha_1i + dt * Walpha_1
+                     alpha_2(i) = alpha_2i + dt * Walpha_2
+                     alpha_3(i) = alpha_3i + dt * Walpha_3
 
                      Ham(i)  = Hi
                      FM(i)   = FMi
@@ -473,6 +515,8 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                      q1al(i) = q1
                      q2al(i) = q2
                      q3al(i) = q3
+                     Vtxal(i) = Vtx
+                     mask2al(i) = MERGE(1.0_rp, 0.0_rp, (q1 > q1min) .AND. (q1 < q1max))
                      ck1(i)  = check_1
                      ck2(i)  = check_2
                      ck3(i)  = check_3
@@ -487,13 +531,16 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                         vpi     = Vp(i)
                         betaFi  = betaF(i)
                         betaDi  = betaD(i)
+                        alpha_1i = alpha_1(i)
+                        alpha_2i = alpha_2(i)
+                        alpha_3i = alpha_3(i)
 
                         sm1 = rng_uniform()
                         sm2 = rng_uniform()
 
                         CALL gyrocenter_drifts(xi, yi, zi, vpi, mui, q1, q2, q3, t(k), &
                                     vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
-                                    check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph)
+                                    check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
 
                         CALL collision_kicks(sm1, sm2, dt_half, xi, yi, zi, vpi, mui, &
                                              B, vx, vy, vz, vm, ap)
@@ -505,6 +552,9 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                         mu(i)     = mu(i)     + dt_half * vm
                         betaF(i)  = betaF(i)  + dt_half * vbF
                         betaD(i)  = betaD(i)  + dt_half * vbD
+                        alpha_1(i) = alpha_1i + dt_half * vs_1
+                        alpha_2(i) = alpha_2i + dt_half * vs_2
+                        alpha_3(i) = alpha_3i + dt_half * vs_3
 
                      END IF
 
@@ -520,6 +570,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                Obs_FD(:, k) = quan(21:30)
                Obs_DF(:, k) = quan(31:40)  ! fullF+fullV
                Obs_DD(:, k) = quan(41:50)
+               Obs_SS(:, k) = quan(52:55)
                Lagr_corr(k) = quan(51)
 
                Xtraj(k, :)  = X(1:ntraj)
@@ -550,10 +601,11 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
             !$omp end parallel
 
             CALL diagnose_saved_trajectories(F0, FMtraj, betaFtraj, Htraj, Pctraj, &
-                                             Obs_FF, Obs_FD, Obs_DF, Obs_DD, eror_flag)
+                                             Obs_FF, Obs_FD, Obs_DF, Obs_DD, eror_flag, diag_fail_counts_loop)
 
             diag_loops_checked = diag_loops_checked + 1
             diag_checks_failed = diag_checks_failed + eror_flag
+            diag_fail_counts   = diag_fail_counts + diag_fail_counts_loop
 
             IF (eror_flag > 0) THEN
                diag_loops_failed = diag_loops_failed + 1
@@ -565,8 +617,8 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
             CALL write_trajectories(Xtraj, Ytraj, Ztraj, Vptraj, mutraj, betaFtraj, betaDtraj, FMtraj, Htraj, &
                                     q1traj, q2traj, q3traj, Pctraj, ck1traj, ck2traj, ck3traj)
 
-            CALL write_transport(Obs_GF, Obs_FF, Obs_FD, Obs_DF, Obs_DD)
-            CALL write_final_state(X, Y, Z, Vp, mu, betaF, betaD, FM, Ham, q1al, q2al)
+            CALL write_transport(Obs_GF, Obs_FF, Obs_FD, Obs_DF, Obs_DD, Obs_SS)
+            CALL write_final_state(X, Y, Z, Vp, mu, betaF, betaD, FM, Ham, q1al, q2al, Vtxal, mask2al)
             CALL write_lagrangian(Lagr_corr)
 
             IF (USE_corr == 1) THEN
@@ -626,12 +678,30 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
          WRITE(*, *) '  checked loops: ', diag_loops_checked
          WRITE(*, *) '  failed loops : ', diag_loops_failed
          WRITE(*, *) '  failed checks: ', diag_checks_failed
+         WRITE(*, *) '  failure breakdown:'
+         WRITE(*, *) '    shape/size checks              : ', diag_fail_counts(1)
+         WRITE(*, *) '    F0 <= 0                        : ', diag_fail_counts(2)
+         WRITE(*, *) '    FM*exp(betaF)/F0 identity      : ', diag_fail_counts(3)
+         WRITE(*, *) '    Htraj(:,1) time constancy      : ', diag_fail_counts(4)
+         WRITE(*, *) '    Htraj(:,2) time constancy      : ', diag_fail_counts(5)
+         WRITE(*, *) '    Pctraj(:,1) time constancy     : ', diag_fail_counts(6)
+         WRITE(*, *) '    Obs_FF-Obs_FD vs Obs_DF-Obs_DD : ', diag_fail_counts(7)
+         WRITE(*, *) '    Obs_FD-Obs_DD vs Obs_FF-Obs_DF : ', diag_fail_counts(8)
       END IF
 
       WRITE(333, *) 'Saved-trajectory diagnostics: ', MERGE('GOOD', 'BAD ', diag_loops_failed == 0)
       WRITE(333, *) '  checked loops: ', diag_loops_checked
       WRITE(333, *) '  failed loops : ', diag_loops_failed
       WRITE(333, *) '  failed checks: ', diag_checks_failed
+      WRITE(333, *) '  failure breakdown:'
+      WRITE(333, *) '    shape/size checks              : ', diag_fail_counts(1)
+      WRITE(333, *) '    F0 <= 0                        : ', diag_fail_counts(2)
+      WRITE(333, *) '    FM*exp(betaF)/F0 identity      : ', diag_fail_counts(3)
+      WRITE(333, *) '    Htraj(:,1) time constancy      : ', diag_fail_counts(4)
+      WRITE(333, *) '    Htraj(:,2) time constancy      : ', diag_fail_counts(5)
+      WRITE(333, *) '    Pctraj(:,1) time constancy     : ', diag_fail_counts(6)
+      WRITE(333, *) '    Obs_FF-Obs_FD vs Obs_DF-Obs_DD : ', diag_fail_counts(7)
+      WRITE(333, *) '    Obs_FD-Obs_DD vs Obs_FF-Obs_DF : ', diag_fail_counts(8)
       WRITE(333, *) '------------------------------------------------------------------------------'
 
 !========================================================================================================
@@ -649,11 +719,12 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
       WRITE(333, *) 'Total computation time  = ', REAL(count3 - count0) / REAL(count_rate)
       WRITE(333, *) '------------------------------------------------------------------------------'
 
-      DEALLOCATE( X, Y, Z, Vp, mu, Ham, F0, G0, FM, betaF, betaD, Obs_GF, Obs_FF, Obs_FD, Obs_DF, Obs_DD, &
+      DEALLOCATE( X, Y, Z, Vp, mu, Ham, F0, G0, FM, betaF, betaD, alpha_1, alpha_2, alpha_3, &
+                  Obs_GF, Obs_FF, Obs_FD, Obs_DF, Obs_DD, Obs_SS, &
                   Xtraj, Ytraj, Ztraj, Vptraj, mutraj, betaFtraj, betaDtraj, FMtraj, Htraj, &
                   q1traj, q2traj, q3traj, Vcorff, VcorTT, VcorTN, VcorNT, &
-                  t, q1al, q2al, q3al, Pcc, ck1, ck2, ck3, Pctraj, &
-                  ck1traj, ck2traj, ck3traj, Lagr_ref, Lagr_corr )
+                  t, q1al, q2al, q3al, Vtxal, mask2al, Pcc, ck1, ck2, ck3, Pctraj, &
+                  ck1traj, ck2traj, ck3traj, Lagr_ref, kin_init, Lagr_corr )
 
       IF ((magnetic_model == 1) .OR. (magnetic_model == 2)) THEN
          DEALLOCATE(Efit_data)

@@ -13,13 +13,14 @@
     !      !  01/01/2024   |     D. I. Palade       |   Remake
     !  ========================================================================================================================================================
 
-    SUBROUTINE initialize_particles(X, Y, Z, mu, Vp, F0, G0, FM, betaF, betaD)
+    SUBROUTINE initialize_particles(X, Y, Z, mu, Vp, F0, G0, FM, betaF, betaD, alpha_1, alpha_2, alpha_3)
        USE constants
        USE random_numbers
        IMPLICIT NONE
 
        ! I/O variables
        REAL(KIND=rp), DIMENSION(Np), INTENT(OUT) :: X, Y, Z, mu, vp, F0, G0, FM, betaF, betaD
+       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT) :: alpha_1, alpha_2, alpha_3
 
        ! Local variables
        REAL(KIND=rp), DIMENSION(Np)                 :: En, PA, aux, Jac
@@ -113,6 +114,9 @@
 
       betaF = log(F0/FM)
       betaD = log(F0/FM)
+      alpha_1 = 0.0_rp
+      alpha_2 = 0.0_rp
+      alpha_3 = 0.0_rp
       
 !      write(*,*) sum(G0*Jac)/Np,sum(F0*Jac)/Np,sum(FM*Jac)/Np,sum(F0/G0)/Np
  !     pause

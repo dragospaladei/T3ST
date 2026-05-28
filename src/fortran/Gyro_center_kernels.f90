@@ -12,14 +12,15 @@ contains
 
    pure subroutine gyrocenter_drifts(xi, yi, zi, vpi, mui, q1, q2, q3, time, &
                           vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, check_1, check_2, check_3, &
-                          Qx1, Qy1, Qz1, Qw1, Qph1)
+                          vs_1, vs_2, vs_3, Qx1, Qy1, Qz1, Qw1, Qph1)
       !$omp declare simd(gyrocenter_drifts) uniform(time,Qx1,Qy1,Qz1,Qw1,Qph1) notinbranch
 
       !---------------------------------------------------------------------------------
       ! Arguments
       !---------------------------------------------------------------------------------
       real(rp), intent(in)  :: xi, yi, zi, vpi, mui, time
-      real(rp), intent(out) :: q1, q2, q3, vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, check_1, check_2, check_3
+      real(rp), intent(out) :: q1, q2, q3, vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx
+      real(rp), intent(out) :: check_1, check_2, check_3, vs_1, vs_2, vs_3
       real(rp), intent(in), contiguous :: Qx1(:), Qy1(:), Qz1(:), Qw1(:), Qph1(:)
       real(rp) ::  Q0wrp1
       !---------------------------------------------------------------------------------
@@ -626,6 +627,11 @@ contains
       vbD = -(-ap_1*As*vpi/temp - mui/temp*(vx_1*gradBx + vy_1*gradBy + vz_1*gradBz) + Vtx*a0/C1*(Lns + Lts*(Hi0/temp - 1.5_rp))) ! atentie la semnul lui Lns!
       vbF = -(-ap*As*vpi/temp - mui/temp*(vx*gradBx + vy*gradBy + vz*gradBz) + VFx*a0/C1*(Lns + Lts*(Hi0/temp - 1.5_rp))) ! atentie la semnul lui Lns!
       FMi = dens*exp(-Hi0 / temp) / temp**1.5_rp
+      
+      vs_1 = -(-ap_1*As*vpi/temp - mui/temp*(vx_1*gradBx + vy_1*gradBy + vz_1*gradBz)) 
+      vs_2 = -(+ Vtx) ! atentie la semnul lui Lns!
+      vs_3 = -(+ Vtx*(Hi0/temp - 1.5_rp)) ! atentie la semnul lui Lns!      
+      
 end subroutine gyrocenter_drifts
 
    pure subroutine collision_kicks(sm1, sm2, dt_local, xi, yi, zi, vpi, mui, B, vcolx, vcoly, vcolz, vcolm, vcolp)

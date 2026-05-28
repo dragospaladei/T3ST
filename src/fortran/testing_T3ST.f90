@@ -42,12 +42,13 @@ module testing_T3ST_mod
 
 contains
   subroutine diagnose_saved_trajectories(F0, FMtraj, betaFtraj, Htraj, Pctraj, &
-                                         Obs_FF, Obs_FD, Obs_DF, Obs_DD, no_errors)
+                                         Obs_FF, Obs_FD, Obs_DF, Obs_DD, no_errors, fail_counts)
     real(rp), intent(in)  :: F0(:)
     real(rp), intent(in)  :: FMtraj(:, :), betaFtraj(:, :)
     real(rp), intent(in)  :: Htraj(:, :), Pctraj(:, :)
     real(rp), intent(in)  :: Obs_FF(:, :), Obs_FD(:, :), Obs_DF(:, :), Obs_DD(:, :)
     integer,  intent(out) :: no_errors
+    integer,  intent(out), optional :: fail_counts(:)
 
     real(rp), parameter :: tol_identity = 1.0e-3_rp
     real(rp), parameter :: tol_obs_abs  = 1.0e-6_rp
@@ -59,20 +60,24 @@ contains
 
     integer :: ntime, nsaved
     integer :: i, k
+    integer :: before_errors
     real(rp) :: max_identity_err
     real(rp) :: value
 
     no_errors = 0
+    if (present(fail_counts)) fail_counts = 0
     ntime = size(FMtraj, 1)
     nsaved = size(FMtraj, 2)
 
     if (ntime < 1 .or. nsaved < 1) then
       no_errors = no_errors + 1
+      if (present(fail_counts)) fail_counts(1) = fail_counts(1) + 1
       return
     end if
 
     if (size(betaFtraj, 1) /= ntime .or. size(betaFtraj, 2) /= nsaved .or. size(F0) < nsaved) then
       no_errors = no_errors + 1
+      if (present(fail_counts)) fail_counts(1) = fail_counts(1) + 1
       return
     end if
 
@@ -80,6 +85,7 @@ contains
     do i = 1, nsaved
       if (F0(i) <= 0.0_rp) then
         no_errors = no_errors + 1
+        if (present(fail_counts)) fail_counts(2) = fail_counts(2) + 1
         return
       end if
 
@@ -89,33 +95,48 @@ contains
       end do
     end do
 
+    before_errors = no_errors
     call check_scalar_tolerance("FM*exp(betaF)/F0 over saved trajectories", max_identity_err, tol_identity, no_errors)
+    if (present(fail_counts)) fail_counts(3) = fail_counts(3) + no_errors - before_errors
 
     if (size(Htraj, 2) >= 1) then
+      before_errors = no_errors
       call check_time_constancy("Htraj(:,1)", Htraj(:, 1), tol_H1, eps_ref, no_errors)
+      if (present(fail_counts)) fail_counts(4) = fail_counts(4) + no_errors - before_errors
     else
       no_errors = no_errors + 1
+      if (present(fail_counts)) fail_counts(4) = fail_counts(4) + 1
     end if
 
     if (size(Htraj, 2) >= 2) then
+      before_errors = no_errors
       call check_time_constancy("Htraj(:,2)", Htraj(:, 2), tol_H2, eps_ref, no_errors)
+      if (present(fail_counts)) fail_counts(5) = fail_counts(5) + no_errors - before_errors
     else
       no_errors = no_errors + 1
+      if (present(fail_counts)) fail_counts(5) = fail_counts(5) + 1
     end if
 
     if (size(Pctraj, 2) >= 1) then
+      before_errors = no_errors
       call check_time_constancy("Pctraj(:,1)", Pctraj(:, 1), tol_Pc1, eps_ref, no_errors)
+      if (present(fail_counts)) fail_counts(6) = fail_counts(6) + no_errors - before_errors
     else
       no_errors = no_errors + 1
+      if (present(fail_counts)) fail_counts(6) = fail_counts(6) + 1
     end if
 
+    before_errors = no_errors
     call check_observable_identity("Obs_FF - Obs_FD = Obs_DF - Obs_DD", &
                                    Obs_FF - Obs_FD, Obs_DF - Obs_DD, &
                                    tol_obs_abs, tol_obs_rel, eps_ref, no_errors)
+    if (present(fail_counts)) fail_counts(7) = fail_counts(7) + no_errors - before_errors
 
+    before_errors = no_errors
     call check_observable_identity("Obs_FD - Obs_DD = Obs_FF - Obs_DF", &
                                    Obs_FD - Obs_DD, Obs_FF - Obs_DF, &
                                    tol_obs_abs, tol_obs_rel, eps_ref, no_errors)
+    if (present(fail_counts)) fail_counts(8) = fail_counts(8) + no_errors - before_errors
   end subroutine diagnose_saved_trajectories
 
   !=============================================================================
@@ -366,7 +387,7 @@ contains
     real(rp) :: Wx, Wy, Wz, Wm, Wp, WbF, WbD
     real(rp) :: q1, q2, q3
     real(rp) :: Hi, FMi, B, Vtx, VFx, Pc
-    real(rp) :: check_1, check_2, check_3, time
+    real(rp) :: check_1, check_2, check_3, vs_1, vs_2, vs_3, time
     integer  :: ias, k
 
     do ias = 1, Np_partial
@@ -400,7 +421,7 @@ contains
 
 call gyrocenter_drifts(xi, yi, zi, vpi, mui, q1, q2, q3, time,                       &
             vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx,     &
-            check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph)
+            check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
             
         Xh(k, ias)  = xi
         Yh(k, ias)  = yi
@@ -427,7 +448,7 @@ call gyrocenter_drifts(xi + vx*dt/2.0_rp, yi + vy*dt/2.0_rp, zi + vz*dt/2.0_rp, 
             vpi + ap*dt/2.0_rp, mui + vm*dt/2.0_rp,                       &
             q1, q2, q3, time + dt/2.0_rp,                                  &
             vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx,     &
-            check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph)
+            check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
                           
         Wx = Wx + vx / 3.0_rp
         Wy = Wy + vy / 3.0_rp
@@ -443,7 +464,7 @@ call gyrocenter_drifts(xi + vx*dt/2.0_rp, yi + vy*dt/2.0_rp, zi + vz*dt/2.0_rp, 
             vpi + ap*dt/2.0_rp, mui + vm*dt/2.0_rp,                       &
             q1, q2, q3, time + dt/2.0_rp,                                  &
             vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx,     &
-            check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph)
+            check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
 
 
         Wx = Wx + vx / 3.0_rp
@@ -459,7 +480,7 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
             vpi + ap*dt, mui + vm*dt,                                      &
             q1, q2, q3, time + dt,                                         &
             vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx,     &
-            check_1, check_2, check_3, Qx, Qy, Qz, Qw, Qph)
+            check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
             
             
         Wx = Wx + vx / 6.0_rp
