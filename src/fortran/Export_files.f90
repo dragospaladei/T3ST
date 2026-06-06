@@ -14,7 +14,8 @@ INTEGER, PARAMETER, PUBLIC :: f_Yinit      = f_Xinit      + 1
 INTEGER, PARAMETER, PUBLIC :: f_Zinit      = f_Yinit      + 1
 INTEGER, PARAMETER, PUBLIC :: f_Vpinit     = f_Zinit      + 1
 INTEGER, PARAMETER, PUBLIC :: f_muinit     = f_Vpinit     + 1
-INTEGER, PARAMETER, PUBLIC :: f_betaFinit  = f_muinit     + 1
+INTEGER, PARAMETER, PUBLIC :: f_Einit      = f_muinit     + 1
+INTEGER, PARAMETER, PUBLIC :: f_betaFinit  = f_Einit      + 1
 INTEGER, PARAMETER, PUBLIC :: f_betaDinit  = f_betaFinit  + 1
 INTEGER, PARAMETER, PUBLIC :: f_FMinit     = f_betaDinit  + 1
 INTEGER, PARAMETER, PUBLIC :: f_F0init     = f_FMinit     + 1
@@ -60,9 +61,12 @@ INTEGER, PARAMETER, PUBLIC :: f_q1out      = f_Hout       + 1
 INTEGER, PARAMETER, PUBLIC :: f_q2out      = f_q1out      + 1
 INTEGER, PARAMETER, PUBLIC :: f_Vtxout     = f_q2out      + 1
 INTEGER, PARAMETER, PUBLIC :: f_mask2out   = f_Vtxout     + 1
+INTEGER, PARAMETER, PUBLIC :: f_S1out      = f_mask2out   + 1
+INTEGER, PARAMETER, PUBLIC :: f_S2out      = f_S1out      + 1
+INTEGER, PARAMETER, PUBLIC :: f_S3out      = f_S2out      + 1
 
 ! ---- correlations ----
-INTEGER, PARAMETER, PUBLIC :: f_Vcorff     = f_mask2out   + 1
+INTEGER, PARAMETER, PUBLIC :: f_Vcorff     = f_S3out      + 1
 INTEGER, PARAMETER, PUBLIC :: f_VcorTT     = f_Vcorff     + 1
 INTEGER, PARAMETER, PUBLIC :: f_VcorTN     = f_VcorTT     + 1
 INTEGER, PARAMETER, PUBLIC :: f_VcorNT     = f_VcorTN     + 1
@@ -115,6 +119,7 @@ CONTAINS
     fname(f_Zinit)      = 'Zinit'
     fname(f_Vpinit)     = 'Vpinit'
     fname(f_muinit)     = 'muinit'
+    fname(f_Einit)      = 'Einit'
     fname(f_betaFinit)  = 'betaFinit'
     fname(f_betaDinit)  = 'betaDinit'
     fname(f_FMinit)     = 'FMinit'
@@ -158,6 +163,9 @@ CONTAINS
     fname(f_q2out)      = 'q2out'
     fname(f_Vtxout)     = 'Vtxout'
     fname(f_mask2out)   = 'mask2out'
+    fname(f_S1out)      = 'S1out'
+    fname(f_S2out)      = 'S2out'
+    fname(f_S3out)      = 'S3out'
 
     fname(f_Vcorff)     = 'Vcorff'
     fname(f_VcorTT)     = 'VcorTT'
@@ -269,15 +277,16 @@ CONTAINS
 
   END FUNCTION valid_file_id
 
-SUBROUTINE write_initial_state(X, Y, Z, Vp, mu, betaF, betaD, FM, F0, G0)
+SUBROUTINE write_initial_state(X, Y, Z, Vp, mu, Einit, betaF, betaD, FM, F0, G0)
    REAL(rp), INTENT(IN) :: X(:), Y(:), Z(:)
-   REAL(rp), INTENT(IN) :: Vp(:), mu(:), betaF(:), betaD(:), FM(:), F0(:), G0(:)
+   REAL(rp), INTENT(IN) :: Vp(:), mu(:), Einit(:), betaF(:), betaD(:), FM(:), F0(:), G0(:)
 
    WRITE(funit(f_Xinit))  X
    WRITE(funit(f_Yinit))  Y
    WRITE(funit(f_Zinit))  Z
    WRITE(funit(f_Vpinit)) Vp
    WRITE(funit(f_muinit)) mu
+   WRITE(funit(f_Einit))  Einit
    WRITE(funit(f_betaFinit)) betaF
    WRITE(funit(f_betaDinit)) betaD
    WRITE(funit(f_FMinit))    FM
@@ -329,10 +338,13 @@ SUBROUTINE write_transport(Obs_GF, Obs_FF, Obs_FD, Obs_DF, Obs_DD, Obs_SS)
 END SUBROUTINE write_transport
 
 
-SUBROUTINE write_final_state(X, Y, Z, Vp, mu, betaF, betaD, FM, Ham, q1al, q2al, Vtxal, mask2al)
+SUBROUTINE write_final_state(X, Y, Z, Vp, mu, betaF, betaD, FM, Ham, q1al, q2al, Vtxal, mask2al, &
+                             F0, G0, Vtx_init, alpha_1, alpha_2, alpha_3)
    REAL(rp), INTENT(IN) :: X(:), Y(:), Z(:)
    REAL(rp), INTENT(IN) :: Vp(:), mu(:), betaF(:), betaD(:), FM(:), Ham(:)
    REAL(rp), INTENT(IN) :: q1al(:), q2al(:), Vtxal(:), mask2al(:)
+   REAL(rp), INTENT(IN) :: F0(:), G0(:), Vtx_init(:), alpha_1(:), alpha_2(:), alpha_3(:)
+   REAL(rp) :: inv_np
 
    WRITE(funit(f_Xout))  X
    WRITE(funit(f_Yout))  Y
@@ -347,6 +359,11 @@ SUBROUTINE write_final_state(X, Y, Z, Vp, mu, betaF, betaD, FM, Ham, q1al, q2al,
    WRITE(funit(f_q2out)) q2al
    WRITE(funit(f_Vtxout)) Vtxal
    WRITE(funit(f_mask2out)) mask2al
+
+   inv_np = 1.0_rp / REAL(SIZE(F0), rp)
+   WRITE(funit(f_S1out)) F0/G0*inv_np*alpha_1*Vtx_init
+   WRITE(funit(f_S2out)) F0/G0*inv_np*alpha_2*Vtx_init
+   WRITE(funit(f_S3out)) F0/G0*inv_np*alpha_3*Vtx_init
 END SUBROUTINE write_final_state
 
 

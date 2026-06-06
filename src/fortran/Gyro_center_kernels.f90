@@ -357,7 +357,7 @@ contains
 
       ! turbulence must be ON and must have started
       if ((USE_turb == ON) .and. (time > tt)) then
-
+       
          ! Defaults (kept as in your original snippet)
          q3_over_C3 = q3/C3
          gamma_delta_q1 = gamma_E*delta_q1

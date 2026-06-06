@@ -735,6 +735,8 @@ class SimulationGUI:
         # Override widgets for database mode: {param_name: ParamWidget}
         self._db_override_widgets: Dict[str, ParamWidget] = {}
         self._db_override_frame: Optional[ttk.Frame] = None
+        self._db_override_signature: Optional[Tuple[str, str, Optional[str]]] = None
+        self._pending_db_override_args: Optional[Tuple[Optional[DatabaseDef], str, Optional[SelectionDef]]] = None
 
         self.setup_fonts()
         self.vcmd = (self.root.register(self.validate_numeric), "%P", "%W")
@@ -1297,9 +1299,9 @@ class SimulationGUI:
         _axis_scroll.grid(row=0, column=1, sticky="ns")
 
         # --- Parameter Overrides (collapsible) ---
-        self._overrides_collapsed = False
+        self._overrides_collapsed = True
         self._overrides_btn = ttk.Button(
-            tab, text="▼  Parameter Overrides  ⓘ", style="GroupHeader.TLabel",
+            tab, text="▶  Parameter Overrides  ⓘ", style="GroupHeader.TLabel",
             command=self._toggle_overrides,
         )
         self._overrides_btn.grid(row=7, column=0, columnspan=6, sticky="ew", padx=2, pady=(8, 0))
@@ -1340,6 +1342,7 @@ class SimulationGUI:
         )
         self._override_canvas.bind("<Enter>", self._bind_override_scroll)
         self._override_canvas.bind("<Leave>", self._unbind_override_scroll)
+        self._overrides_body_frame.grid_remove()
 
         # Scenario summary — tooltip on the label, keeps one compact info line visible
         _scen_lbl = ttk.Label(tab, text="Scenario summary  ⓘ", style="Section.TLabel", cursor="question_arrow")
@@ -1386,6 +1389,9 @@ class SimulationGUI:
         else:
             self._overrides_body_frame.grid()
             self._overrides_btn.config(text="▼  Parameter Overrides")
+            if self._pending_db_override_args is not None:
+                db, scenario_name, sel = self._pending_db_override_args
+                self._rebuild_override_table(db, scenario_name, sel, force=True)
 
     def _copy_db_to_manual(self):
         """Push current DB scenario + overrides into the Manual tab, then switch to it."""
@@ -1430,7 +1436,7 @@ class SimulationGUI:
         self.set_status(f"Copied DB scenario '{scenario_name}' + overrides → Manual tab")
 
     def _rebuild_override_table(self, db: Optional[DatabaseDef], scenario_name: str,
-                                sel: Optional[SelectionDef] = None):
+                                sel: Optional[SelectionDef] = None, force: bool = False):
         """Destroy and recreate parameter widgets for the given db + scenario + selection.
 
         Three categories of parameters are shown:
@@ -1441,6 +1447,21 @@ class SimulationGUI:
         frame = self._db_override_frame
         if frame is None:
             return
+
+        signature = None if db is None else (db.name, scenario_name, sel.name if sel is not None else None)
+        if self._overrides_collapsed and not force:
+            self._pending_db_override_args = (db, scenario_name, sel)
+            if signature != self._db_override_signature:
+                for child in frame.winfo_children():
+                    child.destroy()
+                self._db_override_widgets.clear()
+                self._db_override_signature = signature
+            return
+
+        if signature is not None and signature == self._db_override_signature and frame.winfo_children():
+            return
+        self._db_override_signature = signature
+        self._pending_db_override_args = None
 
         for child in frame.winfo_children():
             child.destroy()
@@ -1453,12 +1474,15 @@ class SimulationGUI:
         all_axis_names = {a.name for a in db.varying_parameters}
         axis_map = db.axis_map()
 
-        # Determine which axes are frozen for the current selection
+        # Determine which axes are frozen for the current selection.
+        # Keep the resolved map for the rest of this rebuild; it can be moderately
+        # expensive for slice selections and was previously recomputed per widget.
+        fixed_axis_indices: Dict[str, int] = {}
         frozen_axis_names: set = set()
         if sel is not None:
             try:
-                fixed = resolved_fixed_indices(db, sel, self.scenarios, self.params)
-                frozen_axis_names = set(fixed.keys())
+                fixed_axis_indices = resolved_fixed_indices(db, sel, self.scenarios, self.params)
+                frozen_axis_names = set(fixed_axis_indices.keys())
             except Exception:
                 pass
         free_axis_names = all_axis_names - frozen_axis_names
@@ -1554,7 +1578,7 @@ class SimulationGUI:
                 # Fill value: for axis params use the axis value if frozen, else scenario value
                 if is_frozen_axis:
                     try:
-                        fixed_idx = resolved_fixed_indices(db, sel, self.scenarios, self.params)[p.name]
+                        fixed_idx = fixed_axis_indices[p.name]
                         fill_val = float(build_axis_values(axis_map[p.name])[fixed_idx])
                     except Exception:
                         fill_val = scenario_values.get(p.name, p.default if p.default is not None else "")
@@ -1862,8 +1886,6 @@ class SimulationGUI:
         elif self.valid_scenarios:
             self.db_scenario_var.set(self.valid_scenarios[0])
 
-        self._rebuild_override_table(db, self.db_scenario_var.get(), None)
-
         selection_names = sorted(s.name for s in self.selections if s.database == db_name)
         self.selection_dropdown["values"] = selection_names
         if selection_names:
@@ -1873,6 +1895,7 @@ class SimulationGUI:
             self.selection_var.set("")
             self.sel_info_label.config(text="Selection info: no selections available for this database")
             self._run_count_var.set("")
+            self._rebuild_override_table(db, self.db_scenario_var.get(), None)
 
     def _refresh_axis_inspector(self, db: Optional[DatabaseDef]):
         """Repopulate the axis Treeview for the given database (or clear it)."""

@@ -1,5 +1,5 @@
 !========================================================================================================
-! FAST2 / T3ST :: Turbulent Transport in Tokamaks from Statistical Trajectories
+! T3ST :: Turbulent Transport in Tokamaks from Statistical Trajectories
 !
 ! Purpose :: test-particle (DNS) simulations of ion trajectories in turbulent tokamak-like environments
 !         :: Tokamak-like MHD equilibrium (realistic or modeled)
@@ -70,7 +70,7 @@ PROGRAM T3ST
    ! Trajectory variables
    !-----------------------------------------------------------------------------------------------------
    REAL(KIND=rp), ALLOCATABLE :: X(:), Y(:), Z(:)
-   REAL(KIND=rp), ALLOCATABLE :: Vp(:), mu(:), Ham(:), Pcc(:)
+   REAL(KIND=rp), ALLOCATABLE :: Vp(:), mu(:), Einit(:), Ham(:), Pcc(:)
    REAL(KIND=rp), ALLOCATABLE :: ck1(:), ck2(:), ck3(:)
    REAL(KIND=rp), ALLOCATABLE :: F0(:), G0(:), FM(:), betaF(:), betaD(:)
    REAL(KIND=rp), ALLOCATABLE :: alpha_1(:), alpha_2(:), alpha_3(:)
@@ -110,7 +110,7 @@ PROGRAM T3ST
    REAL :: progress = 25.0
 
    REAL(KIND=rp), ALLOCATABLE :: t(:)
-   REAL(KIND=rp), ALLOCATABLE :: Lagr_ref(:)
+   REAL(KIND=rp), ALLOCATABLE :: Vtx_init(:)
    REAL(KIND=rp), ALLOCATABLE :: kin_init(:)
    REAL(KIND=rp), ALLOCATABLE :: Lagr_corr(:)
 
@@ -212,7 +212,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                 Obs_FD(10, Nt + 1), Obs_DF(10, Nt + 1), Obs_DD(10, Nt + 1), &
                 Obs_SS(4, Nt + 1), Vcorff(Nt + 1, Nt + 1), t(Nt + 1) )
 
-      ALLOCATE( Y, Z, Vp, mu, Ham, F0, G0, FM, betaF, betaD, q1al, q2al, q3al, Vtxal, mask2al, Pcc, &
+      ALLOCATE( Y, Z, Vp, mu, Einit, Ham, F0, G0, FM, betaF, betaD, q1al, q2al, q3al, Vtxal, mask2al, Pcc, &
                 ck1, ck2, ck3, alpha_1, alpha_2, alpha_3, MOLD=X )
 
       ALLOCATE( Ytraj, Ztraj, Vptraj, mutraj, betaFtraj, betaDtraj, FMtraj, Htraj, q1traj, q2traj, &
@@ -220,7 +220,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
 
       ALLOCATE( VcorTT, VcorTN, VcorNT, MOLD=Vcorff )
 
-      ALLOCATE( Lagr_ref(Np), kin_init(Np), Lagr_corr(Nt + 1) )
+      ALLOCATE( Vtx_init(Np), kin_init(Np), Lagr_corr(Nt + 1) )
 
 !========================================================================================================
 ! EXPORT PARAMETERS OF THIS RUN
@@ -263,7 +263,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
       dt       = (tmax - t0) / REAL(Nt)
       dt_half  = dt / 2.0_rp
       t        = [(i8 * dt + t0, i8 = 0, Nt)]
-      Lagr_ref = 0.0_rp
+      Vtx_init = 0.0_rp
       Lagr_corr = 0.0_rp
       q1min = C1 * MAX(0.0_rp, q10 - 0.1_rp*annulus_width)
       q1max = C1 * MIN(1.0_rp, q10 + 0.1_rp*annulus_width)
@@ -282,7 +282,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
 
             CALL dispersion(normB, Vstar1, Vstar2, Vstar3, gees)
             CALL wavenum_unified(normB, Vstar1, Vstar2, Vstar3, gees, USE_real)
-            CALL initialize_particles(X, Y, Z, mu, Vp, F0, G0, FM, betaF, betaD, alpha_1, alpha_2, alpha_3)
+            CALL initialize_particles(X, Y, Z, mu, Vp, Einit, F0, G0, FM, betaF, betaD, alpha_1, alpha_2, alpha_3)
             CALL Larmor(USE_larmor, mu)
 
             IF (USE_testing == ON) THEN
@@ -291,7 +291,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                STOP
             END IF
 
-            CALL write_initial_state(X, Y, Z, Vp, mu, betaF, betaD, FM, F0, G0)
+            CALL write_initial_state(X, Y, Z, Vp, mu, Einit, betaF, betaD, FM, F0, G0)
 
 !========================================================================================================
 ! TIME PROPAGATION
@@ -383,7 +383,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                                  check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
 
                      IF (k == 1) THEN
-                        Lagr_ref(i) = Vtx
+                        Vtx_init(i) = Vtx
                         kin_init(i) = kin
                      END IF
 
@@ -410,7 +410,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
 
                      ! Observables.
                      IF (.NOT. ISNAN(q1)) THEN
-                        pbGF = 1.0_rp/Np
+                        pbGF = F0i/G0i/Np
                         pbFF = FMi*exp(betaFi)/G0i/Np
                         pbFD = FMi*exp(betaDi)/G0i/Np
                         pbDF = FMi*(exp(betaFi)-1.0_rp)/G0i/Np
@@ -423,11 +423,11 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                         quan(21:30)  = quan(21:30)  + pbFD*mask * [Vtx, q1, vpi, Hi, Vtx*kin, Vtx**2, q1**2, vpi**2, Hi**2, Vtx*kin] !fullF + delta V
                         quan(31:40)  = quan(31:40)  + pbDF*mask * [Vtx, q1, vpi, Hi, Vtx*kin, Vtx**2, q1**2, vpi**2, Hi**2, Vtx*kin] !deltaF + full V
                         quan(41:50)  = quan(41:50)  + pbDD*mask * [Vtx, q1, vpi, Hi, Vtx*kin, Vtx**2, q1**2, vpi**2, Hi**2, Vtx*kin] !deltaF + delta V
-                        quan(51)     = quan(51)     + pbSS*mask * Lagr_ref(i) * Vtx   ! green function
-                        quan(52)     = quan(52)     + pbSS*mask * Lagr_ref(i) * alpha_1i
-                        quan(53)     = quan(53)     - pbSS*mask * Lagr_ref(i) * alpha_2i
-                        quan(54)     = quan(54)     - pbSS*mask * Lagr_ref(i) * alpha_3i
-                        quan(55)     = quan(55)     - pbSS*mask * Lagr_ref(i) * alpha_3i * kin_init(i)
+                        quan(51)     = quan(51)     + pbSS*mask * Vtx_init(i) * Vtx   ! green function
+                        quan(52)     = quan(52)     + pbSS*mask * Vtx_init(i) * alpha_1i
+                        quan(53)     = quan(53)     - pbSS*mask * Vtx_init(i) * alpha_2i
+                        quan(54)     = quan(54)     - pbSS*mask * Vtx_init(i) * alpha_3i
+                        quan(55)     = quan(55)     - pbSS*mask * Vtx_init(i) * alpha_3i * kin_init(i)
 
                      END IF
 
@@ -618,7 +618,8 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                                     q1traj, q2traj, q3traj, Pctraj, ck1traj, ck2traj, ck3traj)
 
             CALL write_transport(Obs_GF, Obs_FF, Obs_FD, Obs_DF, Obs_DD, Obs_SS)
-            CALL write_final_state(X, Y, Z, Vp, mu, betaF, betaD, FM, Ham, q1al, q2al, Vtxal, mask2al)
+            CALL write_final_state(X, Y, Z, Vp, mu, betaF, betaD, FM, Ham, q1al, q2al, Vtxal, mask2al, &
+                                   F0, G0, Vtx_init, alpha_1, alpha_2, alpha_3)
             CALL write_lagrangian(Lagr_corr)
 
             IF (USE_corr == 1) THEN
@@ -719,12 +720,12 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
       WRITE(333, *) 'Total computation time  = ', REAL(count3 - count0) / REAL(count_rate)
       WRITE(333, *) '------------------------------------------------------------------------------'
 
-      DEALLOCATE( X, Y, Z, Vp, mu, Ham, F0, G0, FM, betaF, betaD, alpha_1, alpha_2, alpha_3, &
+      DEALLOCATE( X, Y, Z, Vp, mu, Einit, Ham, F0, G0, FM, betaF, betaD, alpha_1, alpha_2, alpha_3, &
                   Obs_GF, Obs_FF, Obs_FD, Obs_DF, Obs_DD, Obs_SS, &
                   Xtraj, Ytraj, Ztraj, Vptraj, mutraj, betaFtraj, betaDtraj, FMtraj, Htraj, &
                   q1traj, q2traj, q3traj, Vcorff, VcorTT, VcorTN, VcorNT, &
                   t, q1al, q2al, q3al, Vtxal, mask2al, Pcc, ck1, ck2, ck3, Pctraj, &
-                  ck1traj, ck2traj, ck3traj, Lagr_ref, kin_init, Lagr_corr )
+                  ck1traj, ck2traj, ck3traj, Vtx_init, kin_init, Lagr_corr )
 
       IF ((magnetic_model == 1) .OR. (magnetic_model == 2)) THEN
          DEALLOCATE(Efit_data)
