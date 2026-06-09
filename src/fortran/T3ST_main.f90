@@ -69,30 +69,30 @@ PROGRAM T3ST
    !-----------------------------------------------------------------------------------------------------
    ! Trajectory variables
    !-----------------------------------------------------------------------------------------------------
-   REAL(KIND=rp), ALLOCATABLE :: X(:), Y(:), Z(:)
-   REAL(KIND=rp), ALLOCATABLE :: Vp(:), mu(:), Einit(:), Ham(:), Pcc(:)
-   REAL(KIND=rp), ALLOCATABLE :: ck1(:), ck2(:), ck3(:)
-   REAL(KIND=rp), ALLOCATABLE :: F0(:), G0(:), FM(:), betaF(:), betaD(:)
-   REAL(KIND=rp), ALLOCATABLE :: alpha_1(:), alpha_2(:), alpha_3(:)
-   REAL(KIND=rp), ALLOCATABLE :: q1al(:), q2al(:), q3al(:)
-   REAL(KIND=rp), ALLOCATABLE :: Vtxal(:), mask2al(:)
+   REAL(KIND=wp), ALLOCATABLE :: X(:), Y(:), Z(:)
+   REAL(KIND=wp), ALLOCATABLE :: Vp(:), mu(:), Einit(:), Ham(:), Pcc(:)
+   REAL(KIND=wp), ALLOCATABLE :: ck1(:), ck2(:), ck3(:)
+   REAL(KIND=wp), ALLOCATABLE :: F0(:), G0(:), FM(:), betaF(:), betaD(:)
+   REAL(KIND=wp), ALLOCATABLE :: alpha_1(:), alpha_2(:), alpha_3(:)
+   REAL(KIND=wp), ALLOCATABLE :: q1al(:), q2al(:), q3al(:)
+   REAL(KIND=wp), ALLOCATABLE :: Vtxal(:), mask2al(:)
 
-   REAL(KIND=rp), ALLOCATABLE :: Xtraj(:, :), Ytraj(:, :), Ztraj(:, :)
-   REAL(KIND=rp), ALLOCATABLE :: Vptraj(:, :), mutraj(:, :)
-   REAL(KIND=rp), ALLOCATABLE :: betaFtraj(:, :), betaDtraj(:, :), FMtraj(:, :)
-   REAL(KIND=rp), ALLOCATABLE :: Htraj(:, :), Pctraj(:, :)
-   REAL(KIND=rp), ALLOCATABLE :: q1traj(:, :), q2traj(:, :), q3traj(:, :)
-   REAL(KIND=rp), ALLOCATABLE :: ck1traj(:, :), ck2traj(:, :), ck3traj(:, :)
+   REAL(KIND=wp), ALLOCATABLE :: Xtraj(:, :), Ytraj(:, :), Ztraj(:, :)
+   REAL(KIND=wp), ALLOCATABLE :: Vptraj(:, :), mutraj(:, :)
+   REAL(KIND=wp), ALLOCATABLE :: betaFtraj(:, :), betaDtraj(:, :), FMtraj(:, :)
+   REAL(KIND=wp), ALLOCATABLE :: Htraj(:, :), Pctraj(:, :)
+   REAL(KIND=wp), ALLOCATABLE :: q1traj(:, :), q2traj(:, :), q3traj(:, :)
+   REAL(KIND=wp), ALLOCATABLE :: ck1traj(:, :), ck2traj(:, :), ck3traj(:, :)
 
-   REAL(KIND=rp)                  :: normB, Vstar1, Vstar2, Vstar3
-   REAL(KIND=rp), DIMENSION(3, 3) :: gees
+   REAL(KIND=wp)                  :: normB, Vstar1, Vstar2, Vstar3
+   REAL(KIND=wp), DIMENSION(3, 3) :: gees
 
    !-----------------------------------------------------------------------------------------------------
    ! Transport quantities
    !-----------------------------------------------------------------------------------------------------
-   REAL(KIND=rp), ALLOCATABLE :: Obs_GF(:, :), Obs_FF(:, :), Obs_FD(:, :), Obs_DF(:, :), Obs_DD(:, :)
-   REAL(KIND=rp), ALLOCATABLE :: Obs_SS(:, :)
-   REAL(KIND=rp), ALLOCATABLE :: Vcorff(:, :), VcorTT(:, :), VcorTN(:, :), VcorNT(:, :)
+   REAL(KIND=wp), ALLOCATABLE :: Obs_GF(:, :), Obs_FF(:, :), Obs_FD(:, :), Obs_DF(:, :), Obs_DD(:, :)
+   REAL(KIND=wp), ALLOCATABLE :: Obs_SS(:, :)
+   REAL(KIND=wp), ALLOCATABLE :: Vcorff(:, :), VcorTT(:, :), VcorTN(:, :), VcorNT(:, :)
 
    !-----------------------------------------------------------------------------------------------------
    ! Numerical and auxiliary variables
@@ -109,16 +109,16 @@ PROGRAM T3ST
 
    REAL :: progress = 25.0
 
-   REAL(KIND=rp), ALLOCATABLE :: t(:)
-   REAL(KIND=rp), ALLOCATABLE :: Vtx_init(:)
-   REAL(KIND=rp), ALLOCATABLE :: kin_init(:)
-   REAL(KIND=rp), ALLOCATABLE :: Lagr_corr(:)
+   REAL(KIND=wp), ALLOCATABLE :: t(:)
+   REAL(KIND=wp), ALLOCATABLE :: Vtx_init(:)
+   REAL(KIND=wp), ALLOCATABLE :: kin_init(:)
+   REAL(KIND=wp), ALLOCATABLE :: Lagr_corr(:)
 
-   REAL(KIND=rp) :: dt, dt_half
-   REAL(KIND=rp) :: q1min, q1max
+   REAL(KIND=wp) :: dt, dt_half
+   REAL(KIND=wp) :: q1min, q1max
    INTEGER, PARAMETER :: nq = 55
-   REAL(rp) :: quan(nq)
-   REAL(rp), POINTER, CONTIGUOUS :: Qx(:), Qy(:), Qz(:), Qw(:), Qph(:)
+   REAL(wp) :: quan(nq)
+   REAL(wp), POINTER, CONTIGUOUS :: Qx(:), Qy(:), Qz(:), Qw(:), Qph(:)
 
    CHARACTER(LEN=80) :: bar
    CHARACTER(LEN=80) :: arg
@@ -242,31 +242,31 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
          "C1", "C2", "C3" ]
 
       WRITE(funit(f_parameters), *) [ &
-         t0, tc, tt, tmax, REAL(Nt, rp), REAL(Nreal, rp), REAL(Nc, rp), REAL(Nloop, rp), &
-         REAL(Np, rp), REAL(ntraj, rp), REAL(Nci, rp), REAL(Nce, rp), Ti, Te, Zeff, Aeff, &
-         ndens, vth, rhoi, wi, Ln, Li, Le, REAL(magnetic_model, rp), B0, R0, a0, s1, s2, &
-         s3, q00, r00, psi0, amp, elong, REAL(device, rp), REAL(shot, rp), &
-         REAL(shotslice, rp), REAL(NgridR, rp), REAL(NgridZ, rp), Omgt0, Omgtprim, &
-         REAL(turb_model, rp), REAL(x_corr, rp), REAL(y_corr, rp), REAL(t_corr, rp), &
+         t0, tc, tt, tmax, REAL(Nt, wp), REAL(Nreal, wp), REAL(Nc, wp), REAL(Nloop, wp), &
+         REAL(Np, wp), REAL(ntraj, wp), REAL(Nci, wp), REAL(Nce, wp), Ti, Te, Zeff, Aeff, &
+         ndens, vth, rhoi, wi, Ln, Li, Le, REAL(magnetic_model, wp), B0, R0, a0, s1, s2, &
+         s3, q00, r00, psi0, amp, elong, REAL(device, wp), REAL(shot, wp), &
+         REAL(shotslice, wp), REAL(NgridR, wp), REAL(NgridZ, wp), Omgt0, Omgtprim, &
+         REAL(turb_model, wp), REAL(x_corr, wp), REAL(y_corr, wp), REAL(t_corr, wp), &
          Phi, turbprof, Ai, Ae, lambdax, lambday, lambdaz, lbalonz, tauc, k0i, k0e, &
          gamma_ZF, gamma_E, X0, Y0, Z0, Ts, Es, pitch, As, Zs, taucc, &
-         REAL(position_type, rp), annulus_width, REAL(pitch_type, rp), REAL(energy_type, rp), &
-         REAL(Lns, rp), REAL(Lts, rp),  REAL(USE_larmor, rp), &
-         REAL(USE_coll, rp), REAL(USE_turb, rp), REAL(USE_magnturb, rp), REAL(USE_freq, rp), &
-         REAL(USE_polar, rp), REAL(USE_PC, rp), REAL(USE_real, rp), REAL(USE_corr, rp), &
-         REAL(USE_balloon, rp), REAL(USE_tilt, rp), REAL(USE_testing, rp), C1, C2, C3 ]
+         REAL(position_type, wp), annulus_width, REAL(pitch_type, wp), REAL(energy_type, wp), &
+         REAL(Lns, wp), REAL(Lts, wp),  REAL(USE_larmor, wp), &
+         REAL(USE_coll, wp), REAL(USE_turb, wp), REAL(USE_magnturb, wp), REAL(USE_freq, wp), &
+         REAL(USE_polar, wp), REAL(USE_PC, wp), REAL(USE_real, wp), REAL(USE_corr, wp), &
+         REAL(USE_balloon, wp), REAL(USE_tilt, wp), REAL(USE_testing, wp), C1, C2, C3 ]
 
 !========================================================================================================
 ! TIME GRID   & minimal diagnostic counters
 !========================================================================================================
 
       dt       = (tmax - t0) / REAL(Nt)
-      dt_half  = dt / 2.0_rp
+      dt_half  = dt / 2.0_wp
       t        = [(i8 * dt + t0, i8 = 0, Nt)]
-      Vtx_init = 0.0_rp
-      Lagr_corr = 0.0_rp
-      q1min = C1 * MAX(0.0_rp, q10 - 0.1_rp*annulus_width)
-      q1max = C1 * MIN(1.0_rp, q10 + 0.1_rp*annulus_width)
+      Vtx_init = 0.0_wp
+      Lagr_corr = 0.0_wp
+      q1min = C1 * MAX(0.0_wp, q10 - 0.1_wp*annulus_width)
+      q1max = C1 * MIN(1.0_wp, q10 + 0.1_wp*annulus_width)
 
       diag_loops_checked = 0
       diag_loops_failed  = 0
@@ -302,7 +302,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
             DO k = 1, Nt + 1
 
                !$omp single
-                quan = 0.0_rp
+                quan = 0.0_wp
                !$omp end single
 
                !$omp do schedule(static) private(Qx, Qy, Qz, Qw, Qph) reduction(+:quan)
@@ -310,16 +310,16 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                DO i = 1, Np
                   BLOCK
 
-                     REAL(rp) :: xi, yi, zi, mui, betaFi, betaDi, vpi
-                     REAL(rp) :: alpha_1i, alpha_2i, alpha_3i
-                     REAL(rp) :: mask, mask2, maskR, maskZ
-                     REAL(rp) :: vx, vy, vz, vm, ap, vbF, vbD
-                     REAL(rp) :: Wx, Wy, Wz, Wm, Wp, WbF, WbD
-                     REAL(rp) :: Walpha_1, Walpha_2, Walpha_3
-                     REAL(rp) :: q1, q2, q3, Vrt, Vrr, FMi, F0i, G0i
-                     REAL(rp) :: pbGF, pbFF, pbFD, pbDF, pbDD, pbSS
-                     REAL(rp) :: Hi, B, Vtx, VFx, sm1, sm2, Pc, kin
-                     REAL(rp) :: check_1, check_2, check_3, vs_1, vs_2, vs_3
+                     REAL(wp) :: xi, yi, zi, mui, betaFi, betaDi, vpi
+                     REAL(wp) :: alpha_1i, alpha_2i, alpha_3i
+                     REAL(wp) :: mask, mask2, maskR, maskZ
+                     REAL(wp) :: vx, vy, vz, vm, ap, vbF, vbD
+                     REAL(wp) :: Wx, Wy, Wz, Wm, Wvp, WbF, WbD
+                     REAL(wp) :: Walpha_1, Walpha_2, Walpha_3
+                     REAL(wp) :: q1, q2, q3, Vrt, Vrr, FMi, F0i, G0i
+                     REAL(wp) :: pbGF, pbFF, pbFD, pbDF, pbDD, pbSS
+                     REAL(wp) :: Hi, B, Vtx, VFx, sm1, sm2, Pc, kin
+                     REAL(wp) :: check_1, check_2, check_3, vs_1, vs_2, vs_3
 
                      ! Select per-particle or single-spectrum arrays.
                      IF (USE_real == OFF) THEN
@@ -371,9 +371,9 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                         mui     = mui     + dt_half * vm
                         betaFi  = betaFi  + dt_half * vbF
                         betaDi  = betaDi  + dt_half * vbD
-                        alpha_1i = alpha_1i + dt_half * vs_1
-                        alpha_2i = alpha_2i + dt_half * vs_2
-                        alpha_3i = alpha_3i + dt_half * vs_3
+                        alpha_1i = alpha_1i + abs(dt_half) * vs_1
+                        alpha_2i = alpha_2i + abs(dt_half) * vs_2
+                        alpha_3i = alpha_3i + abs(dt_half) * vs_3
 
                      END IF
 
@@ -387,35 +387,35 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                         kin_init(i) = kin
                      END IF
 
-                     Wx = vx / 6.0_rp
-                     Wy = vy / 6.0_rp
-                     Wz = vz / 6.0_rp
-                     Wm = vm / 6.0_rp
-                     Wp = ap / 6.0_rp
-                     WbF = vbF / 6.0_rp
-                     WbD = vbD / 6.0_rp
-                     Walpha_1 = vs_1 / 6.0_rp
-                     Walpha_2 = vs_2 / 6.0_rp
-                     Walpha_3 = vs_3 / 6.0_rp
+                     Wx = vx / 6.0_wp
+                     Wy = vy / 6.0_wp
+                     Wz = vz / 6.0_wp
+                     Wm = vm / 6.0_wp
+                     Wvp = ap / 6.0_wp
+                     WbF = vbF / 6.0_wp
+                     WbD = vbD / 6.0_wp
+                     Walpha_1 = vs_1 / 6.0_wp
+                     Walpha_2 = vs_2 / 6.0_wp
+                     Walpha_3 = vs_3 / 6.0_wp
 
                      ! Mask for particles outside the domain.
-                     mask = 1.0_rp
+                     mask = 1.0_wp
 
                      IF (ANY(magnetic_model == [1, 2])) THEN
                         maskR = (xi - minR) * (maxR - xi)
                         maskZ = (yi - minZ) * (maxZ - yi)
-                        mask  = MERGE(1.0_rp, 0.0_rp, (maskR >= 0.0) .AND. (maskZ >= 0.0))
+                        mask  = MERGE(1.0_wp, 0.0_wp, (maskR >= 0.0) .AND. (maskZ >= 0.0))
                      END IF
-                     mask2 = MERGE(1.0_rp, 0.0_rp, (q1 > q1min) .AND. (q1 < q1max))
+                     mask2 = MERGE(1.0_wp, 0.0_wp, (q1 > q1min) .AND. (q1 < q1max))
 
                      ! Observables.
                      IF (.NOT. ISNAN(q1)) THEN
                         pbGF = F0i/G0i/Np
                         pbFF = FMi*exp(betaFi)/G0i/Np
                         pbFD = FMi*exp(betaDi)/G0i/Np
-                        pbDF = FMi*(exp(betaFi)-1.0_rp)/G0i/Np
-                        pbDD = FMi*(exp(betaDi)-1.0_rp)/G0i/Np
-                        pbSS = F0i/G0i/Np
+                        pbDF = FMi*(exp(betaFi)-1.0_wp)/G0i/Np
+                        pbDD = FMi*(exp(betaDi)-1.0_wp)/G0i/Np
+                        pbSS = FMi/G0i/Np
                         
                         ! Obs columns: Vtx1, Q1, Vp1, H1, Heat1, Vtx2, Q2, Vp2, H2, Heat2.
                         quan(1:10)   = quan(1:10)   + pbGF*mask * [Vtx, q1, vpi, Hi, Vtx*kin, Vtx**2, q1**2, vpi**2, Hi**2, Vtx*kin] !green function
@@ -423,61 +423,61 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                         quan(21:30)  = quan(21:30)  + pbFD*mask * [Vtx, q1, vpi, Hi, Vtx*kin, Vtx**2, q1**2, vpi**2, Hi**2, Vtx*kin] !fullF + delta V
                         quan(31:40)  = quan(31:40)  + pbDF*mask * [Vtx, q1, vpi, Hi, Vtx*kin, Vtx**2, q1**2, vpi**2, Hi**2, Vtx*kin] !deltaF + full V
                         quan(41:50)  = quan(41:50)  + pbDD*mask * [Vtx, q1, vpi, Hi, Vtx*kin, Vtx**2, q1**2, vpi**2, Hi**2, Vtx*kin] !deltaF + delta V
-                        quan(51)     = quan(51)     + pbSS*mask * Vtx_init(i) * Vtx   ! green function
-                        quan(52)     = quan(52)     + pbSS*mask * Vtx_init(i) * alpha_1i
+                        quan(51)     = quan(51)     + pbSS*mask * Vtx_init(i) * Vtx         ! green function
+                        quan(52)     = quan(52)     + pbSS*mask * Vtx_init(i) * alpha_1i    ! the signs +/- stem from the convection/diffusion in the Ficks law G/n =+V-D \nabla\ln\n
                         quan(53)     = quan(53)     - pbSS*mask * Vtx_init(i) * alpha_2i
                         quan(54)     = quan(54)     - pbSS*mask * Vtx_init(i) * alpha_3i
                         quan(55)     = quan(55)     - pbSS*mask * Vtx_init(i) * alpha_3i * kin_init(i)
 
                      END IF
 
- !             IF (i == 12) THEN
-!               write(*,*) 'rk', exp((q1 - C1*q10)*a0/C1/R0*Lns), q1 - C1*q10, kin, FMi, F0i, exp((q1 - C1*q10)*a0/C1/R0*Lns)*exp(-kin/ Ts) / Ts**1.5_rp
- !             write(*,*) 'rk', exp((q1 - C1*q10)*a0/C1/R0*Lns), FMi!, F0i, exp((q1 - C1*q10)*a0/C1/R0*Lns)*exp(-kin/ Ts) / Ts**1.5_rp
-  !                  WRITE(*, '("particle | ",I0,"| FM*Exp/F0 | ",G0.6,"| deltaFM/F0 | ",G0.6,"| kin/Ts | ",G0.6)') &
-   !                    i, 100.0*(FMi*exp(betaFi)/F0i-1.0), 100.0*(FMi/F0i-1.0_rp), kin-Hi
-    !           END IF
+!             IF (i == 12) THEN
+!               write(*,*) 'rk', exp((q1 - C1*q10)*a0/C1/R0*Lns), q1 - C1*q10, kin, FMi, F0i, exp((q1 - C1*q10)*a0/C1/R0*Lns)*exp(-kin/ Ts) / Ts**1.5_wp
+!             write(*,*) 'rk', exp((q1 - C1*q10)*a0/C1/R0*Lns), FMi!, F0i, exp((q1 - C1*q10)*a0/C1/R0*Lns)*exp(-kin/ Ts) / Ts**1.5_wp
+!                  WRITE(*, '("particle | ",I0,"| FM*Exp/F0 | ",G0.6,"| deltaFM/F0 | ",G0.6,"| kin/Ts | ",G0.6)') &
+!            i, 100.0*(FMi*exp(betaFi)/F0i-1.0), 100.0*(FMi/F0i-1.0_wp), kin-Hi
+!           END IF
                 ! RK4 stage 2.
-                     CALL gyrocenter_drifts(xi + vx * dt / 2.0_rp, &
-                                     yi + vy * dt / 2.0_rp, &
-                                     zi + vz * dt / 2.0_rp, &
-                                     vpi + ap * dt / 2.0_rp, &
-                                     mui + vm * dt / 2.0_rp, &
-                                     q1, q2, q3, t(k) + dt / 2.0_rp, &
+                     CALL gyrocenter_drifts(xi + vx * dt / 2.0_wp, &
+                                     yi + vy * dt / 2.0_wp, &
+                                     zi + vz * dt / 2.0_wp, &
+                                     vpi + ap * dt / 2.0_wp, &
+                                     mui + vm * dt / 2.0_wp, &
+                                     q1, q2, q3, t(k) + dt / 2.0_wp, &
                                      vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
                                      check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
 
-                     Wx = Wx + vx / 3.0_rp
-                     Wy = Wy + vy / 3.0_rp
-                     Wz = Wz + vz / 3.0_rp
-                     Wm = Wm + vm / 3.0_rp
-                     Wp = Wp + ap / 3.0_rp
-                     WbF = WbF + vbF / 3.0_rp
-                     WbD = WbD + vbD / 3.0_rp
-                     Walpha_1 = Walpha_1 + vs_1 / 3.0_rp
-                     Walpha_2 = Walpha_2 + vs_2 / 3.0_rp
-                     Walpha_3 = Walpha_3 + vs_3 / 3.0_rp
+                     Wx = Wx + vx / 3.0_wp
+                     Wy = Wy + vy / 3.0_wp
+                     Wz = Wz + vz / 3.0_wp
+                     Wm = Wm + vm / 3.0_wp
+                     Wvp = Wvp + ap / 3.0_wp
+                     WbF = WbF + vbF / 3.0_wp
+                     WbD = WbD + vbD / 3.0_wp
+                     Walpha_1 = Walpha_1 + vs_1 / 3.0_wp
+                     Walpha_2 = Walpha_2 + vs_2 / 3.0_wp
+                     Walpha_3 = Walpha_3 + vs_3 / 3.0_wp
 
                      ! RK4 stage 3.
-                     CALL gyrocenter_drifts(xi + vx * dt / 2.0_rp, &
-                                     yi + vy * dt / 2.0_rp, &
-                                     zi + vz * dt / 2.0_rp, &
-                                     vpi + ap * dt / 2.0_rp, &
-                                     mui + vm * dt / 2.0_rp, &
-                                     q1, q2, q3, t(k) + dt / 2.0_rp, &
+                     CALL gyrocenter_drifts(xi + vx * dt / 2.0_wp, &
+                                     yi + vy * dt / 2.0_wp, &
+                                     zi + vz * dt / 2.0_wp, &
+                                     vpi + ap * dt / 2.0_wp, &
+                                     mui + vm * dt / 2.0_wp, &
+                                     q1, q2, q3, t(k) + dt / 2.0_wp, &
                                      vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
                                      check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
 
-                     Wx = Wx + vx / 3.0_rp
-                     Wy = Wy + vy / 3.0_rp
-                     Wz = Wz + vz / 3.0_rp
-                     Wm = Wm + vm / 3.0_rp
-                     Wp = Wp + ap / 3.0_rp
-                     WbF = WbF + vbF / 3.0_rp
-                     WbD = WbD + vbD / 3.0_rp
-                     Walpha_1 = Walpha_1 + vs_1 / 3.0_rp
-                     Walpha_2 = Walpha_2 + vs_2 / 3.0_rp
-                     Walpha_3 = Walpha_3 + vs_3 / 3.0_rp
+                     Wx = Wx + vx / 3.0_wp
+                     Wy = Wy + vy / 3.0_wp
+                     Wz = Wz + vz / 3.0_wp
+                     Wm = Wm + vm / 3.0_wp
+                     Wvp = Wvp + ap / 3.0_wp
+                     WbF = WbF + vbF / 3.0_wp
+                     WbD = WbD + vbD / 3.0_wp
+                     Walpha_1 = Walpha_1 + vs_1 / 3.0_wp
+                     Walpha_2 = Walpha_2 + vs_2 / 3.0_wp
+                     Walpha_3 = Walpha_3 + vs_3 / 3.0_wp
 
                      ! RK4 stage 4.
                      CALL gyrocenter_drifts(xi + vx * dt, yi + vy * dt, zi + vz * dt, &
@@ -486,28 +486,28 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                                  vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
                                  check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
 
-                     Wx = Wx + vx / 6.0_rp
-                     Wy = Wy + vy / 6.0_rp
-                     Wz = Wz + vz / 6.0_rp
-                     Wm = Wm + vm / 6.0_rp
-                     Wp = Wp + ap / 6.0_rp
-                     WbF = WbF + vbF / 6.0_rp
-                     WbD = WbD + vbD / 6.0_rp
-                     Walpha_1 = Walpha_1 + vs_1 / 6.0_rp
-                     Walpha_2 = Walpha_2 + vs_2 / 6.0_rp
-                     Walpha_3 = Walpha_3 + vs_3 / 6.0_rp
+                     Wx = Wx + vx / 6.0_wp
+                     Wy = Wy + vy / 6.0_wp
+                     Wz = Wz + vz / 6.0_wp
+                     Wm = Wm + vm / 6.0_wp
+                     Wvp = Wvp + ap / 6.0_wp
+                     WbF = WbF + vbF / 6.0_wp
+                     WbD = WbD + vbD / 6.0_wp
+                     Walpha_1 = Walpha_1 + vs_1 / 6.0_wp
+                     Walpha_2 = Walpha_2 + vs_2 / 6.0_wp
+                     Walpha_3 = Walpha_3 + vs_3 / 6.0_wp
 
                      ! Commit back.
                      X(i)      = xi      + dt * Wx
                      Y(i)      = yi      + dt * Wy
                      Z(i)      = zi      + dt * Wz
-                     Vp(i)     = vpi     + dt * Wp
+                     Vp(i)     = vpi     + dt * Wvp
                      mu(i)     = mui     + dt * Wm
                      betaF(i)  = betaFi  + dt * WbF
                      betaD(i)  = betaDi  + dt * WbD
-                     alpha_1(i) = alpha_1i + dt * Walpha_1
-                     alpha_2(i) = alpha_2i + dt * Walpha_2
-                     alpha_3(i) = alpha_3i + dt * Walpha_3
+                     alpha_1(i) = alpha_1i + abs(dt) * Walpha_1
+                     alpha_2(i) = alpha_2i + abs(dt) * Walpha_2
+                     alpha_3(i) = alpha_3i + abs(dt) * Walpha_3
 
                      Ham(i)  = Hi
                      FM(i)   = FMi
@@ -516,7 +516,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                      q2al(i) = q2
                      q3al(i) = q3
                      Vtxal(i) = Vtx
-                     mask2al(i) = MERGE(1.0_rp, 0.0_rp, (q1 > q1min) .AND. (q1 < q1max))
+                     mask2al(i) = MERGE(1.0_wp, 0.0_wp, (q1 > q1min) .AND. (q1 < q1max))
                      ck1(i)  = check_1
                      ck2(i)  = check_2
                      ck3(i)  = check_3
@@ -552,9 +552,9 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                         mu(i)     = mu(i)     + dt_half * vm
                         betaF(i)  = betaF(i)  + dt_half * vbF
                         betaD(i)  = betaD(i)  + dt_half * vbD
-                        alpha_1(i) = alpha_1i + dt_half * vs_1
-                        alpha_2(i) = alpha_2i + dt_half * vs_2
-                        alpha_3(i) = alpha_3i + dt_half * vs_3
+                        alpha_1(i) = alpha_1i + abs(dt_half) * vs_1   ! note : we use abs(dt_half) because we are basically doing a quadrature over an integral, not backward trajectories
+                        alpha_2(i) = alpha_2i + abs(dt_half) * vs_2
+                        alpha_3(i) = alpha_3i + abs(dt_half) * vs_3
 
                      END IF
 
@@ -629,16 +629,16 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
             IF (ANY(magnetic_model == [1, 2])) THEN
 
                CALL write_mask(REAL( &
-                  COUNT( ((X - minR) * (maxR - X) >= 0.0_rp) .AND. &
-                         ((Y - minZ) * (maxZ - Y) >= 0.0_rp) .AND. &
-                         .NOT. IEEE_IS_NAN(X) .AND. .NOT. IEEE_IS_NAN(Y) ), rp))
+                  COUNT( ((X - minR) * (maxR - X) >= 0.0_wp) .AND. &
+                         ((Y - minZ) * (maxZ - Y) >= 0.0_wp) .AND. &
+                         .NOT. IEEE_IS_NAN(X) .AND. .NOT. IEEE_IS_NAN(Y) ), wp))
 
             ELSE IF (ANY(magnetic_model == [3, 4])) THEN
 
                CALL write_mask(REAL( &
-                  COUNT( ((X - (1.0_rp - a0)) * ((1.0_rp + a0) - X) >= 0.0_rp) .AND. &
-                         ((Y - (-a0)) * (a0 - Y) >= 0.0_rp) .AND. &
-                         .NOT. IEEE_IS_NAN(X) .AND. .NOT. IEEE_IS_NAN(Y) ), rp))
+                  COUNT( ((X - (1.0_wp - a0)) * ((1.0_wp + a0) - X) >= 0.0_wp) .AND. &
+                         ((Y - (-a0)) * (a0 - Y) >= 0.0_wp) .AND. &
+                         .NOT. IEEE_IS_NAN(X) .AND. .NOT. IEEE_IS_NAN(Y) ), wp))
 
             END IF
 !========================================================================================================

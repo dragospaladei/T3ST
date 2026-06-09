@@ -43,26 +43,26 @@ module testing_T3ST_mod
 contains
   subroutine diagnose_saved_trajectories(F0, FMtraj, betaFtraj, Htraj, Pctraj, &
                                          Obs_FF, Obs_FD, Obs_DF, Obs_DD, no_errors, fail_counts)
-    real(rp), intent(in)  :: F0(:)
-    real(rp), intent(in)  :: FMtraj(:, :), betaFtraj(:, :)
-    real(rp), intent(in)  :: Htraj(:, :), Pctraj(:, :)
-    real(rp), intent(in)  :: Obs_FF(:, :), Obs_FD(:, :), Obs_DF(:, :), Obs_DD(:, :)
+    real(wp), intent(in)  :: F0(:)
+    real(wp), intent(in)  :: FMtraj(:, :), betaFtraj(:, :)
+    real(wp), intent(in)  :: Htraj(:, :), Pctraj(:, :)
+    real(wp), intent(in)  :: Obs_FF(:, :), Obs_FD(:, :), Obs_DF(:, :), Obs_DD(:, :)
     integer,  intent(out) :: no_errors
     integer,  intent(out), optional :: fail_counts(:)
 
-    real(rp), parameter :: tol_identity = 1.0e-3_rp
-    real(rp), parameter :: tol_obs_abs  = 1.0e-6_rp
-    real(rp), parameter :: tol_obs_rel  = 1.0e-5_rp
-    real(rp), parameter :: tol_H1       = 1.0e-5_rp
-    real(rp), parameter :: tol_H2       = 2.0e-2_rp
-    real(rp), parameter :: tol_Pc1      = 1.0e-4_rp
-    real(rp), parameter :: eps_ref      = 1.0e-12_rp
+    real(wp), parameter :: tol_identity = 1.0e-3_wp
+    real(wp), parameter :: tol_obs_abs  = 1.0e-6_wp
+    real(wp), parameter :: tol_obs_rel  = 1.0e-5_wp
+    real(wp), parameter :: tol_H1       = 1.0e-5_wp
+    real(wp), parameter :: tol_H2       = 2.0e-2_wp
+    real(wp), parameter :: tol_Pc1      = 1.0e-4_wp
+    real(wp), parameter :: eps_ref      = 1.0e-12_wp
 
     integer :: ntime, nsaved
     integer :: i, k
     integer :: before_errors
-    real(rp) :: max_identity_err
-    real(rp) :: value
+    real(wp) :: max_identity_err
+    real(wp) :: value
 
     no_errors = 0
     if (present(fail_counts)) fail_counts = 0
@@ -81,9 +81,9 @@ contains
       return
     end if
 
-    max_identity_err = 0.0_rp
+    max_identity_err = 0.0_wp
     do i = 1, nsaved
-      if (F0(i) <= 0.0_rp) then
+      if (F0(i) <= 0.0_wp) then
         no_errors = no_errors + 1
         if (present(fail_counts)) fail_counts(2) = fail_counts(2) + 1
         return
@@ -91,7 +91,7 @@ contains
 
       do k = 1, ntime
         value = FMtraj(k, i) * exp(betaFtraj(k, i)) / F0(i)
-        max_identity_err = max(max_identity_err, abs(value - 1.0_rp))
+        max_identity_err = max(max_identity_err, abs(value - 1.0_wp))
       end do
     end do
 
@@ -143,20 +143,20 @@ contains
   ! Main entry point
   !=============================================================================
   subroutine testing_T3ST(X, Y, Z, Vp, mu, F0, G0, FM, betaF, betaD, Vstar1, Vstar2, Vstar3, no_errors)
-    real(rp), intent(in)  :: X(:), Y(:), Z(:), Vp(:), mu(:)
-    real(rp), intent(in)  :: F0(:), G0(:), FM(:), betaF(:), betaD(:)
-    real(rp), intent(in)  :: Vstar1, Vstar2, Vstar3
+    real(wp), intent(in)  :: X(:), Y(:), Z(:), Vp(:), mu(:)
+    real(wp), intent(in)  :: F0(:), G0(:), FM(:), betaF(:), betaD(:)
+    real(wp), intent(in)  :: Vstar1, Vstar2, Vstar3
     integer,  intent(out) :: no_errors
 
     integer  :: Np_partial, Nt_partial, np_avail
-    real(rp) :: dt, ratio32
+    real(wp) :: dt, ratio32
 
-    real(rp), allocatable :: Xh(:,:), Yh(:,:), Zh(:,:), Vph(:,:), muh(:,:)
-    real(rp), allocatable :: Hh(:,:), Pch(:,:), c1h(:,:), c2h(:,:), c3h(:,:),  Vtx(:,:),  VFx(:,:)
+    real(wp), allocatable :: Xh(:,:), Yh(:,:), Zh(:,:), Vph(:,:), muh(:,:)
+    real(wp), allocatable :: Hh(:,:), Pch(:,:), c1h(:,:), c2h(:,:), c3h(:,:),  Vtx(:,:),  VFx(:,:)
 
     integer  :: nstep_eff
-    real(rp) :: T, compare
-    real(rp), parameter :: epsH = 1.0e-300_rp
+    real(wp) :: T, compare
+    real(wp), parameter :: epsH = 1.0e-300_wp
 
     no_errors = 0
     ! -------------------------
@@ -166,7 +166,7 @@ contains
     Nt_partial = 200
     np_avail   = size(X)
     Np_partial = min(Np_partial, np_avail)
-    dt         = real(tmax / Nt, rp)   ! base dt used by rk4_propagation below
+    dt         = real(tmax / Nt, wp)   ! base dt used by rk4_propagation below
 
     allocate(Xh (1:Nt_partial, 1:Np_partial), &
              Yh (1:Nt_partial, 1:Np_partial), &
@@ -230,21 +230,21 @@ contains
     call section("Vstar checks")
     call log_vals3("[INFO ]", "Vstar1 Vstar2 Vstar3", Vstar1, Vstar2, Vstar3)
 
-    if (abs(Vstar1) > 1.0e-9_rp) then
+    if (abs(Vstar1) > 1.0e-9_wp) then
       no_errors = no_errors + 1
       call log_alert("Vstar1 not ~ 0 (radial drift present)")
     else
       call log_ok("Vstar1 ~ 0 (radial drift OK)")
     end if
 
-    if (abs(Vstar2) <= tiny(1.0_rp)) then
+    if (abs(Vstar2) <= tiny(1.0_wp)) then
       no_errors = no_errors + 1
       call log_alert("Vstar2 ~ 0 (cannot evaluate Vstar3/Vstar2)")
     else
       ratio32 = Vstar3 / Vstar2
-      call log_ratio("[INFO ]", "Vstar3/Vstar2", abs(ratio32), 0.1_rp)
+      call log_ratio("[INFO ]", "Vstar3/Vstar2", abs(ratio32), 0.1_wp)
 
-      if (abs(ratio32) > 0.1_rp) then
+      if (abs(ratio32) > 0.1_wp) then
         no_errors = no_errors + 1
         call log_alert("Large parallel drift (|Vstar3/Vstar2| > 0.1)")
       else
@@ -256,7 +256,7 @@ contains
     ! Input consistency checks
     ! -------------------------
     call section("Input consistency checks")
-    call check_inputs(X, Y, Z, Vp, mu, F0, G0, FM, betaF, betaD, a0, 1.0e-12_rp, no_errors)
+    call check_inputs(X, Y, Z, Vp, mu, F0, G0, FM, betaF, betaD, a0, 1.0e-12_wp, no_errors)
 
     ! -------------------------
     ! Wave moment/symmetry checks (same switch)
@@ -276,8 +276,8 @@ contains
     ! Drift / RK4 propagation
     ! =====================================================================
     call section("RK4 propagation")
-    call log_val("[INFO ]", "Np_partial", real(Np_partial, rp))
-    call log_val("[INFO ]", "Nt_partial", real(Nt_partial, rp))
+    call log_val("[INFO ]", "Np_partial", real(Np_partial, wp))
+    call log_val("[INFO ]", "Nt_partial", real(Nt_partial, wp))
     call log_val("[INFO ]", "dt", dt)
 
 
@@ -285,7 +285,7 @@ contains
                          Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtx, VFx)
                          
     nstep_eff = max(1, Nt_partial - 1)
-    T         = dt * real(nstep_eff, rp)
+    T         = dt * real(nstep_eff, wp)
 
     ! =====================================================================
     ! Energy proxy diagnostics (d ln H / dt)
@@ -303,12 +303,12 @@ contains
     ! Gaussianity / moment checks: whole (time x particles)
     ! =====================================================================
     call section("Gaussianity summary: all times x particles (kurt/3 = 1 for Gaussian)")
-    compare = 1.0_rp
+    compare = 1.0_wp
     
     call print_gaussianity_block("phi",  c1h, Np_partial, Nt_partial, no_errors, compare)
-        compare = 1.0_rp
+        compare = 1.0_wp
     call print_gaussianity_block("phix", c2h, Np_partial, Nt_partial, no_errors, compare)
-        compare = 1.0_rp
+        compare = 1.0_wp
     call print_gaussianity_block("phiy", c3h, Np_partial, Nt_partial, no_errors, compare)
 
     call section("Gaussianity drivers (qualitative)")
@@ -321,28 +321,28 @@ contains
     ! Gaussianity / moment checks: time slice (k = 1)
     ! =====================================================================
     call section("Gaussianity summary: time slice k=1 (kurt/3 = 1 for Gaussian)")
-     compare = 1.0_rp
+     compare = 1.0_wp
          if (USE_balloon.eq.ON) then
-      compare = compare**exp(-1.0_rp/lbalonz**2)*(1 + 1.0_rp/lbalonz**2/4.0_rp + 1.0_rp/lbalonz**4/64.0_rp)
+      compare = compare**exp(-1.0_wp/lbalonz**2)*(1 + 1.0_wp/lbalonz**2/4.0_wp + 1.0_wp/lbalonz**4/64.0_wp)
     endif
     call print_gaussianity_slice("phi",  c1h, 1, Np_partial, no_errors, compare)
-           compare = 1.0_rp / lambdax**4 &
-        + (pi**4 / 5.0_rp) * (3.0_rp/lambday**2 + k0i**2)**2 &
-          * (2.0_rp*C2/(C1*C3))**4 * 9.0_rp * (r00/a0**2)**4 &
-        + (2.0_rp*pi**2 / 3.0_rp) * (1.0_rp/lambdax**2) &
-          * (3.0_rp/lambday**2 + k0i**2) &
-          * (2.0_rp*C2/(C1*C3))**2 * 3.0_rp * (r00/a0**2)**2
+           compare = 1.0_wp / lambdax**4 &
+        + (pi**4 / 5.0_wp) * (3.0_wp/lambday**2 + k0i**2)**2 &
+          * (2.0_wp*C2/(C1*C3))**4 * 9.0_wp * (r00/a0**2)**4 &
+        + (2.0_wp*pi**2 / 3.0_wp) * (1.0_wp/lambdax**2) &
+          * (3.0_wp/lambday**2 + k0i**2) &
+          * (2.0_wp*C2/(C1*C3))**2 * 3.0_wp * (r00/a0**2)**2
           call print_gaussianity_slice("phix", c2h, 1, Np_partial, no_errors, compare)
  
     call print_gaussianity_slice("phiy", c3h, 1, Np_partial, no_errors, compare)
 
     if (USE_real.eq.OFF) then
-      compare = ((R0/rhoi*Phi)**2)*sum(ky**2)/real(Np*Nc,rp)
+      compare = ((R0/rhoi*Phi)**2)*sum(ky**2)/real(Np*Nc,wp)
     elseif (USE_real.eq.ON) then
-      compare = ((R0/rhoi*Phi)**2)*sum(ky**2)/real(Np*Nc,rp)
+      compare = ((R0/rhoi*Phi)**2)*sum(ky**2)/real(Np*Nc,wp)
     endif
     if (USE_balloon.eq.ON) then
-      compare = compare**exp(-1.0_rp/lbalonz**2)*(1 + 1.0_rp/lbalonz**2/4.0_rp + 1.0_rp/lbalonz**4/64.0_rp)
+      compare = compare**exp(-1.0_wp/lbalonz**2)*(1 + 1.0_wp/lbalonz**2/4.0_wp + 1.0_wp/lbalonz**4/64.0_wp)
     endif
     ! Larmor
 
@@ -373,21 +373,21 @@ contains
   subroutine rk4_propagation(X, Y, Z, Vp, mu, betaF, betaD, dt, Nt_partial, Np_partial, &
                              Xh, Yh, Zh, Vph, muh, Hh, Pch, c1h, c2h, c3h, Vtxall, VFxall)
 
-    real(rp), intent(in) :: X(:), Y(:), Z(:), Vp(:), mu(:), betaF(:), betaD(:)
+    real(wp), intent(in) :: X(:), Y(:), Z(:), Vp(:), mu(:), betaF(:), betaD(:)
     integer,  intent(in) :: Np_partial, Nt_partial
-    real(rp), intent(in) :: dt
+    real(wp), intent(in) :: dt
 
-    real(rp), intent(out) :: Xh(:,:), Yh(:,:), Zh(:,:), Vph(:,:), muh(:,:)
-    real(rp), intent(out) :: Hh(:,:), Pch(:,:), c1h(:,:), c2h(:,:), c3h(:,:), Vtxall(:,:), VFxall(:,:)
+    real(wp), intent(out) :: Xh(:,:), Yh(:,:), Zh(:,:), Vph(:,:), muh(:,:)
+    real(wp), intent(out) :: Hh(:,:), Pch(:,:), c1h(:,:), c2h(:,:), c3h(:,:), Vtxall(:,:), VFxall(:,:)
 
-    real(rp), pointer, contiguous :: Qx(:), Qy(:), Qz(:), Qw(:), Qph(:)
+    real(wp), pointer, contiguous :: Qx(:), Qy(:), Qz(:), Qw(:), Qph(:)
 
-    real(rp) :: xi, yi, zi, mui, vpi, betaFi, betaDi
-    real(rp) :: vx, vy, vz, vm, ap, vbF, vbD, kin
-    real(rp) :: Wx, Wy, Wz, Wm, Wp, WbF, WbD
-    real(rp) :: q1, q2, q3
-    real(rp) :: Hi, FMi, B, Vtx, VFx, Pc
-    real(rp) :: check_1, check_2, check_3, vs_1, vs_2, vs_3, time
+    real(wp) :: xi, yi, zi, mui, vpi, betaFi, betaDi
+    real(wp) :: vx, vy, vz, vm, ap, vbF, vbD, kin
+    real(wp) :: Wx, Wy, Wz, Wm, Wvp, WbF, WbD
+    real(wp) :: q1, q2, q3
+    real(wp) :: Hi, FMi, B, Vtx, VFx, Pc
+    real(wp) :: check_1, check_2, check_3, vs_1, vs_2, vs_3, time
     integer  :: ias, k
 
     do ias = 1, Np_partial
@@ -417,7 +417,7 @@ contains
 
       do k = 1, Nt_partial
 
-        time = dt * real(k - 1, rp)
+        time = dt * real(k - 1, wp)
 
 call gyrocenter_drifts(xi, yi, zi, vpi, mui, q1, q2, q3, time,                       &
             vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx,     &
@@ -436,44 +436,44 @@ call gyrocenter_drifts(xi, yi, zi, vpi, mui, q1, q2, q3, time,                  
         Vtxall(k,ias) = Vtx
         VFxall(k,ias) = VFx
 
-        Wx = vx / 6.0_rp
-        Wy = vy / 6.0_rp
-        Wz = vz / 6.0_rp
-        Wm = vm / 6.0_rp
-        WbF = vbF / 6.0_rp
-        WbD = vbD / 6.0_rp
-        Wp = ap / 6.0_rp
+        Wx = vx / 6.0_wp
+        Wy = vy / 6.0_wp
+        Wz = vz / 6.0_wp
+        Wm = vm / 6.0_wp
+        WbF = vbF / 6.0_wp
+        WbD = vbD / 6.0_wp
+        Wvp = ap / 6.0_wp
 
-call gyrocenter_drifts(xi + vx*dt/2.0_rp, yi + vy*dt/2.0_rp, zi + vz*dt/2.0_rp,      &
-            vpi + ap*dt/2.0_rp, mui + vm*dt/2.0_rp,                       &
-            q1, q2, q3, time + dt/2.0_rp,                                  &
+call gyrocenter_drifts(xi + vx*dt/2.0_wp, yi + vy*dt/2.0_wp, zi + vz*dt/2.0_wp,      &
+            vpi + ap*dt/2.0_wp, mui + vm*dt/2.0_wp,                       &
+            q1, q2, q3, time + dt/2.0_wp,                                  &
             vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx,     &
             check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
                           
-        Wx = Wx + vx / 3.0_rp
-        Wy = Wy + vy / 3.0_rp
-        Wz = Wz + vz / 3.0_rp
-        Wm = Wm + vm / 3.0_rp
-        WbF = WbF + vbF / 3.0_rp
-        WbD = WbD + vbD / 3.0_rp
-        Wp = Wp + ap / 3.0_rp
+        Wx = Wx + vx / 3.0_wp
+        Wy = Wy + vy / 3.0_wp
+        Wz = Wz + vz / 3.0_wp
+        Wm = Wm + vm / 3.0_wp
+        WbF = WbF + vbF / 3.0_wp
+        WbD = WbD + vbD / 3.0_wp
+        Wvp = Wvp + ap / 3.0_wp
 
 
 ! RK2b
-call gyrocenter_drifts(xi + vx*dt/2.0_rp, yi + vy*dt/2.0_rp, zi + vz*dt/2.0_rp,      &
-            vpi + ap*dt/2.0_rp, mui + vm*dt/2.0_rp,                       &
-            q1, q2, q3, time + dt/2.0_rp,                                  &
+call gyrocenter_drifts(xi + vx*dt/2.0_wp, yi + vy*dt/2.0_wp, zi + vz*dt/2.0_wp,      &
+            vpi + ap*dt/2.0_wp, mui + vm*dt/2.0_wp,                       &
+            q1, q2, q3, time + dt/2.0_wp,                                  &
             vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx,     &
             check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
 
 
-        Wx = Wx + vx / 3.0_rp
-        Wy = Wy + vy / 3.0_rp
-        Wz = Wz + vz / 3.0_rp
-        Wm = Wm + vm / 3.0_rp
-        WbF = WbF + vbF / 3.0_rp
-        WbD = WbD + vbD / 3.0_rp
-        Wp = Wp + ap / 3.0_rp
+        Wx = Wx + vx / 3.0_wp
+        Wy = Wy + vy / 3.0_wp
+        Wz = Wz + vz / 3.0_wp
+        Wm = Wm + vm / 3.0_wp
+        WbF = WbF + vbF / 3.0_wp
+        WbD = WbD + vbD / 3.0_wp
+        Wvp = Wvp + ap / 3.0_wp
 
 ! RK4
 call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                            &
@@ -483,18 +483,18 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
             check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
             
             
-        Wx = Wx + vx / 6.0_rp
-        Wy = Wy + vy / 6.0_rp
-        Wz = Wz + vz / 6.0_rp
-        Wm = Wm + vm / 6.0_rp
-        WbF = WbF + vbF / 6.0_rp
-        WbD = WbD + vbD / 6.0_rp
-        Wp = Wp + ap / 6.0_rp
+        Wx = Wx + vx / 6.0_wp
+        Wy = Wy + vy / 6.0_wp
+        Wz = Wz + vz / 6.0_wp
+        Wm = Wm + vm / 6.0_wp
+        WbF = WbF + vbF / 6.0_wp
+        WbD = WbD + vbD / 6.0_wp
+        Wvp = Wvp + ap / 6.0_wp
 
         xi  = xi  + dt * Wx
         yi  = yi  + dt * Wy
         zi  = zi  + dt * Wz
-        vpi = vpi + dt * Wp
+        vpi = vpi + dt * Wvp
         mui = mui + dt * Wm
         betaFi = betaFi + dt * WbF
         betaDi = betaDi + dt * WbD
@@ -509,7 +509,7 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
   !=============================================================================
   subroutine check_nan(name, x, no_errors)
     character(len=*), intent(in)    :: name
-    real(rp),         intent(in)    :: x(..)
+    real(wp),         intent(in)    :: x(..)
     integer,          intent(inout) :: no_errors
 
     logical :: has_nan
@@ -573,16 +573,16 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
   ! Input checks (uniform messages + formatted numbers)
   !=============================================================================
   subroutine check_inputs(X, Y, Z, Vp, mu, F0, G0, FM, betaF, betaD, a1, tol, no_errors)
-    real(rp), intent(in)    :: X(:), Y(:), Z(:), Vp(:), mu(:)
-    real(rp), intent(in)    :: F0(:), G0(:), FM(:), betaF(:), betaD(:)
-    real(rp), intent(in)    :: a1, tol
+    real(wp), intent(in)    :: X(:), Y(:), Z(:), Vp(:), mu(:)
+    real(wp), intent(in)    :: F0(:), G0(:), FM(:), betaF(:), betaD(:)
+    real(wp), intent(in)    :: a1, tol
     integer,  intent(inout) :: no_errors
 
     integer  :: n, nbad
-    real(rp) :: pii, max_betaF_err, max_betaD_err
+    real(wp) :: pii, max_betaF_err, max_betaD_err
 
     n   = size(X)
-    pii = 3.14159265358979323846_rp
+    pii = 3.14159265358979323846_wp
 
     if (any([ size(Y), size(Z), size(Vp), size(mu), size(F0), size(G0), size(FM), size(betaF), size(betaD) ] /= n)) then
       no_errors = no_errors + 1
@@ -601,7 +601,7 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
       call log_raw(TMP)
     end if
 
-    nbad = count(X <= 0.0_rp)
+    nbad = count(X <= 0.0_wp)
     if (nbad > 0) then
       no_errors = no_errors + 1
       call log_alert("Condition failed: X must be > 0")
@@ -610,7 +610,7 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
       call log_ok("X > 0 everywhere")
     end if
 
-    nbad = count(abs(Y) >= 1.0_rp)
+    nbad = count(abs(Y) >= 1.0_wp)
     if (nbad > 0) then
       no_errors = no_errors + 1
       call log_alert("Condition failed: abs(Y) must be < 1")
@@ -628,7 +628,7 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
       call log_ok("Z in (-pi, pi) everywhere")
     end if
 
-    nbad = count(mu <= 0.0_rp)
+    nbad = count(mu <= 0.0_wp)
     if (nbad > 0) then
       no_errors = no_errors + 1
       call log_alert("Condition failed: mu must be > 0")
@@ -637,7 +637,7 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
       call log_ok("mu > 0 everywhere")
     end if
 
-    nbad = count(F0 <= 0.0_rp)
+    nbad = count(F0 <= 0.0_wp)
     if (nbad > 0) then
       no_errors = no_errors + 1
       call log_alert("Condition failed: F0 must be > 0")
@@ -646,7 +646,7 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
       call log_ok("F0 > 0 everywhere")
     end if
 
-    nbad = count(G0 <= 0.0_rp)
+    nbad = count(G0 <= 0.0_wp)
     if (nbad > 0) then
       no_errors = no_errors + 1
       call log_alert("Condition failed: G0 must be > 0")
@@ -655,7 +655,7 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
       call log_ok("G0 > 0 everywhere")
     end if
 
-    nbad = count(FM <= 0.0_rp)
+    nbad = count(FM <= 0.0_wp)
     if (nbad > 0) then
       no_errors = no_errors + 1
       call log_alert("Condition failed: FM must be > 0")
@@ -664,9 +664,9 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
       call log_ok("FM > 0 everywhere")
     end if
 
-    if (all((F0 > 0.0_rp) .and. (FM > 0.0_rp))) then
-      max_betaF_err = maxval(abs(FM * exp(betaF) / F0 - 1.0_rp))
-      max_betaD_err = maxval(abs(FM * exp(betaD) / F0 - 1.0_rp))
+    if (all((F0 > 0.0_wp) .and. (FM > 0.0_wp))) then
+      max_betaF_err = maxval(abs(FM * exp(betaF) / F0 - 1.0_wp))
+      max_betaD_err = maxval(abs(FM * exp(betaD) / F0 - 1.0_wp))
 
       if (max_betaF_err > tol) then
         no_errors = no_errors + 1
@@ -686,7 +686,7 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
       call log_val("[INFO ]", "tol", tol)
     end if
 
-    nbad = count(sqrt((X - 1.0_rp)**2 + Y**2) >= a1)
+    nbad = count(sqrt((X - 1.0_wp)**2 + Y**2) >= a1)
     if (nbad > 0) then
       no_errors = no_errors + 1
       call log_alert("Condition failed: sqrt((X-1)^2 + Y^2) < a0")
@@ -704,68 +704,68 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
   ! Wave checks (rank-agnostic) WITHOUT L/Ls
   !=============================================================================
   subroutine check_waves_any(kxA, kyA, kzA, wA, phA, Vstar2, Vstar3, no_errors)
-    real(rp), intent(in)    :: kxA(..), kyA(..), kzA(..), wA(..), phA(..)
-    real(rp), intent(in)    :: Vstar2, Vstar3
+    real(wp), intent(in)    :: kxA(..), kyA(..), kzA(..), wA(..), phA(..)
+    real(wp), intent(in)    :: Vstar2, Vstar3
     integer,  intent(inout) :: no_errors
 
-    real(rp), parameter :: tiny_rp = 1.0e-12_rp
-    real(rp), parameter :: eps_ref = 1.0e-30_rp
+    real(wp), parameter :: tiny_wp = 1.0e-12_wp
+    real(wp), parameter :: eps_ref = 1.0e-30_wp
 
-    real(rp) :: m1(5), m2(5), m4(5)
-    real(rp) :: tol_mean(5), tol_m2(5), tol_m4(5)
-    real(rp) :: m2_ref(5), m4_ref(5)
-    real(rp) :: ratio, pii
-    real(rp) :: t_m2_ky, t_m2_kz, t_m4_ky, t_m4_kz
-    real(rp) :: fac
+    real(wp) :: m1(5), m2(5), m4(5)
+    real(wp) :: tol_mean(5), tol_m2(5), tol_m4(5)
+    real(wp) :: m2_ref(5), m4_ref(5)
+    real(wp) :: ratio, pii
+    real(wp) :: t_m2_ky, t_m2_kz, t_m4_ky, t_m4_kz
+    real(wp) :: fac
 
     call log_info("Wave diagnostics (moments / target checks)")
 
-    pii = 3.14159265358979323846_rp
+    pii = 3.14159265358979323846_wp
 
-    tol_mean = 0.05_rp
-    tol_m2   = 0.05_rp
-    tol_m4   = 0.10_rp
+    tol_mean = 0.05_wp
+    tol_m2   = 0.05_wp
+    tol_m4   = 0.10_wp
 
 
-    m2_ref(2) = 3.0_rp / (lambday*lambday) + k0i*k0i
-    m2_ref(3) = (erfc(lambdaz/sqrt(2.0_rp)) + 3.0_rp*erfc(lambdaz*sqrt(2.0_rp)))/C3**2!1.0_rp / (lambdaz*lambdaz) ! erfc(lambdaz/sqrt(2.0_rp))
-    m2_ref(5) = (pii*pii) / 3.0_rp
+    m2_ref(2) = 3.0_wp / (lambday*lambday) + k0i*k0i
+    m2_ref(3) = (erfc(lambdaz/sqrt(2.0_wp)) + 3.0_wp*erfc(lambdaz*sqrt(2.0_wp)))/C3**2!1.0_wp / (lambdaz*lambdaz) ! erfc(lambdaz/sqrt(2.0_wp))
+    m2_ref(5) = (pii*pii) / 3.0_wp
 
         ! Radial spectrum selection
         IF (x_corr == 1) THEN
-            m2_ref(1) = 1.0_rp / (lambdax**2)
-            m4_ref(1) = 3.0_rp / (lambdax**4)
+            m2_ref(1) = 1.0_wp / (lambdax**2)
+            m4_ref(1) = 3.0_wp / (lambdax**4)
         ELSEIF (x_corr == 2) THEN
-            m2_ref(1) = (10.0_rp / atan(10.0_rp)-1.0_rp)/ (lambdax**2)
-            m4_ref(1) = (1.0_rp + 10.0_rp*(10.0_rp**2-3)/3.0_rp/atan(10.0_rp))/ (lambdax**4)
+            m2_ref(1) = (10.0_wp / atan(10.0_wp)-1.0_wp)/ (lambdax**2)
+            m4_ref(1) = (1.0_wp + 10.0_wp*(10.0_wp**2-3)/3.0_wp/atan(10.0_wp))/ (lambdax**4)
         END IF
 
         ! Temporal spectrum selection
         IF (t_corr == 1) THEN
-            m2_ref(4) = 1.0_rp / (tauc**2)
-            m4_ref(4) = 3.0_rp / (tauc**4)
+            m2_ref(4) = 1.0_wp / (tauc**2)
+            m4_ref(4) = 3.0_wp / (tauc**4)
         ELSEIF (t_corr == 2) THEN
-            m2_ref(4) = (10.0_rp / atan(10.0_rp)-1.0_rp)/ (tauc**2)
-            m4_ref(4) = (1.0_rp + 10.0_rp*(10.0_rp**2-3)/3.0_rp/atan(10.0_rp))/ (tauc**4)
+            m2_ref(4) = (10.0_wp / atan(10.0_wp)-1.0_wp)/ (tauc**2)
+            m4_ref(4) = (1.0_wp + 10.0_wp*(10.0_wp**2-3)/3.0_wp/atan(10.0_wp))/ (tauc**4)
         END IF
 
-    m4_ref(2) = (15.0_rp/(lambday**4) + 10.0_rp*k0i**2/(lambday**2) + k0i**4)
-    m4_ref(3) = (erfc(lambdaz/sqrt(2.0_rp)) + 15.0_rp*erfc(lambdaz*sqrt(2.0_rp)) + 65.0_rp*erfc(lambdaz*3.0_rp/sqrt(2.0_rp)))/C3**4
-    m4_ref(5) = (pii**4) / 5.0_rp
+    m4_ref(2) = (15.0_wp/(lambday**4) + 10.0_wp*k0i**2/(lambday**2) + k0i**4)
+    m4_ref(3) = (erfc(lambdaz/sqrt(2.0_wp)) + 15.0_wp*erfc(lambdaz*sqrt(2.0_wp)) + 65.0_wp*erfc(lambdaz*3.0_wp/sqrt(2.0_wp)))/C3**4
+    m4_ref(5) = (pii**4) / 5.0_wp
 
     t_m2_ky = m2_ref(2)
     t_m2_kz = m2_ref(3)
     t_m4_ky = m4_ref(2)
     t_m4_kz = m4_ref(3)
 
-    fac = (Ln*(rhoi/R0/(1.0_rp+r00))**2)
+    fac = (Ln*(rhoi/R0/(1.0_wp+r00))**2)
 
     m2_ref(4) = m2_ref(4) + (fac**2) * (Vstar2**2*t_m2_ky + Vstar3**2*t_m2_kz)
 
     m4_ref(4) = m4_ref(4)                                                        &
               + (fac**4) * (Vstar2**4*t_m4_ky + Vstar3**4*t_m4_kz                         &
-              + 2.0_rp*Vstar2**2*Vstar3**2*t_m2_kz*t_m2_ky)                               &
-              + 2.0_rp/(tauc**2) * (fac**2) * (Vstar2**2*t_m2_ky + Vstar3**2*t_m2_kz)
+              + 2.0_wp*Vstar2**2*Vstar3**2*t_m2_kz*t_m2_ky)                               &
+              + 2.0_wp/(tauc**2) * (fac**2) * (Vstar2**2*t_m2_ky + Vstar3**2*t_m2_kz)
 
     call moments_ar(kxA, m1(1), m2(1), m4(1))
     call moments_ar(kyA, m1(2), m2(2), m4(2))
@@ -773,19 +773,19 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
     call moments_ar(wA,  m1(4), m2(4), m4(4))
     call moments_ar(phA, m1(5), m2(5), m4(5))
 
-    ratio = abs(m1(1)) / max(sqrt(m2(1)), tiny_rp)
+    ratio = abs(m1(1)) / max(sqrt(m2(1)), tiny_wp)
     call check_ratio("kx mean ~ 0", ratio, tol_mean(1), no_errors)
 
-    ratio = abs(m1(2)) / max(sqrt(m2(2)), tiny_rp)
+    ratio = abs(m1(2)) / max(sqrt(m2(2)), tiny_wp)
     call check_ratio("ky mean ~ 0", ratio, tol_mean(2), no_errors)
 
-    ratio = abs(m1(3)) / max(sqrt(m2(3)), tiny_rp)
+    ratio = abs(m1(3)) / max(sqrt(m2(3)), tiny_wp)
     call check_ratio("kz mean ~ 0", ratio, tol_mean(3), no_errors)
 
-    ratio = abs(m1(4)) / max(sqrt(m2(4)), tiny_rp)
+    ratio = abs(m1(4)) / max(sqrt(m2(4)), tiny_wp)
     call check_ratio("w  mean ~ 0", ratio, tol_mean(4), no_errors)
 
-    ratio = abs(m1(5)) / max(sqrt(m2(5)), tiny_rp)
+    ratio = abs(m1(5)) / max(sqrt(m2(5)), tiny_wp)
     call check_ratio("ph mean ~ 0", ratio, tol_mean(5), no_errors)
 
     call log_info("Second moments (targets)")
@@ -807,9 +807,9 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
 
   subroutine check_moment(label, val, ref, tol, no_errors, eps_ref)
     character(len=*), intent(in)    :: label
-    real(rp),         intent(in)    :: val, ref, tol, eps_ref
+    real(wp),         intent(in)    :: val, ref, tol, eps_ref
     integer,          intent(inout) :: no_errors
-    real(rp) :: relerr
+    real(wp) :: relerr
 
     relerr = abs(val - ref) / max(abs(ref), eps_ref)
 
@@ -823,7 +823,7 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
 
   subroutine check_scalar_tolerance(label, err, tol, no_errors)
     character(len=*), intent(in)    :: label
-    real(rp),         intent(in)    :: err, tol
+    real(wp),         intent(in)    :: err, tol
     integer,          intent(inout) :: no_errors
 
     if (ieee_is_nan(err) .or. err > tol) then
@@ -833,12 +833,12 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
 
   subroutine check_time_constancy(label, x, tol, eps_ref, no_errors)
     character(len=*), intent(in)    :: label
-    real(rp),         intent(in)    :: x(:)
-    real(rp),         intent(in)    :: tol, eps_ref
+    real(wp),         intent(in)    :: x(:)
+    real(wp),         intent(in)    :: tol, eps_ref
     integer,          intent(inout) :: no_errors
 
-    real(rp) :: err
-    real(rp) :: ref
+    real(wp) :: err
+    real(wp) :: ref
 
     if (size(x) < 1) then
       no_errors = no_errors + 1
@@ -857,11 +857,11 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
 
   subroutine check_observable_identity(label, lhs, rhs, abs_tol, rel_tol, eps_ref, no_errors)
     character(len=*), intent(in)    :: label
-    real(rp),         intent(in)    :: lhs(:, :), rhs(:, :)
-    real(rp),         intent(in)    :: abs_tol, rel_tol, eps_ref
+    real(wp),         intent(in)    :: lhs(:, :), rhs(:, :)
+    real(wp),         intent(in)    :: abs_tol, rel_tol, eps_ref
     integer,          intent(inout) :: no_errors
 
-    real(rp) :: err, scale
+    real(wp) :: err, scale
 
     if (size(lhs, 1) /= size(rhs, 1) .or. size(lhs, 2) /= size(rhs, 2)) then
       no_errors = no_errors + 1
@@ -880,13 +880,13 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
       no_errors = no_errors + 1
     end if
 
-    call ignore_unused(real(len_trim(label), rp))
+    call ignore_unused(real(len_trim(label), wp))
   end subroutine check_observable_identity
 
 
   subroutine log_moment(tag, label, val, ref, relerr, tol)
     character(len=*), intent(in) :: tag, label
-    real(rp),         intent(in) :: val, ref, relerr, tol
+    real(wp),         intent(in) :: val, ref, relerr, tol
 
     write(TMP,'(a,1x,a,": val=",1x,'//FVAL//',", ref=",1x,'//FVAL//',", rel=",1x,'//FRAT//',", tol=",1x,'//FRAT//')') &
       tag, pad_label(label), val, ref, relerr, tol
@@ -900,39 +900,39 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
   ! Moments for assumed-rank arrays (rank 0/1/2 supported)
   !=============================================================================
   subroutine moments_ar(x, m1, m2, m4)
-    real(rp), intent(in)  :: x(..)
-    real(rp), intent(out) :: m1, m2, m4
+    real(wp), intent(in)  :: x(..)
+    real(wp), intent(out) :: m1, m2, m4
 
     integer  :: n
-    real(rp) :: rn
+    real(wp) :: rn
 
     select rank (x)
     rank (0)
       n  = 1
-      rn = 1.0_rp
+      rn = 1.0_wp
       m1 = x
       m2 = x*x
       m4 = (x*x)*(x*x)
 
     rank (1)
       n  = size(x)
-      rn = real(n, rp)
+      rn = real(n, wp)
       m1 = sum(x)    / rn
       m2 = sum(x**2) / rn
       m4 = sum(x**4) / rn
 
     rank (2)
       n  = size(x)
-      rn = real(n, rp)
+      rn = real(n, wp)
       m1 = sum(x)    / rn
       m2 = sum(x**2) / rn
       m4 = sum(x**4) / rn
 
     rank default
       call log_warn("moments_ar: unsupported rank encountered")
-      m1 = huge(1.0_rp)
-      m2 = huge(1.0_rp)
-      m4 = huge(1.0_rp)
+      m1 = huge(1.0_wp)
+      m2 = huge(1.0_wp)
+      m4 = huge(1.0_wp)
     end select
   end subroutine moments_ar
 
@@ -941,24 +941,24 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
   ! Energy proxy: d(ln H)/dt finite difference stats
   !=============================================================================
   subroutine print_dlnH_stats(Hh, Np, Nt, T, epsH, no_errors)
-    real(rp), intent(in)    :: Hh(:,:)
+    real(wp), intent(in)    :: Hh(:,:)
     integer,  intent(in)    :: Np, Nt
-    real(rp), intent(in)    :: T, epsH
+    real(wp), intent(in)    :: T, epsH
     integer,  intent(inout) :: no_errors
 
-    real(rp), allocatable :: v(:)
-    real(rp) :: mean_v, rms_v, std_v, maxabs_v, meanabs_v
+    real(wp), allocatable :: v(:)
+    real(wp) :: mean_v, rms_v, std_v, maxabs_v, meanabs_v
     integer  :: imax(1)
 
     allocate(v(Np))
 
     v = (Hh(Nt, :) - Hh(1, :)) / max(abs(Hh(1, :)), epsH) / T
 
-    mean_v    = sum(v) / real(Np, rp)
-    rms_v     = sqrt(sum(v**2) / real(Np, rp))
-    std_v     = sqrt(max(0.0_rp, rms_v**2 - mean_v**2))
+    mean_v    = sum(v) / real(Np, wp)
+    rms_v     = sqrt(sum(v**2) / real(Np, wp))
+    std_v     = sqrt(max(0.0_wp, rms_v**2 - mean_v**2))
     maxabs_v  = maxval(abs(v))
-    meanabs_v = sum(abs(v)) / real(Np, rp)
+    meanabs_v = sum(abs(v)) / real(Np, wp)
 
     call log_val("[INFO ]", "mean (H(tf)/H(ti)-1)/(tf-ti)",    mean_v)
     call log_val("[INFO ]", "rms  (H(tf)/H(ti)-1)/(tf-ti)",    rms_v)
@@ -970,7 +970,7 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
     write(TMP,'(a,1x,a,":",1x,'//FINT//')') "[INFO ]", pad_label("argmax |(H(tf)/H(ti)-1)/(tf-ti)| (particle index)"), imax(1)
     call log_raw(TMP)
 
-    if (maxabs_v > 1.0e-1_rp) then
+    if (maxabs_v > 1.0e-1_wp) then
       no_errors = no_errors + 1
       call log_alert("Energy proxy: large max |(H(tf)/H(ti)-1)/(tf-ti)| (threshold 1e-1)")
     end if
@@ -983,24 +983,24 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
   ! Energy proxy: d(ln H)/dt finite difference stats
   !=============================================================================
   subroutine print_dlnPc_stats(Hh, Np, Nt, T, epsH, no_errors)
-    real(rp), intent(in)    :: Hh(:,:)
+    real(wp), intent(in)    :: Hh(:,:)
     integer,  intent(in)    :: Np, Nt
-    real(rp), intent(in)    :: T, epsH
+    real(wp), intent(in)    :: T, epsH
     integer,  intent(inout) :: no_errors
 
-    real(rp), allocatable :: v(:)
-    real(rp) :: mean_v, rms_v, std_v, maxabs_v, meanabs_v
+    real(wp), allocatable :: v(:)
+    real(wp) :: mean_v, rms_v, std_v, maxabs_v, meanabs_v
     integer  :: imax(1)
 
     allocate(v(Np))
 
     v = (Hh(Nt, :) - Hh(1, :)) / max(abs(Hh(1, :)), epsH) / T
 
-    mean_v    = sum(v) / real(Np, rp)
-    rms_v     = sqrt(sum(v**2) / real(Np, rp))
-    std_v     = sqrt(max(0.0_rp, rms_v**2 - mean_v**2))
+    mean_v    = sum(v) / real(Np, wp)
+    rms_v     = sqrt(sum(v**2) / real(Np, wp))
+    std_v     = sqrt(max(0.0_wp, rms_v**2 - mean_v**2))
     maxabs_v  = maxval(abs(v))
-    meanabs_v = sum(abs(v)) / real(Np, rp)
+    meanabs_v = sum(abs(v)) / real(Np, wp)
 
     call log_val("[INFO ]", "mean (Pc(tf)/Pc(ti)-1)/(tf-ti)" ,    mean_v)
     call log_val("[INFO ]", "rms  (Pc(tf)/Pc(ti)-1)/(tf-ti)",    rms_v)
@@ -1012,7 +1012,7 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
     write(TMP,'(a,1x,a,":",1x,'//FINT//')') "[INFO ]", pad_label("argmax |(Pc(tf)/Pc(ti)-1)/(tf-ti)| (particle index)"), imax(1)
     call log_raw(TMP)
 
-    if (maxabs_v > 1.0e-1_rp) then
+    if (maxabs_v > 1.0e-1_wp) then
       no_errors = no_errors + 1
       call log_alert("Energy proxy: large max |(Pc(tf)/Pc(ti)-1)/(tf-ti)| (threshold 1e-1)")
     end if
@@ -1026,18 +1026,18 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
   !=============================================================================
   subroutine print_gaussianity_block(name, A, Np, Nt, no_errors, compare)
     character(len=*), intent(in)    :: name
-    real(rp),         intent(in)    :: A(:,:), compare
+    real(wp),         intent(in)    :: A(:,:), compare
     integer,          intent(in)    :: Np, Nt
     integer,          intent(inout) :: no_errors
 
-    real(rp) :: norm, m1, m2, m4, kurt3
-    real(rp), parameter :: tol_kurt3 = 0.15_rp
+    real(wp) :: norm, m1, m2, m4, kurt3
+    real(wp), parameter :: tol_kurt3 = 0.15_wp
 
-    norm  = 1.0_rp / (real(Np, rp) * real(Nt, rp))
+    norm  = 1.0_wp / (real(Np, wp) * real(Nt, wp))
     m1    = sum(A)      * norm
     m2    = sum(A**2)   * norm
     m4    = sum(A**4)   * norm
-    kurt3 = m4 / max(m2*m2, tiny(1.0_rp)) / 3.0_rp
+    kurt3 = m4 / max(m2*m2, tiny(1.0_wp)) / 3.0_wp
 
     call log_gauss_line(name, m1, m2, kurt3, tol_kurt3, no_errors, compare)
   end subroutine print_gaussianity_block
@@ -1048,18 +1048,18 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
   !=============================================================================
   subroutine print_gaussianity_slice(name, A, k, Np, no_errors, compare)
     character(len=*), intent(in)    :: name
-    real(rp),         intent(in)    :: A(:,:), compare
+    real(wp),         intent(in)    :: A(:,:), compare
     integer,          intent(in)    :: k, Np
     integer,          intent(inout) :: no_errors
 
-    real(rp) :: norm, m1, m2, m4, kurt3
-    real(rp), parameter :: tol_kurt3 = 0.15_rp
+    real(wp) :: norm, m1, m2, m4, kurt3
+    real(wp), parameter :: tol_kurt3 = 0.15_wp
 
-    norm  = 1.0_rp / real(Np, rp)
+    norm  = 1.0_wp / real(Np, wp)
     m1    = sum(A(k, :))      * norm
     m2    = sum(A(k, :)**2)   * norm
     m4    = sum(A(k, :)**4)   * norm
-    kurt3 = m4 / max(m2*m2, tiny(1.0_rp)) / 3.0_rp
+    kurt3 = m4 / max(m2*m2, tiny(1.0_wp)) / 3.0_wp
 
     call log_gauss_line(name, m1, m2, kurt3, tol_kurt3, no_errors, compare)
   end subroutine print_gaussianity_slice
@@ -1067,13 +1067,13 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
 
   subroutine log_gauss_line(name, mean, ex2, kurt3, tol_kurt3, no_errors, compare)
     character(len=*), intent(in)    :: name
-    real(rp),         intent(in)    :: mean, ex2, kurt3, tol_kurt3, compare
+    real(wp),         intent(in)    :: mean, ex2, kurt3, tol_kurt3, compare
     integer,          intent(inout) :: no_errors
 
     character(len=WTAG) :: tag
     logical :: bad
 
-    bad = abs(kurt3 - 1.0_rp) > tol_kurt3
+    bad = abs(kurt3 - 1.0_wp) > tol_kurt3
     if (bad) then
       tag = "[ALERT]"
       no_errors = no_errors + 1
@@ -1094,7 +1094,7 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
   !=============================================================================
   subroutine check_ratio(label, ratio, tol, no_errors)
     character(len=*), intent(in)    :: label
-    real(rp),         intent(in)    :: ratio, tol
+    real(wp),         intent(in)    :: ratio, tol
     integer,          intent(inout) :: no_errors
 
     if (ratio > tol) then
@@ -1140,21 +1140,21 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
 
   subroutine log_val(tag, name, val)
     character(len=*), intent(in) :: tag, name
-    real(rp),         intent(in) :: val
+    real(wp),         intent(in) :: val
     write(TMP,'(a,1x,a,":",1x,'//FVAL//')') tag, pad_label(name), val
     call log_raw(TMP)
   end subroutine log_val
 
   subroutine log_vals3(tag, name, v1, v2, v3)
     character(len=*), intent(in) :: tag, name
-    real(rp),         intent(in) :: v1, v2, v3
+    real(wp),         intent(in) :: v1, v2, v3
     write(TMP,'(a,1x,a,":",3(1x,'//FVAL//'))') tag, pad_label(name), v1, v2, v3
     call log_raw(TMP)
   end subroutine log_vals3
 
   subroutine log_ratio(tag, name, ratio, tol)
     character(len=*), intent(in) :: tag, name
-    real(rp),         intent(in) :: ratio, tol
+    real(wp),         intent(in) :: ratio, tol
     write(TMP,'(a,1x,a,": ratio=",1x,'//FRAT//',", tol=",1x,'//FRAT//')') tag, pad_label(name), ratio, tol
     call log_raw(TMP)
     if (trim(tag) == "[ALERT]") call alerts_add(trim(name) // " ratio exceeded tol")
@@ -1222,7 +1222,7 @@ call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                      
   ! Small helper for unused dummy variable
   !=============================================================================
   subroutine ignore_unused(x)
-    real(rp), intent(in) :: x
+    real(wp), intent(in) :: x
     if (x /= x) then
       call log_warn("ignore_unused triggered (NaN)")
     end if

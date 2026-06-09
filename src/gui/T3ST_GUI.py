@@ -437,6 +437,19 @@ def parse_selections_yaml(obj) -> List[SelectionDef]:
             except Exception:
                 raise ValueError(f"selections.yaml: selection {name!r}: {key} must be an integer")
 
+        def _opt_seed(key):
+            v = s.get(key)
+            if v is None:
+                return None
+            if isinstance(v, str) and v.strip().lower() in ("", "none", "random"):
+                return None
+            try:
+                return int(v)
+            except Exception:
+                raise ValueError(
+                    f"selections.yaml: selection {name!r}: {key} must be an integer or 'random'"
+                )
+
         def _opt_dict_int(key):
             v = s.get(key)
             if v is None:
@@ -467,7 +480,7 @@ def parse_selections_yaml(obj) -> List[SelectionDef]:
             database=database,
             method=method,
             n_samples=_opt_int("n_samples"),
-            seed=_opt_int("seed"),
+            seed=_opt_seed("seed"),
             fixed_indices=_opt_dict_int("fixed_indices"),
             fixed_values=_opt_dict_float("fixed_values"),
             free_parameters=_opt_list_str("free_parameters"),

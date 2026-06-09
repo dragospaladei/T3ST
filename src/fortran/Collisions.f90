@@ -23,16 +23,16 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=rp), DIMENSION(Np), INTENT(IN)        :: X, Y, Z, Vp, mut, B                              ! new basis coordinates (input)
-       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT)       :: vcolx, vcoly, vcolz, vcolm, vcolp
+       REAL(KIND=wp), DIMENSION(Np), INTENT(IN)        :: X, Y, Z, Vp, mut, B                              ! new basis coordinates (input)
+       REAL(KIND=wp), DIMENSION(Np), INTENT(OUT)       :: vcolx, vcoly, vcolz, vcolm, vcolp
 
        ! Local variables
-       REAL(KIND=rp), DIMENSION(Np)                       :: v, zeta, ene, alf, xx, Fphi, Fpsi     ! miscelaneous
-       REAL(KIND=rp), DIMENSION(Np)                       :: rpar, rperp, hx, hy, hz, betx, bety, betz, rparprim, Omega, nuf
-       REAL(KIND=rp), DIMENSION(Np)                       :: Bx, By, Bz, Wx, Wy, Wz, Wp, Wm, DifR, Spp, Spm, Smp, Smm
-       REAL(KIND=rp), DIMENSION(5, Np)                     :: grf!, grf1, grf2
-       REAL(KIND=rp), DIMENSION(10*Np)                    :: grf1
-       REAL(KIND=rp)                                       :: dt, ratio
+       REAL(KIND=wp), DIMENSION(Np)                       :: v, zeta, ene, alf, xx, Fphi, Fpsi     ! miscelaneous
+       REAL(KIND=wp), DIMENSION(Np)                       :: rpar, rperp, hx, hy, hz, betx, bety, betz, rparprim, Omega, nuf
+       REAL(KIND=wp), DIMENSION(Np)                       :: Bx, By, Bz, Wx, Wy, Wz, Wvp, Wm, DifR, Spp, Spm, Smp, Smm
+       REAL(KIND=wp), DIMENSION(5, Np)                     :: grf!, grf1, grf2
+       REAL(KIND=wp), DIMENSION(10*Np)                    :: grf1
+       REAL(KIND=wp)                                       :: dt, ratio
        INTEGER                                               :: i
 
        logical :: contains_nan
@@ -70,7 +70,7 @@
        !       grf(5,:) = sqrt(-2.0*log(grfaux(5,:)))*cos(2.0*pi*grfaux(6,:))
 
        Wm = grf(1, :)/sqrt(dt)!
-       Wp = grf(2, :)/sqrt(dt)
+       Wvp = grf(2, :)/sqrt(dt)
        Wx = grf(3, :)/sqrt(dt)
        Wy = grf(4, :)/sqrt(dt)
        Wz = grf(5, :)/sqrt(dt)
@@ -82,8 +82,8 @@
        Spp = Sqrt(2.0)*Spp
 
        ratio = 1.0
-       vcolp = ratio*(-nuf*Vp + zeta*(2.0*(rpar - rperp)/v + rparprim))*1.0 + 1.0*(Spp*Wp + Spm*Wm)
-       vcolm = ratio*(-2.0*nuf*mut + As*mut/ene*(v*rparprim + 3.0*(rpar - rperp)) + 2.0*As*rperp/B)*1.0 + 1.0*(Smp*Wp + Smm*Wm)
+       vcolp = ratio*(-nuf*Vp + zeta*(2.0*(rpar - rperp)/v + rparprim))*1.0 + 1.0*(Spp*Wvp + Spm*Wm)
+       vcolm = ratio*(-2.0*nuf*mut + As*mut/ene*(v*rparprim + 3.0*(rpar - rperp)) + 2.0*As*rperp/B)*1.0 + 1.0*(Smp*Wvp + Smm*Wm)
        vcolx = ratio*sqrt(2.0*DifR)*(Wx - Wx*betx*betx - Wy*bety*betx - Wz*betz*betx)/hx
        vcoly = ratio*sqrt(2.0*DifR)*(Wy - Wx*betx*bety - Wy*bety*bety - Wz*betz*bety)/hy
        vcolz = ratio*sqrt(2.0*DifR)*(Wz - Wx*betx*betz - Wy*bety*betz - Wz*betz*betz)/hz
@@ -98,14 +98,14 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=rp), DIMENSION(Np), INTENT(IN)        :: X, Y, Z, B                              ! new basis coordinates (input)
-       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT)       :: vcolx, vcoly, vcolz, vcolm, vcolp
-       REAL(KIND=rp), DIMENSION(Np)                       :: Vp, mut, ene2
+       REAL(KIND=wp), DIMENSION(Np), INTENT(IN)        :: X, Y, Z, B                              ! new basis coordinates (input)
+       REAL(KIND=wp), DIMENSION(Np), INTENT(OUT)       :: vcolx, vcoly, vcolz, vcolm, vcolp
+       REAL(KIND=wp), DIMENSION(Np)                       :: Vp, mut, ene2
 
        ! Local variables
-       REAL(KIND=rp), DIMENSION(Np)                       :: v, zeta, ene, xx, Fphi, Fpsi     ! miscelaneous
-       REAL(KIND=rp), DIMENSION(Np)                       :: sm, ce, nub, nue, nueprim, nub1, nue1, nueprim1
-       REAL(KIND=rp)                                       :: dt, ss, gg, d
+       REAL(KIND=wp), DIMENSION(Np)                       :: v, zeta, ene, xx, Fphi, Fpsi     ! miscelaneous
+       REAL(KIND=wp), DIMENSION(Np)                       :: sm, ce, nub, nue, nueprim, nub1, nue1, nueprim1
+       REAL(KIND=wp)                                       :: dt, ss, gg, d
        INTEGER                                               :: i, j, k
 
        logical :: contains_nan
@@ -157,15 +157,15 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=rp), DIMENSION(Np), INTENT(IN)        :: X, Y, Z, B                              ! new basis coordinates (input)
-       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT)       :: vcolx, vcoly, vcolz, vcolm, vcolp
-       REAL(KIND=rp), DIMENSION(Np)                       :: Vp, mut, ene2
+       REAL(KIND=wp), DIMENSION(Np), INTENT(IN)        :: X, Y, Z, B                              ! new basis coordinates (input)
+       REAL(KIND=wp), DIMENSION(Np), INTENT(OUT)       :: vcolx, vcoly, vcolz, vcolm, vcolp
+       REAL(KIND=wp), DIMENSION(Np)                       :: Vp, mut, ene2
 
        ! Local variables
-       REAL(KIND=rp), DIMENSION(Np)                       :: v, zeta, ene, alf, xx, Fphi, Fpsi, se, vene, vzeta     ! miscelaneous
-    REAL(KIND = rp),  DIMENSION(Np)                       :: hx, hy, hz, betx, bety, betz, Omega,sm, ce, nub, nue, nueprim, nub1, nue1, nueprim1
-       REAL(KIND=rp), DIMENSION(Np)                       :: Bx, By, Bz
-       REAL(KIND=rp)                                       :: dt, ratio, ss, gg, d
+       REAL(KIND=wp), DIMENSION(Np)                       :: v, zeta, ene, alf, xx, Fphi, Fpsi, se, vene, vzeta     ! miscelaneous
+    REAL(KIND = wp),  DIMENSION(Np)                       :: hx, hy, hz, betx, bety, betz, Omega,sm, ce, nub, nue, nueprim, nub1, nue1, nueprim1
+       REAL(KIND=wp), DIMENSION(Np)                       :: Bx, By, Bz
+       REAL(KIND=wp)                                       :: dt, ratio, ss, gg, d
        INTEGER                                               :: i, j, k
 
        logical :: contains_nan

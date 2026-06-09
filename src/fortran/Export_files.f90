@@ -1,6 +1,6 @@
 MODULE output_files
 
-  USE constants, ONLY: rp
+  USE constants, ONLY: wp
 
   IMPLICIT NONE
   PRIVATE
@@ -278,8 +278,8 @@ CONTAINS
   END FUNCTION valid_file_id
 
 SUBROUTINE write_initial_state(X, Y, Z, Vp, mu, Einit, betaF, betaD, FM, F0, G0)
-   REAL(rp), INTENT(IN) :: X(:), Y(:), Z(:)
-   REAL(rp), INTENT(IN) :: Vp(:), mu(:), Einit(:), betaF(:), betaD(:), FM(:), F0(:), G0(:)
+   REAL(wp), INTENT(IN) :: X(:), Y(:), Z(:)
+   REAL(wp), INTENT(IN) :: Vp(:), mu(:), Einit(:), betaF(:), betaD(:), FM(:), F0(:), G0(:)
 
    WRITE(funit(f_Xinit))  X
    WRITE(funit(f_Yinit))  Y
@@ -297,12 +297,12 @@ END SUBROUTINE write_initial_state
 
 SUBROUTINE write_trajectories(Xtraj, Ytraj, Ztraj, Vptraj, mutraj, betaFtraj, betaDtraj, FMtraj, Htraj, &
                               q1traj, q2traj, q3traj, Pctraj, ck1traj, ck2traj, ck3traj)
-   REAL(rp), INTENT(IN) :: Xtraj(:, :), Ytraj(:, :), Ztraj(:, :)
-   REAL(rp), INTENT(IN) :: Vptraj(:, :), mutraj(:, :)
-   REAL(rp), INTENT(IN) :: betaFtraj(:, :), betaDtraj(:, :), FMtraj(:, :)
-   REAL(rp), INTENT(IN) :: Htraj(:, :), Pctraj(:, :)
-   REAL(rp), INTENT(IN) :: q1traj(:, :), q2traj(:, :), q3traj(:, :)
-   REAL(rp), INTENT(IN) :: ck1traj(:, :), ck2traj(:, :), ck3traj(:, :)
+   REAL(wp), INTENT(IN) :: Xtraj(:, :), Ytraj(:, :), Ztraj(:, :)
+   REAL(wp), INTENT(IN) :: Vptraj(:, :), mutraj(:, :)
+   REAL(wp), INTENT(IN) :: betaFtraj(:, :), betaDtraj(:, :), FMtraj(:, :)
+   REAL(wp), INTENT(IN) :: Htraj(:, :), Pctraj(:, :)
+   REAL(wp), INTENT(IN) :: q1traj(:, :), q2traj(:, :), q3traj(:, :)
+   REAL(wp), INTENT(IN) :: ck1traj(:, :), ck2traj(:, :), ck3traj(:, :)
 
    WRITE(funit(f_Xtraj))   Xtraj
    WRITE(funit(f_Ytraj))   Ytraj
@@ -326,8 +326,8 @@ END SUBROUTINE write_trajectories
 
 
 SUBROUTINE write_transport(Obs_GF, Obs_FF, Obs_FD, Obs_DF, Obs_DD, Obs_SS)
-   REAL(rp), INTENT(IN) :: Obs_GF(:, :), Obs_FF(:, :), Obs_FD(:, :), Obs_DF(:, :), Obs_DD(:, :)
-   REAL(rp), INTENT(IN) :: Obs_SS(:, :)
+   REAL(wp), INTENT(IN) :: Obs_GF(:, :), Obs_FF(:, :), Obs_FD(:, :), Obs_DF(:, :), Obs_DD(:, :)
+   REAL(wp), INTENT(IN) :: Obs_SS(:, :)
 
    WRITE(funit(f_Obs_GF)) Obs_GF
    WRITE(funit(f_Obs_FF)) Obs_FF
@@ -340,11 +340,11 @@ END SUBROUTINE write_transport
 
 SUBROUTINE write_final_state(X, Y, Z, Vp, mu, betaF, betaD, FM, Ham, q1al, q2al, Vtxal, mask2al, &
                              F0, G0, Vtx_init, alpha_1, alpha_2, alpha_3)
-   REAL(rp), INTENT(IN) :: X(:), Y(:), Z(:)
-   REAL(rp), INTENT(IN) :: Vp(:), mu(:), betaF(:), betaD(:), FM(:), Ham(:)
-   REAL(rp), INTENT(IN) :: q1al(:), q2al(:), Vtxal(:), mask2al(:)
-   REAL(rp), INTENT(IN) :: F0(:), G0(:), Vtx_init(:), alpha_1(:), alpha_2(:), alpha_3(:)
-   REAL(rp) :: inv_np
+   REAL(wp), INTENT(IN) :: X(:), Y(:), Z(:)
+   REAL(wp), INTENT(IN) :: Vp(:), mu(:), betaF(:), betaD(:), FM(:), Ham(:)
+   REAL(wp), INTENT(IN) :: q1al(:), q2al(:), Vtxal(:), mask2al(:)
+   REAL(wp), INTENT(IN) :: F0(:), G0(:), Vtx_init(:), alpha_1(:), alpha_2(:), alpha_3(:)
+   REAL(wp) :: inv_np
 
    WRITE(funit(f_Xout))  X
    WRITE(funit(f_Yout))  Y
@@ -360,16 +360,16 @@ SUBROUTINE write_final_state(X, Y, Z, Vp, mu, betaF, betaD, FM, Ham, q1al, q2al,
    WRITE(funit(f_Vtxout)) Vtxal
    WRITE(funit(f_mask2out)) mask2al
 
-   inv_np = 1.0_rp / REAL(SIZE(F0), rp)
-   WRITE(funit(f_S1out)) F0/G0*inv_np*alpha_1*Vtx_init
-   WRITE(funit(f_S2out)) F0/G0*inv_np*alpha_2*Vtx_init
-   WRITE(funit(f_S3out)) F0/G0*inv_np*alpha_3*Vtx_init
+   inv_np = 1.0_wp / REAL(SIZE(F0), wp)
+   WRITE(funit(f_S1out)) FM/G0*inv_np*alpha_1*Vtx_init
+   WRITE(funit(f_S2out)) FM/G0*inv_np*alpha_2*Vtx_init
+   WRITE(funit(f_S3out)) FM/G0*inv_np*alpha_3*Vtx_init
 END SUBROUTINE write_final_state
 
 
 SUBROUTINE write_correlations(Vcorff, VcorTT, VcorTN, VcorNT)
-   REAL(rp), INTENT(IN) :: Vcorff(:, :), VcorTT(:, :)
-   REAL(rp), INTENT(IN) :: VcorTN(:, :), VcorNT(:, :)
+   REAL(wp), INTENT(IN) :: Vcorff(:, :), VcorTT(:, :)
+   REAL(wp), INTENT(IN) :: VcorTN(:, :), VcorNT(:, :)
 
    WRITE(funit(f_Vcorff)) Vcorff
    WRITE(funit(f_VcorTT)) VcorTT
@@ -379,14 +379,14 @@ END SUBROUTINE write_correlations
 
 
 SUBROUTINE write_lagrangian(Lagr_corr)
-   REAL(rp), INTENT(IN) :: Lagr_corr(:)
+   REAL(wp), INTENT(IN) :: Lagr_corr(:)
 
    WRITE(funit(f_Lagr_corr)) Lagr_corr
 END SUBROUTINE write_lagrangian
 
 
 SUBROUTINE write_mask(mask_value)
-   REAL(rp), INTENT(IN) :: mask_value
+   REAL(wp), INTENT(IN) :: mask_value
 
    WRITE(funit(f_mask)) mask_value
 END SUBROUTINE write_mask

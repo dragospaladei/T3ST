@@ -38,15 +38,15 @@ MODULE random_numbers
   SAVE
 
   ! "Full" (Nc,Np) fields
-  REAL(KIND=rp), ALLOCATABLE, DIMENSION(:,:), TARGET :: &
+  REAL(KIND=wp), ALLOCATABLE, DIMENSION(:,:), TARGET :: &
        ph, kx, ky, kperp, kz, w, phx, phy, wc, dm, L, phrmp
 
   ! "Single" (Nc) fields (USE_real mode)
-  REAL(KIND=rp), ALLOCATABLE, DIMENSION(:),   TARGET :: &
+  REAL(KIND=wp), ALLOCATABLE, DIMENSION(:),   TARGET :: &
        phs, kxs, kys, kperps, kzs, ws, phxs, phys, wcs, dms, phrmps
 
   ! Larmor factors in USE_real mode are stored as (Nc,Np) in Ls
-  REAL(KIND=rp), ALLOCATABLE, DIMENSION(:,:), TARGET :: Ls
+  REAL(KIND=wp), ALLOCATABLE, DIMENSION(:,:), TARGET :: Ls
 
 CONTAINS
 
@@ -55,34 +55,34 @@ CONTAINS
   !   Uniform points in d-dimensional unit sphere (implemented up to d=3).
   !=============================================================================
   SUBROUTINE rand_p_sphere(n, d, x)
-    USE constants, ONLY: pi, rp
+    USE constants, ONLY: pi, wp
     IMPLICIT NONE
 
     INTEGER,                        INTENT(IN)  :: n, d
-    REAL(KIND=rp), DIMENSION(d, n),  INTENT(OUT) :: x
+    REAL(KIND=wp), DIMENSION(d, n),  INTENT(OUT) :: x
 
-    REAL(KIND=rp), DIMENSION(n) :: r1, r2, r3
+    REAL(KIND=wp), DIMENSION(n) :: r1, r2, r3
 
     ! r1 ~ U(0,1) -> radius distribution for uniform volume: r = u^(1/d)
     CALL RANDOM_NUMBER(r1)
-    r1 = r1**(1.0_rp / REAL(d, rp))
+    r1 = r1**(1.0_wp / REAL(d, wp))
 
     SELECT CASE (d)
 
     CASE (1)
-      x(1,:) = 2.0_rp * r1 - 1.0_rp
+      x(1,:) = 2.0_wp * r1 - 1.0_wp
 
     CASE (2)
       CALL RANDOM_NUMBER(r2)       ! angle in [0,2pi)
-      r2    = 2.0_rp*pi*r2
+      r2    = 2.0_wp*pi*r2
       x(1,:) = r1 * SIN(r2)
       x(2,:) = r1 * COS(r2)
 
     CASE (3)
       CALL RANDOM_NUMBER(r2)       ! poloidal
       CALL RANDOM_NUMBER(r3)       ! azimuthal (via cos(theta) trick)
-      r2 = 2.0_rp*pi*r2
-      r3 = ACOS(1.0_rp - 2.0_rp*r3)
+      r2 = 2.0_wp*pi*r2
+      r3 = ACOS(1.0_wp - 2.0_wp*r3)
 
       x(1,:) = r1 * SIN(r2) * SIN(r3)
       x(2,:) = r1 * COS(r2) * SIN(r3)
@@ -107,13 +107,13 @@ CONTAINS
     IMPLICIT NONE
 
     INTEGER,                     INTENT(IN)  :: n
-    REAL(KIND=rp),               INTENT(IN)  :: tau
-    REAL(KIND=rp), DIMENSION(n), INTENT(OUT) :: xf
+    REAL(KIND=wp),               INTENT(IN)  :: tau
+    REAL(KIND=wp), DIMENSION(n), INTENT(OUT) :: xf
 
     INTEGER                                  :: i, q
-    REAL(KIND=rp)                            :: a, b, c
-    REAL(KIND=rp), DIMENSION(MAX(n/500,10))  :: x1, x2, y1, y2
-    REAL(KIND=rp), DIMENSION(:), ALLOCATABLE :: x3
+    REAL(KIND=wp)                            :: a, b, c
+    REAL(KIND=wp), DIMENSION(MAX(n/500,10))  :: x1, x2, y1, y2
+    REAL(KIND=wp), DIMENSION(:), ALLOCATABLE :: x3
 
     IF (n < 10) THEN
       PRINT*, '--------------------------------------------------------------------------------------'
@@ -123,11 +123,11 @@ CONTAINS
       STOP
     END IF
 
-    a  = 0.0_rp
-    b  = 20.0_rp
-    c  = 1.0_rp / SQRT(2.0_rp * E)
+    a  = 0.0_wp
+    b  = 20.0_wp
+    c  = 1.0_wp / SQRT(2.0_wp * E)
 
-    xf = 0.0_rp
+    xf = 0.0_wp
     i  = 0
 
     DO WHILE (i < n)
@@ -140,7 +140,7 @@ CONTAINS
       y2 = SQRT(x1) * EXP(-x1)
 
       ! Keep x1 where y2 >= y1
-      x3 = PACK(x1, y2 - y1 >= 0.0_rp)
+      x3 = PACK(x1, y2 - y1 >= 0.0_wp)
 
       q = MIN(n, i + SIZE(x3))
       xf(i+1:q) = x3(1:q-i)
@@ -158,18 +158,18 @@ CONTAINS
   ! PDF_Boltz  (chunked streaming accept-reject; same logic as your revised code)
   !=============================================================================
   SUBROUTINE PDF_Boltz(n, tau, xf)
-    USE constants, ONLY: rp, E
+    USE constants, ONLY: wp, E
     IMPLICIT NONE
 
     INTEGER,               INTENT(IN)  :: n
-    REAL(KIND=rp),         INTENT(IN)  :: tau
-    REAL(KIND=rp),         INTENT(OUT) :: xf(n)
+    REAL(KIND=wp),         INTENT(IN)  :: tau
+    REAL(KIND=wp),         INTENT(OUT) :: xf(n)
 
     INTEGER, PARAMETER :: CHUNK = 65536
     INTEGER :: out, m, j
-    REAL(KIND=rp) :: a, b, c
+    REAL(KIND=wp) :: a, b, c
 
-    REAL(KIND=rp), ALLOCATABLE :: x1(:), x2(:), y1(:), y2(:)
+    REAL(KIND=wp), ALLOCATABLE :: x1(:), x2(:), y1(:), y2(:)
     LOGICAL,       ALLOCATABLE :: keep(:)
 
     IF (n < 10) THEN
@@ -177,11 +177,11 @@ CONTAINS
       STOP
     END IF
 
-    a = 0.0_rp
-    b = 20.0_rp
-    c = 1.0_rp / SQRT(2.0_rp * E)
+    a = 0.0_wp
+    b = 20.0_wp
+    c = 1.0_wp / SQRT(2.0_wp * E)
 
-    xf  = 0.0_rp
+    xf  = 0.0_wp
     out = 0
 
     ALLOCATE(x1(CHUNK), x2(CHUNK), y1(CHUNK), y2(CHUNK), keep(CHUNK))
@@ -237,20 +237,20 @@ CONTAINS
 ! so that the second-piece integral is well behaved and cheap.
 !=============================================================================
 SUBROUTINE PDF_abcap(n, zlam, za, zb, zL, xf)
-  USE constants, ONLY: rp
+  USE constants, ONLY: wp
   IMPLICIT NONE
 
   INTEGER, INTENT(IN) :: n
-  REAL(KIND=rp), INTENT(IN) :: zlam, za, zb, zL
-  REAL(KIND=rp), INTENT(OUT) :: xf(n)
+  REAL(KIND=wp), INTENT(IN) :: zlam, za, zb, zL
+  REAL(KIND=wp), INTENT(OUT) :: xf(n)
 
   INTEGER, PARAMETER :: CHUNK = 65536
 
   INTEGER :: out, m, j
-  REAL(KIND=rp) :: zsplit
-  REAL(KIND=rp) :: I1, I2, Itot, p1
-  REAL(KIND=rp) :: ap1, q, qp1
-  REAL(KIND=rp), ALLOCATABLE :: u0(:), u1(:), u2(:), u3(:), z(:), pacc(:)
+  REAL(KIND=wp) :: zsplit
+  REAL(KIND=wp) :: I1, I2, Itot, p1
+  REAL(KIND=wp) :: ap1, q, qp1
+  REAL(KIND=wp), ALLOCATABLE :: u0(:), u1(:), u2(:), u3(:), z(:), pacc(:)
   LOGICAL, ALLOCATABLE :: keep(:), leftpiece(:)
 
   IF (n < 1) THEN
@@ -258,43 +258,43 @@ SUBROUTINE PDF_abcap(n, zlam, za, zb, zL, xf)
      STOP
   END IF
 
-  IF (zlam <= 0.0_rp) THEN
+  IF (zlam <= 0.0_wp) THEN
      PRINT *, 'ERROR: lambda must be > 0 ~ PDF_abcap_2piece'
      STOP
   END IF
 
-  IF (zL <= 0.0_rp) THEN
+  IF (zL <= 0.0_wp) THEN
      PRINT *, 'ERROR: L must be > 0 ~ PDF_abcap_2piece'
      STOP
   END IF
 
-  IF (za <= -1.0_rp) THEN
+  IF (za <= -1.0_wp) THEN
      PRINT *, 'ERROR: need a > -1 ~ PDF_abcap_2piece'
      STOP
   END IF
 
-  IF (zb <= 0.0_rp) THEN
+  IF (zb <= 0.0_wp) THEN
      PRINT *, 'ERROR: need b > 0 ~ PDF_abcap_2piece'
      STOP
   END IF
 
-  ap1 = za + 1.0_rp
-  zsplit = MIN(1.0_rp, zL)
+  ap1 = za + 1.0_wp
+  zsplit = MIN(1.0_wp, zL)
 
   ! Integral of first piece: int_0^{min(1,L)} z^a dz
   I1 = zsplit**ap1 / ap1
 
   ! Integral of second piece: int_1^L z^(a-b) dz, only if L>1
-  I2 = 0.0_rp
-  IF (zL > 1.0_rp) THEN
+  I2 = 0.0_wp
+  IF (zL > 1.0_wp) THEN
      q   = za - zb
-     qp1 = q + 1.0_rp   ! = a - b + 1
+     qp1 = q + 1.0_wp   ! = a - b + 1
 
-     IF (ABS(qp1) < 1.0e-12_rp) THEN
+     IF (ABS(qp1) < 1.0e-12_wp) THEN
         ! Special case a-b = -1  <=> b-a = 1
         I2 = LOG(zL)
      ELSE
-        I2 = (zL**qp1 - 1.0_rp) / qp1
+        I2 = (zL**qp1 - 1.0_wp) / qp1
      END IF
   END IF
 
@@ -330,32 +330,32 @@ SUBROUTINE PDF_abcap(n, zlam, za, zb, zL, xf)
            ! CDF inversion:
            !   z = zsplit * U^(1/(a+1))
            !----------------------------------------------------------
-           z(j) = zsplit * u1(j)**(1.0_rp/ap1)
+           z(j) = zsplit * u1(j)**(1.0_wp/ap1)
 
            ! Acceptance:
            !   f / g1 = 1 / (1 + z^b)
-           pacc(j) = 1.0_rp / (1.0_rp + z(j)**zb)
+           pacc(j) = 1.0_wp / (1.0_wp + z(j)**zb)
 
         ELSE
            !----------------------------------------------------------
            ! Right piece: g2(z) ∝ z^(a-b) on [1, L]
            !----------------------------------------------------------
-           IF (zL <= 1.0_rp) THEN
+           IF (zL <= 1.0_wp) THEN
               ! Should not happen since p1=1 in that case, but keep safe
-              z(j)    = zsplit * u1(j)**(1.0_rp/ap1)
-              pacc(j) = 1.0_rp / (1.0_rp + z(j)**zb)
+              z(j)    = zsplit * u1(j)**(1.0_wp/ap1)
+              pacc(j) = 1.0_wp / (1.0_wp + z(j)**zb)
            ELSE
               q   = za - zb
-              qp1 = q + 1.0_rp
+              qp1 = q + 1.0_wp
 
-              IF (ABS(qp1) < 1.0e-12_rp) THEN
+              IF (ABS(qp1) < 1.0e-12_wp) THEN
                  ! g2(z) ∝ z^(-1), CDF inversion:
                  !   z = exp( U * log(L) )
                  z(j) = EXP( u1(j) * LOG(zL) )
               ELSE
                  ! CDF inversion for power law on [1,L]:
                  !   z = [ 1 + U*(L^(q+1)-1) ]^(1/(q+1))
-                 z(j) = ( 1.0_rp + u1(j) * (zL**qp1 - 1.0_rp) )**(1.0_rp/qp1)
+                 z(j) = ( 1.0_wp + u1(j) * (zL**qp1 - 1.0_wp) )**(1.0_wp/qp1)
               END IF
 
               ! Acceptance:
@@ -363,7 +363,7 @@ SUBROUTINE PDF_abcap(n, zlam, za, zb, zL, xf)
               !
               ! Numerically nicer form for large z:
               !   1 / (1 + z^(-b))
-              pacc(j) = 1.0_rp / (1.0_rp + z(j)**(-zb))
+              pacc(j) = 1.0_wp / (1.0_wp + z(j)**(-zb))
            END IF
 
         END IF
@@ -376,7 +376,7 @@ SUBROUTINE PDF_abcap(n, zlam, za, zb, zL, xf)
         IF (keep(j)) THEN
            out = out + 1
 
-           IF (u3(j) < 0.5_rp) THEN
+           IF (u3(j) < 0.5_wp) THEN
               xf(out) = -z(j) / zlam
            ELSE
               xf(out) =  z(j) / zlam
@@ -400,23 +400,23 @@ END SUBROUTINE PDF_abcap  !=====================================================
   !     xf = x2/tau + w00*aux
   !=============================================================================
   SUBROUTINE PDF_Cauchy(n, w00, tau, xf, trunc)
-    USE constants, ONLY: rp, pi
+    USE constants, ONLY: wp, pi
     IMPLICIT NONE
 
     INTEGER,                     INTENT(IN)  :: n
-    REAL(KIND=rp),               INTENT(IN)  :: tau, w00, trunc
-    REAL(KIND=rp), DIMENSION(n), INTENT(OUT) :: xf
+    REAL(KIND=wp),               INTENT(IN)  :: tau, w00, trunc
+    REAL(KIND=wp), DIMENSION(n), INTENT(OUT) :: xf
 
-    REAL(KIND=rp), DIMENSION(n) :: x1, x2, aux
+    REAL(KIND=wp), DIMENSION(n) :: x1, x2, aux
 
     CALL RANDOM_NUMBER(x1)
     CALL RANDOM_NUMBER(x2)
 
     ! Inverse-CDF with truncation control via atan(trunc)
-    x2  = TAN((2.0_rp*x2 - 1.0_rp) * ATAN(trunc))
+    x2  = TAN((2.0_wp*x2 - 1.0_wp) * ATAN(trunc))
 
     ! Random +/-1 to mirror around +/-w00
-    aux = SIGN(1.0_rp, x1 - 0.5_rp)
+    aux = SIGN(1.0_wp, x1 - 0.5_wp)
 
     ! Scale and shift
     xf  = x2 / tau + w00 * aux
@@ -431,14 +431,14 @@ END SUBROUTINE PDF_abcap  !=====================================================
     IMPLICIT NONE
 
     INTEGER,               INTENT(IN)  :: n
-    REAL(KIND=rp),         INTENT(IN)  :: zlam, zk0
-    REAL(KIND=rp),         INTENT(OUT) :: xf(n)
+    REAL(KIND=wp),         INTENT(IN)  :: zlam, zk0
+    REAL(KIND=wp),         INTENT(OUT) :: xf(n)
 
     INTEGER, PARAMETER :: CHUNK = 65536
-    REAL(KIND=rp) :: a, b, c
+    REAL(KIND=wp) :: a, b, c
     INTEGER :: out, m, j
 
-    REAL(KIND=rp), ALLOCATABLE :: x1(:), x2(:), y1(:), y2(:)
+    REAL(KIND=wp), ALLOCATABLE :: x1(:), x2(:), y1(:), y2(:)
     LOGICAL,       ALLOCATABLE :: keep(:)
 
     IF ((n < 10).and.(USE_real.eq.0)) THEN
@@ -446,11 +446,11 @@ END SUBROUTINE PDF_abcap  !=====================================================
       STOP
     END IF
 
-    a = -5.0_rp/zlam - zk0
-    b =  5.0_rp/zlam + zk0
+    a = -5.0_wp/zlam - zk0
+    b =  5.0_wp/zlam + zk0
 
     ! Upper bound used in your code
-    c = SQRT(2.0_rp/pi) / E * zlam
+    c = SQRT(2.0_wp/pi) / E * zlam
 
     ALLOCATE(x1(CHUNK), x2(CHUNK), y1(CHUNK), y2(CHUNK), keep(CHUNK))
     out = 0
@@ -465,9 +465,9 @@ END SUBROUTINE PDF_abcap  !=====================================================
       x1(1:m) = a + (b - a) * x1(1:m)
       y1(1:m) = c * x2(1:m)
 
-      y2(1:m) = ( x1(1:m)/zk0 * ( EXP(-zlam*zlam*(x1(1:m)-zk0)**2/2.0_rp) - &
-                                  EXP(-zlam*zlam*(x1(1:m)+zk0)**2/2.0_rp) ) ) * &
-                zlam/SQRT(2.0_rp*pi)/2.0_rp
+      y2(1:m) = ( x1(1:m)/zk0 * ( EXP(-zlam*zlam*(x1(1:m)-zk0)**2/2.0_wp) - &
+                                  EXP(-zlam*zlam*(x1(1:m)+zk0)**2/2.0_wp) ) ) * &
+                zlam/SQRT(2.0_wp*pi)/2.0_wp
 
       keep(1:m) = (y2(1:m) >= y1(1:m))
 
@@ -489,17 +489,17 @@ END SUBROUTINE PDF_abcap  !=====================================================
   ! PDF_ky2 (legacy PACK-based)
   !=============================================================================
   SUBROUTINE PDF_ky2(n, zlam, zk0, xf)
-    USE constants, ONLY: rp, pi
+    USE constants, ONLY: wp, pi
     IMPLICIT NONE
 
     INTEGER,                     INTENT(IN)  :: n
-    REAL(KIND=rp),               INTENT(IN)  :: zlam, zk0
-    REAL(KIND=rp), DIMENSION(n), INTENT(OUT) :: xf
+    REAL(KIND=wp),               INTENT(IN)  :: zlam, zk0
+    REAL(KIND=wp), DIMENSION(n), INTENT(OUT) :: xf
 
     INTEGER                                  :: i, q
-    REAL(KIND=rp)                            :: a, b, c
-    REAL(KIND=rp), DIMENSION(MAX(n/500,10))  :: x1, x2, y1, y2
-    REAL(KIND=rp), DIMENSION(:), ALLOCATABLE :: x3
+    REAL(KIND=wp)                            :: a, b, c
+    REAL(KIND=wp), DIMENSION(MAX(n/500,10))  :: x1, x2, y1, y2
+    REAL(KIND=wp), DIMENSION(:), ALLOCATABLE :: x3
 
     IF (n < 10) THEN
       PRINT*, '--------------------------------------------------------------------------------------'
@@ -509,11 +509,11 @@ END SUBROUTINE PDF_abcap  !=====================================================
       STOP
     END IF
 
-    a  = -5.0_rp/zlam - zk0
-    b  =  5.0_rp/zlam + zk0
-    c  = SQRT(2.0_rp/pi)/2.71828_rp*zlam
+    a  = -5.0_wp/zlam - zk0
+    b  =  5.0_wp/zlam + zk0
+    c  = SQRT(2.0_wp/pi)/2.71828_wp*zlam
 
-    xf = 0.0_rp
+    xf = 0.0_wp
     i  = 0
 
     DO WHILE (i < n)
@@ -524,11 +524,11 @@ END SUBROUTINE PDF_abcap  !=====================================================
       x1 = a + (b - a) * x1
       y1 = c * x2
 
-      y2 = x1/zk0 * ( EXP(-zlam**2*(x1 - zk0)**2/2.0_rp) - &
-                      EXP(-zlam**2*(x1 + zk0)**2/2.0_rp) ) * &
-           zlam/SQRT(2.0_rp*pi)/2.0_rp
+      y2 = x1/zk0 * ( EXP(-zlam**2*(x1 - zk0)**2/2.0_wp) - &
+                      EXP(-zlam**2*(x1 + zk0)**2/2.0_wp) ) * &
+           zlam/SQRT(2.0_wp*pi)/2.0_wp
 
-      x3 = PACK(x1, y2 - y1 >= 0.0_rp)
+      x3 = PACK(x1, y2 - y1 >= 0.0_wp)
 
       q = MIN(n, i + SIZE(x3))
       xf(i+1:q) = x3(1:q-i)
@@ -544,30 +544,30 @@ END SUBROUTINE PDF_abcap  !=====================================================
   ! PDF_G2 (legacy: odd-m handling via k=m+1 + extra row in r)
   !=============================================================================
   SUBROUTINE PDF_G2(m, n, g, mean, wavelength, variance)
-    USE constants, ONLY: rp, pi
+    USE constants, ONLY: wp, pi
     IMPLICIT NONE
 
     INTEGER,                           INTENT(IN)  :: m, n
-    REAL(KIND=rp), DIMENSION(m, n),    INTENT(OUT) :: g
-    REAL(KIND=rp), DIMENSION(m), OPTIONAL          :: mean, variance, wavelength
+    REAL(KIND=wp), DIMENSION(m, n),    INTENT(OUT) :: g
+    REAL(KIND=wp), DIMENSION(m), OPTIONAL          :: mean, variance, wavelength
 
     INTEGER :: i, k
-    REAL(KIND=rp), DIMENSION(m+1, n) :: r
-    REAL(KIND=rp), DIMENSION(m)      :: avg, var
+    REAL(KIND=wp), DIMENSION(m+1, n) :: r
+    REAL(KIND=wp), DIMENSION(m)      :: avg, var
 
     ! Defaults
     IF (PRESENT(mean)) THEN
       avg = mean
     ELSE
-      avg = 0.0_rp
+      avg = 0.0_wp
     END IF
 
     IF (PRESENT(wavelength)) THEN
-      var = 1.0_rp / wavelength
+      var = 1.0_wp / wavelength
     ELSEIF (PRESENT(variance)) THEN
       var = variance
     ELSE
-      var = 1.0_rp
+      var = 1.0_wp
     END IF
 
     ! Need even index for Box-Muller pairing
@@ -581,17 +581,17 @@ END SUBROUTINE PDF_abcap  !=====================================================
 
       CALL RANDOM_NUMBER(r(i,:))
 
-      WHERE (r(i,:) == 0.0_rp)
-        r(i,:) = 1.0e-8_rp
+      WHERE (r(i,:) == 0.0_wp)
+        r(i,:) = 1.0e-8_wp
       END WHERE
 
       IF (MOD(i,2) == 0) THEN
 
         IF ((m - i) >= 0) THEN
-          g(i-1,:) = var(i-1) * SQRT(-2.0_rp*LOG(r(i-1,:))) * SIN(2.0_rp*pi*r(i,:)) + avg(i-1)
-          g(i,:)   = var(i)   * SQRT(-2.0_rp*LOG(r(i-1,:))) * COS(2.0_rp*pi*r(i,:)) + avg(i)
+          g(i-1,:) = var(i-1) * SQRT(-2.0_wp*LOG(r(i-1,:))) * SIN(2.0_wp*pi*r(i,:)) + avg(i-1)
+          g(i,:)   = var(i)   * SQRT(-2.0_wp*LOG(r(i-1,:))) * COS(2.0_wp*pi*r(i,:)) + avg(i)
         ELSE
-          g(i-1,:) = var(i-1) * SQRT(-2.0_rp*LOG(r(i-1,:))) * SIN(2.0_rp*pi*r(i,:)) + avg(i-1)
+          g(i-1,:) = var(i-1) * SQRT(-2.0_wp*LOG(r(i-1,:))) * SIN(2.0_wp*pi*r(i,:)) + avg(i-1)
         END IF
 
       END IF
@@ -610,22 +610,22 @@ END SUBROUTINE PDF_abcap  !=====================================================
   ! So if both provided, variance overwrites wavelength (exactly your code comment).
   !=============================================================================
   SUBROUTINE PDF_G(m, n, g, mean, wavelength, variance)
-    USE constants, ONLY: rp, pi
+    USE constants, ONLY: wp, pi
     IMPLICIT NONE
 
     INTEGER,                 INTENT(IN)  :: m, n
-    REAL(KIND=rp),           INTENT(OUT) :: g(m, n)
-    REAL(KIND=rp), OPTIONAL, INTENT(IN)  :: mean(m), wavelength(m), variance(m)
+    REAL(KIND=wp),           INTENT(OUT) :: g(m, n)
+    REAL(KIND=wp), OPTIONAL, INTENT(IN)  :: mean(m), wavelength(m), variance(m)
 
     INTEGER :: i
-    REAL(KIND=rp) :: avg(m), sig(m)
-    REAL(KIND=rp), ALLOCATABLE :: u1(:), u2(:), r(:), s(:), c(:)
+    REAL(KIND=wp) :: avg(m), sig(m)
+    REAL(KIND=wp), ALLOCATABLE :: u1(:), u2(:), r(:), s(:), c(:)
 
-    avg = 0.0_rp
-    sig = 1.0_rp
+    avg = 0.0_wp
+    sig = 1.0_wp
 
     IF (PRESENT(mean))       avg = mean
-    IF (PRESENT(wavelength)) sig = 1.0_rp / wavelength
+    IF (PRESENT(wavelength)) sig = 1.0_wp / wavelength
     IF (PRESENT(variance))   sig = variance
 
     ALLOCATE(u1(n), u2(n), r(n), s(n), c(n))
@@ -636,11 +636,11 @@ END SUBROUTINE PDF_abcap  !=====================================================
       CALL RANDOM_NUMBER(u2)
 
       ! Prevent log(0)
-      WHERE (u1 < 1.0e-12_rp) u1 = 1.0e-12_rp
+      WHERE (u1 < 1.0e-12_wp) u1 = 1.0e-12_wp
 
-      r = SQRT(-2.0_rp * LOG(u1))
-      s = SIN(2.0_rp * pi * u2)
-      c = COS(2.0_rp * pi * u2)
+      r = SQRT(-2.0_wp * LOG(u1))
+      s = SIN(2.0_wp * pi * u2)
+      c = COS(2.0_wp * pi * u2)
 
       g(i,:) = sig(i) * r * s + avg(i)
       IF (i + 1 <= m) g(i+1,:) = sig(i+1) * r * c + avg(i+1)
@@ -659,20 +659,20 @@ END SUBROUTINE PDF_abcap  !=====================================================
   !   so wavelength assignment is overwritten unconditionally by variance.
   !=============================================================================
   SUBROUTINE PDF_G_D(m, n, g, mean, wavelength, variance)
-    USE constants, ONLY: rp, pi
+    USE constants, ONLY: wp, pi
     IMPLICIT NONE
 
     INTEGER,                        INTENT(IN)  :: m, n
-    REAL(KIND=rp), DIMENSION(m, n), INTENT(OUT) :: g
-    REAL(KIND=rp), DIMENSION(m)                 :: mean, variance, wavelength
+    REAL(KIND=wp), DIMENSION(m, n), INTENT(OUT) :: g
+    REAL(KIND=wp), DIMENSION(m)                 :: mean, variance, wavelength
 
     INTEGER :: i, k
-    REAL(KIND=rp), DIMENSION(m+1, n) :: r
-    REAL(KIND=rp), DIMENSION(m)      :: avg, var
+    REAL(KIND=wp), DIMENSION(m+1, n) :: r
+    REAL(KIND=wp), DIMENSION(m)      :: avg, var
 
     avg = mean
 
-    var = 1.0_rp / wavelength
+    var = 1.0_wp / wavelength
     var = variance     ! <- preserves your exact original overwrite
 
     IF (MOD(m,2) /= 0) THEN
@@ -685,17 +685,17 @@ END SUBROUTINE PDF_abcap  !=====================================================
 
       CALL RANDOM_NUMBER(r(i,:))
 
-      WHERE (r(i,:) == 0.0_rp)
-        r(i,:) = 1.0e-8_rp
+      WHERE (r(i,:) == 0.0_wp)
+        r(i,:) = 1.0e-8_wp
       END WHERE
 
       IF (MOD(i,2) == 0) THEN
 
         IF ((m - i) >= 0) THEN
-          g(i-1,:) = var(i-1) * SQRT(-2.0_rp*LOG(r(i-1,:))) * SIN(2.0_rp*pi*r(i,:)) + avg(i-1)
-          g(i,:)   = var(i)   * SQRT(-2.0_rp*LOG(r(i-1,:))) * COS(2.0_rp*pi*r(i,:)) + avg(i)
+          g(i-1,:) = var(i-1) * SQRT(-2.0_wp*LOG(r(i-1,:))) * SIN(2.0_wp*pi*r(i,:)) + avg(i-1)
+          g(i,:)   = var(i)   * SQRT(-2.0_wp*LOG(r(i-1,:))) * COS(2.0_wp*pi*r(i,:)) + avg(i)
         ELSE
-          g(i-1,:) = var(i-1) * SQRT(-2.0_rp*LOG(r(i-1,:))) * SIN(2.0_rp*pi*r(i,:)) + avg(i-1)
+          g(i-1,:) = var(i-1) * SQRT(-2.0_wp*LOG(r(i-1,:))) * SIN(2.0_wp*pi*r(i,:)) + avg(i-1)
         END IF
 
       END IF
@@ -715,18 +715,18 @@ END SUBROUTINE PDF_abcap  !=====================================================
     USE constants
     IMPLICIT NONE
 
-    REAL(KIND=rp), INTENT(IN)  :: normB, Vstar1, Vstar2, Vstar3
-    REAL(KIND=rp), INTENT(IN)  :: gees(3,3)
+    REAL(KIND=wp), INTENT(IN)  :: normB, Vstar1, Vstar2, Vstar3
+    REAL(KIND=wp), INTENT(IN)  :: gees(3,3)
     INTEGER,       INTENT(IN)  :: USE_real_flag
 
     INTEGER :: i, npts
-    REAL(KIND=rp) :: invR0, rhoi_over_R0, R2, Te_over_Ti, ATeTi, trunc
-    REAL(KIND=rp) :: w000, kx000, k0, sgn
+    REAL(KIND=wp) :: invR0, rhoi_over_R0, R2, Te_over_Ti, ATeTi, trunc
+    REAL(KIND=wp) :: w000, kx000, k0, sgn
 
-    REAL(KIND=rp), ALLOCATABLE :: tmp4(:,:)         ! (4,npts) scratch for PDF_G
+    REAL(KIND=wp), ALLOCATABLE :: tmp4(:,:)         ! (4,npts) scratch for PDF_G
 
-    REAL(KIND=rp), ALLOCATABLE :: kyrow(:), kxrow(:), kzrow(:), wrow(:), wcrow(:)
-    REAL(KIND=rp), ALLOCATABLE :: phrow(:), phxrow(:), phyrow(:), phrmprow(:), dmrow(:)
+    REAL(KIND=wp), ALLOCATABLE :: kyrow(:), kxrow(:), kzrow(:), wrow(:), wcrow(:)
+    REAL(KIND=wp), ALLOCATABLE :: phrow(:), phxrow(:), phyrow(:), phrmprow(:), dmrow(:)
 
     ! Decide number of samples/trajectories generated for each mode i
     IF (USE_real_flag == ON) THEN
@@ -769,15 +769,15 @@ END SUBROUTINE PDF_abcap  !=====================================================
     !-----------------------------
     ! Derived constants used by the generated turbulence fields
     !-----------------------------
-    invR0        = 1.0_rp / R0
+    invR0        = 1.0_wp / R0
     rhoi_over_R0 = rhoi * invR0
     Te_over_Ti   = Te / Ti
     R2           = (rhoi_over_R0 / normB)**2
     ATeTi        = Aeff * Te_over_Ti
 
-    w000  = 0.0_rp
-    kx000 = 0.0_rp
-    trunc = 10.0_rp
+    w000  = 0.0_wp
+    kx000 = 0.0_wp
+    trunc = 10.0_wp
 
     !-----------------------------
     ! Per-mode scratch buffers
@@ -796,13 +796,13 @@ END SUBROUTINE PDF_abcap  !=====================================================
         !-------------------------
         ! Phases and parallel shifts
         !-------------------------
-        CALL RANDOM_NUMBER(phrow);     phrow    = pi * (2.0_rp*phrow    - 1.0_rp)
-        CALL RANDOM_NUMBER(phrmprow);  phrmprow = pi * (2.0_rp*phrmprow - 1.0_rp)
-        CALL RANDOM_NUMBER(phxrow);    phxrow   = pi * (2.0_rp*phxrow   - 1.0_rp)
-        CALL RANDOM_NUMBER(phyrow);    phyrow   = pi * (2.0_rp*phyrow   - 1.0_rp)
+        CALL RANDOM_NUMBER(phrow);     phrow    = pi * (2.0_wp*phrow    - 1.0_wp)
+        CALL RANDOM_NUMBER(phrmprow);  phrmprow = pi * (2.0_wp*phrmprow - 1.0_wp)
+        CALL RANDOM_NUMBER(phxrow);    phxrow   = pi * (2.0_wp*phxrow   - 1.0_wp)
+        CALL RANDOM_NUMBER(phyrow);    phyrow   = pi * (2.0_wp*phyrow   - 1.0_wp)
 
         CALL RANDOM_NUMBER(dmrow)
-        dmrow = 2.0_rp * (dmrow - 0.5_rp)
+        dmrow = 2.0_wp * (dmrow - 0.5_wp)
         dmrow = INT(q00/lambdaz * dmrow)  ! integer shifts
 
         !-------------------------
@@ -819,7 +819,7 @@ END SUBROUTINE PDF_abcap  !=====================================================
         ELSEIF (x_corr == 2) THEN
           CALL PDF_Cauchy(npts, kx000, lambdax, kxrow, trunc)
         ELSEIF (x_corr == 3) THEN
-          CALL PDF_abcap(npts, lambdax, 0.0001_rp, 1.36_rp, 10.0_rp, kxrow)
+          CALL PDF_abcap(npts, lambdax, 0.0001_wp, 1.36_wp, 10.0_wp, kxrow)
         END IF
 
 ! Temporal spectrum selection
@@ -835,7 +835,7 @@ END SUBROUTINE PDF_abcap  !=====================================================
         !-------------------------
         IF (i <= Nci) THEN
           k0  = k0i
-          sgn = +1.0_rp
+          sgn = +1.0_wp
         ELSE
           k0  = k0e
           sgn = -Te_over_Ti
@@ -846,14 +846,14 @@ END SUBROUTINE PDF_abcap  !=====================================================
         IF (y_corr == 1) THEN
           CALL PDF_ky(npts, lambday, k0, kyrow)
         ELSEIF (y_corr == 2) THEN
-          CALL PDF_abcap(npts, lambday, 0.8_rp, 2.3_rp, 10.0_rp, kyrow)
+          CALL PDF_abcap(npts, lambday, 0.8_wp, 2.3_wp, 10.0_wp, kyrow)
         END IF
 
         !-------------------------
         ! Integer wrapping (as in your original)
         !-------------------------
-        kyrow = REAL(INT(kyrow*C2), rp) / C2
-        kzrow = REAL(INT(kzrow),   rp) / C3
+        kyrow = REAL(INT(kyrow*C2), wp) / C2
+        kzrow = REAL(INT(kzrow),   wp) / C3
 
         !=========================================================
         ! Write outputs + compute kperp and frequency correction
@@ -872,15 +872,15 @@ END SUBROUTINE PDF_abcap  !=====================================================
           wcs(i) = wcrow(1)
 
           kperps(i) = rhoi_over_R0 * SQRT( &
-            kxs(i)*gees(1,1)*kxs(i) + 2.0_rp*kxs(i)*gees(1,2)*kys(i) + 2.0_rp*kxs(i)*gees(1,3)*kzs(i) + &
-            kys(i)*gees(2,2)*kys(i) + 2.0_rp*kys(i)*gees(2,3)*kzs(i) + &
+            kxs(i)*gees(1,1)*kxs(i) + 2.0_wp*kxs(i)*gees(1,2)*kys(i) + 2.0_wp*kxs(i)*gees(1,3)*kzs(i) + &
+            kys(i)*gees(2,2)*kys(i) + 2.0_wp*kys(i)*gees(2,3)*kzs(i) + &
             kzs(i)*gees(3,3)*kzs(i) )
             
 
           ws(i) = wrow(1) + ( sgn * Ln * R2 * (kxs(i)*Vstar1 + kys(i)*Vstar2 + kzs(i)*Vstar3) ) / &
-                           (1.0_rp + ATeTi*kperps(i)**2)
+                           (1.0_wp + ATeTi*kperps(i)**2)
 
-          ws(i)       = REAL(USE_freq, rp) * ws(i)
+          ws(i)       = REAL(USE_freq, wp) * ws(i)
 
         ELSE
 
@@ -896,12 +896,12 @@ END SUBROUTINE PDF_abcap  !=====================================================
           wc(i,:) = wcrow
 
           kperp(i,:) = rhoi_over_R0 * SQRT( &
-            kx(i,:)*gees(1,1)*kx(i,:) + 2.0_rp*kx(i,:)*gees(1,2)*ky(i,:) + 2.0_rp*kx(i,:)*gees(1,3)*kz(i,:) + &
-            ky(i,:)*gees(2,2)*ky(i,:) + 2.0_rp*ky(i,:)*gees(2,3)*kz(i,:) + &
+            kx(i,:)*gees(1,1)*kx(i,:) + 2.0_wp*kx(i,:)*gees(1,2)*ky(i,:) + 2.0_wp*kx(i,:)*gees(1,3)*kz(i,:) + &
+            ky(i,:)*gees(2,2)*ky(i,:) + 2.0_wp*ky(i,:)*gees(2,3)*kz(i,:) + &
             kz(i,:)*gees(3,3)*kz(i,:) )
 
           w(i,:) = wrow + ( sgn * Ln * R2 * (kx(i,:)*Vstar1 + ky(i,:)*Vstar2 + kz(i,:)*Vstar3) ) / &
-                         (1.0_rp + ATeTi*kperp(i,:)**2)
+                         (1.0_wp + ATeTi*kperp(i,:)**2)
 
         END IF
 
@@ -909,7 +909,7 @@ END SUBROUTINE PDF_abcap  !=====================================================
 
 
       IF (USE_real_flag /= ON) THEN
-        w       = REAL(USE_freq, rp) * w
+        w       = REAL(USE_freq, wp) * w
       END IF
 
     ELSE
@@ -917,13 +917,13 @@ END SUBROUTINE PDF_abcap  !=====================================================
       ! No turbulence: zero everything (preserve your exact intent)
       !----------------------------------------------------------
       IF (USE_real_flag == ON) THEN
-        phs = 0.0_rp; phrmps = 0.0_rp; phxs = 0.0_rp; phys = 0.0_rp
-        kxs = 0.0_rp; kys   = 0.0_rp; kzs  = 0.0_rp
-        ws  = 0.0_rp; wcs   = 0.0_rp; kperps = 0.0_rp; dms = 0.0_rp
+        phs = 0.0_wp; phrmps = 0.0_wp; phxs = 0.0_wp; phys = 0.0_wp
+        kxs = 0.0_wp; kys   = 0.0_wp; kzs  = 0.0_wp
+        ws  = 0.0_wp; wcs   = 0.0_wp; kperps = 0.0_wp; dms = 0.0_wp
       ELSE
-        ph  = 0.0_rp; phrmp = 0.0_rp; phx = 0.0_rp; phy = 0.0_rp
-        kx  = 0.0_rp; ky    = 0.0_rp; kz  = 0.0_rp
-        w   = 0.0_rp; wc    = 0.0_rp; kperp = 0.0_rp; dm = 0.0_rp
+        ph  = 0.0_wp; phrmp = 0.0_wp; phx = 0.0_wp; phy = 0.0_wp
+        kx  = 0.0_wp; ky    = 0.0_wp; kz  = 0.0_wp
+        w   = 0.0_wp; wc    = 0.0_wp; kperp = 0.0_wp; dm = 0.0_wp
       END IF
     END IF
 
@@ -932,15 +932,15 @@ END SUBROUTINE PDF_abcap  !=====================================================
     ! "second sample has frozen turbulence" convention
     !-----------------------------------------------------------------
     IF (USE_real_flag == ON) THEN
-      phs(1) = 0.0_rp; phrmps(1) = 0.0_rp; phxs(1) = 0.0_rp; phys(1) = 0.0_rp
-      kxs(1) = 0.0_rp; kys(1)    = 0.0_rp; kzs(1)  = 0.0_rp
-      ws(1)  = 0.0_rp; wcs(1)    = 0.0_rp; kperps(1) = 0.0_rp
-      ws(2)  = 0.0_rp; wcs(2)    = 0.0_rp
+      phs(1) = 0.0_wp; phrmps(1) = 0.0_wp; phxs(1) = 0.0_wp; phys(1) = 0.0_wp
+      kxs(1) = 0.0_wp; kys(1)    = 0.0_wp; kzs(1)  = 0.0_wp
+      ws(1)  = 0.0_wp; wcs(1)    = 0.0_wp; kperps(1) = 0.0_wp
+      ws(2)  = 0.0_wp; wcs(2)    = 0.0_wp
     ELSE
-      ph(:,1)    = 0.0_rp; phrmp(:,1) = 0.0_rp; phx(:,1) = 0.0_rp; phy(:,1) = 0.0_rp
-      kx(:,1)    = 0.0_rp; ky(:,1)    = 0.0_rp; kz(:,1)  = 0.0_rp
-      w(:,1)     = 0.0_rp; wc(:,1)    = 0.0_rp; kperp(:,1) = 0.0_rp
-      w(:,2)     = 0.0_rp; wc(:,2)    = 0.0_rp
+      ph(:,1)    = 0.0_wp; phrmp(:,1) = 0.0_wp; phx(:,1) = 0.0_wp; phy(:,1) = 0.0_wp
+      kx(:,1)    = 0.0_wp; ky(:,1)    = 0.0_wp; kz(:,1)  = 0.0_wp
+      w(:,1)     = 0.0_wp; wc(:,1)    = 0.0_wp; kperp(:,1) = 0.0_wp
+      w(:,2)     = 0.0_wp; wc(:,2)    = 0.0_wp
     END IF
 
     DEALLOCATE(tmp4, kyrow, kxrow, kzrow, wrow, wcrow, phrow, phxrow, phyrow, phrmprow, dmrow)
@@ -960,10 +960,10 @@ END SUBROUTINE PDF_abcap  !=====================================================
     IMPLICIT NONE
 
     INTEGER,                        INTENT(IN) :: ind
-    REAL(KIND=rp), DIMENSION(Np),   INTENT(IN) :: mut
+    REAL(KIND=wp), DIMENSION(Np),   INTENT(IN) :: mut
 
     INTEGER       :: i
-    REAL(KIND=rp) :: coef
+    REAL(KIND=wp) :: coef
 
     ! Allocate outputs depending on mode
     IF (USE_real == OFF) THEN
@@ -975,7 +975,7 @@ END SUBROUTINE PDF_abcap  !=====================================================
     END IF
 
     IF (ind == ON) THEN
-      coef = SQRT(2.0_rp * As / Zs**2)
+      coef = SQRT(2.0_wp * As / Zs**2)
 
       IF (USE_real == OFF) THEN
         !$omp parallel do default(none) shared(L, kperp, mut, coef, Nc, Np) private(i)
@@ -995,9 +995,9 @@ END SUBROUTINE PDF_abcap  !=====================================================
     ELSE
 
       IF (USE_real == OFF) THEN
-        L = 1.0_rp
+        L = 1.0_wp
       ELSEIF (USE_real == ON) THEN
-        Ls = 1.0_rp
+        Ls = 1.0_wp
       END IF
 
     END IF
@@ -1020,13 +1020,13 @@ END SUBROUTINE PDF_abcap  !=====================================================
   SUBROUTINE wavenum_old(normB, Vstar1, Vstar2, Vstar3, gees)
     IMPLICIT NONE
 
-    REAL(KIND=rp), DIMENSION(Np)   :: w1, w2
-    REAL(KIND=rp), DIMENSION(5,Np) :: g
+    REAL(KIND=wp), DIMENSION(Np)   :: w1, w2
+    REAL(KIND=wp), DIMENSION(5,Np) :: g
     INTEGER                        :: i
 
-    REAL(KIND=rp)                  :: normB, Vstar1, Vstar2, Vstar3, trunc
-    REAL(KIND=rp), DIMENSION(3,3)  :: gees          ! matrix for kperp^2 metric
-    REAL(KIND=rp)                  :: w000, kx000
+    REAL(KIND=wp)                  :: normB, Vstar1, Vstar2, Vstar3, trunc
+    REAL(KIND=wp), DIMENSION(3,3)  :: gees          ! matrix for kperp^2 metric
+    REAL(KIND=wp)                  :: w000, kx000
 
     !-----------------------------
     ! Allocate/resize arrays
@@ -1055,20 +1055,20 @@ END SUBROUTINE PDF_abcap  !=====================================================
       CALL RANDOM_NUMBER(phy)
       CALL RANDOM_NUMBER(dm)
 
-      ph    = pi * (2.0_rp*ph    - 1.0_rp)
-      phrmp = pi * (2.0_rp*phrmp - 1.0_rp)
-      phx   = pi * (2.0_rp*phx   - 1.0_rp)
-      phy   = pi * (2.0_rp*phy   - 1.0_rp)
+      ph    = pi * (2.0_wp*ph    - 1.0_wp)
+      phrmp = pi * (2.0_wp*phrmp - 1.0_wp)
+      phx   = pi * (2.0_wp*phx   - 1.0_wp)
+      phy   = pi * (2.0_wp*phy   - 1.0_wp)
 
-      dm = 2.0_rp * (dm - 0.5_rp)
+      dm = 2.0_wp * (dm - 0.5_wp)
       dm = INT(q00/lambdaz * dm)
 
       !-----------------------------------------------
       ! Wavenumbers/frequencies for ITG (1..Nci)
       !-----------------------------------------------
-      w000  = 0.0_rp
-      kx000 = 0.0_rp
-      trunc = 10.0_rp
+      w000  = 0.0_wp
+      kx000 = 0.0_wp
+      trunc = 10.0_wp
 
       DO i = 1, Nci
 
@@ -1095,20 +1095,20 @@ END SUBROUTINE PDF_abcap  !=====================================================
         END IF
 
         ! Discretizations / wrapping (kept as-is)
-        ky(i,:) = 1.0_rp * INT(ky(i,:)*C2) / C2
-        kz(i,:) = 0.0_rp * (C2*ky(i,:)*q00 - INT(C2*ky(i,:)*q00)) / C3
+        ky(i,:) = 1.0_wp * INT(ky(i,:)*C2) / C2
+        kz(i,:) = 0.0_wp * (C2*ky(i,:)*q00 - INT(C2*ky(i,:)*q00)) / C3
         kz(i,:) = kz(i,:) + dm(i,:) / C3
 
         ! k_perp and frequency correction
         kperp(i,:) = (rhoi/R0) * SQRT( &
-          kx(i,:)*gees(1,1)*kx(i,:) + 2.0_rp*kx(i,:)*gees(1,2)*ky(i,:) + &
-          2.0_rp*kx(i,:)*gees(1,3)*kz(i,:) + ky(i,:)*gees(2,2)*ky(i,:) + &
-          2.0_rp*ky(i,:)*gees(2,3)*kz(i,:) + kz(i,:)*gees(3,3)*kz(i,:) )
+          kx(i,:)*gees(1,1)*kx(i,:) + 2.0_wp*kx(i,:)*gees(1,2)*ky(i,:) + &
+          2.0_wp*kx(i,:)*gees(1,3)*kz(i,:) + ky(i,:)*gees(2,2)*ky(i,:) + &
+          2.0_wp*ky(i,:)*gees(2,3)*kz(i,:) + kz(i,:)*gees(3,3)*kz(i,:) )
 
         w2 = +Li*(Ti/Ti) * ((rhoi/R0/normB)**2) * (kx(i,:)*Vstar1 + ky(i,:)*Vstar2 + kz(i,:)*Vstar3)
-        w2 = w2 / (1.0_rp + Aeff*(Te/Ti)*kperp(i,:)**2)
+        w2 = w2 / (1.0_wp + Aeff*(Te/Ti)*kperp(i,:)**2)
 
-        w(i,:) = w1 + 1.0_rp*w2
+        w(i,:) = w1 + 1.0_wp*w2
       END DO
 
       !-----------------------------------------------
@@ -1135,47 +1135,47 @@ END SUBROUTINE PDF_abcap  !=====================================================
           CALL PDF_Cauchy(Np, w000, lambdax, w1, trunc)
         END IF
 
-        ky(i,:) = 1.0_rp * INT(ky(i,:)*C2) / C2
-        kz(i,:) = 0.0_rp * (C2*ky(i,:)*q00 - INT(C2*ky(i,:)*q00)) / C3
+        ky(i,:) = 1.0_wp * INT(ky(i,:)*C2) / C2
+        kz(i,:) = 0.0_wp * (C2*ky(i,:)*q00 - INT(C2*ky(i,:)*q00)) / C3
         kz(i,:) = kz(i,:) + dm(i,:) / C3
 
         kperp(i,:) = (rhoi/R0) * SQRT( &
-          kx(i,:)*gees(1,1)*kx(i,:) + 2.0_rp*kx(i,:)*gees(1,2)*ky(i,:) + &
-          2.0_rp*kx(i,:)*gees(1,3)*kz(i,:) + ky(i,:)*gees(2,2)*ky(i,:) + &
-          2.0_rp*ky(i,:)*gees(2,3)*kz(i,:) + kz(i,:)*gees(3,3)*kz(i,:) )
+          kx(i,:)*gees(1,1)*kx(i,:) + 2.0_wp*kx(i,:)*gees(1,2)*ky(i,:) + &
+          2.0_wp*kx(i,:)*gees(1,3)*kz(i,:) + ky(i,:)*gees(2,2)*ky(i,:) + &
+          2.0_wp*ky(i,:)*gees(2,3)*kz(i,:) + kz(i,:)*gees(3,3)*kz(i,:) )
 
         w2 = -Ln*(Te/Ti) * ((rhoi/R0/normB)**2) * (kx(i,:)*Vstar1 + ky(i,:)*Vstar2 + kz(i,:)*Vstar3)
-        w2 = w2 / (1.0_rp + Aeff*(Te/Ti)*kperp(i,:)**2)
+        w2 = w2 / (1.0_wp + Aeff*(Te/Ti)*kperp(i,:)**2)
 
-        w(i,:) = w1 + 1.0_rp*w2
+        w(i,:) = w1 + 1.0_wp*w2
       END DO
 
-      w = REAL(USE_freq, rp) * w
+      w = REAL(USE_freq, wp) * w
 
     ELSEIF (USE_turb /= ON) THEN
 
-      ph    = 0.0_rp
-      phx   = 0.0_rp
-      phy   = 0.0_rp
-      kx    = 0.0_rp
-      ky    = 0.0_rp
-      kz    = 0.0_rp
-      w     = 0.0_rp
-      wc    = 0.0_rp
-      kperp = 0.0_rp
+      ph    = 0.0_wp
+      phx   = 0.0_wp
+      phy   = 0.0_wp
+      kx    = 0.0_wp
+      ky    = 0.0_wp
+      kz    = 0.0_wp
+      w     = 0.0_wp
+      wc    = 0.0_wp
+      kperp = 0.0_wp
 
     END IF
 
     ! First trajectory without turbulence (convention)
-    ph(:,1)     = 0.0_rp
-    phx(:,1)    = 0.0_rp
-    phy(:,1)    = 0.0_rp
-    kx(:,1)     = 0.0_rp
-    ky(:,1)     = 0.0_rp
-    kz(:,1)     = 0.0_rp
-    w(:,1)      = 0.0_rp
-    wc(:,1)     = 0.0_rp
-    kperp(:,1)  = 0.0_rp
+    ph(:,1)     = 0.0_wp
+    phx(:,1)    = 0.0_wp
+    phy(:,1)    = 0.0_wp
+    kx(:,1)     = 0.0_wp
+    ky(:,1)     = 0.0_wp
+    kz(:,1)     = 0.0_wp
+    w(:,1)      = 0.0_wp
+    wc(:,1)     = 0.0_wp
+    kperp(:,1)  = 0.0_wp
 
   END SUBROUTINE wavenum_old
 
@@ -1187,15 +1187,15 @@ END SUBROUTINE PDF_abcap  !=====================================================
     USE constants
     IMPLICIT NONE
 
-    REAL(KIND=rp), INTENT(IN) :: normB, Vstar1, Vstar2, Vstar3
-    REAL(KIND=rp), INTENT(IN) :: gees(3,3)
+    REAL(KIND=wp), INTENT(IN) :: normB, Vstar1, Vstar2, Vstar3
+    REAL(KIND=wp), INTENT(IN) :: gees(3,3)
 
-    REAL(KIND=rp) :: invR0, rhoi_over_R0, invC3, Te_over_Ti, R2, ATeTi
-    REAL(KIND=rp) :: sx, sz, sw1, swc, trunc
+    REAL(KIND=wp) :: invR0, rhoi_over_R0, invC3, Te_over_Ti, R2, ATeTi
+    REAL(KIND=wp) :: sx, sz, sw1, swc, trunc
     INTEGER       :: i
-    REAL(KIND=rp), ALLOCATABLE :: tmp4(:,:)   ! (4,Np) scratch for PDF_G
+    REAL(KIND=wp), ALLOCATABLE :: tmp4(:,:)   ! (4,Np) scratch for PDF_G
 
-    REAL(KIND=rp) :: w000, kx000
+    REAL(KIND=wp) :: w000, kx000
 
     !-----------------------------
     ! Allocate/resize arrays
@@ -1217,31 +1217,31 @@ END SUBROUTINE PDF_abcap  !=====================================================
     IF (USE_turb == ON) THEN
 
       ! Phases + parallel shift
-      CALL RANDOM_NUMBER(ph);     ph    = pi*(2.0_rp*ph    - 1.0_rp)
-      CALL RANDOM_NUMBER(phrmp);  phrmp = pi*(2.0_rp*phrmp - 1.0_rp)
-      CALL RANDOM_NUMBER(phx);    phx   = pi*(2.0_rp*phx   - 1.0_rp)
-      CALL RANDOM_NUMBER(phy);    phy   = pi*(2.0_rp*phy   - 1.0_rp)
+      CALL RANDOM_NUMBER(ph);     ph    = pi*(2.0_wp*ph    - 1.0_wp)
+      CALL RANDOM_NUMBER(phrmp);  phrmp = pi*(2.0_wp*phrmp - 1.0_wp)
+      CALL RANDOM_NUMBER(phx);    phx   = pi*(2.0_wp*phx   - 1.0_wp)
+      CALL RANDOM_NUMBER(phy);    phy   = pi*(2.0_wp*phy   - 1.0_wp)
 
       CALL RANDOM_NUMBER(dm)
-      dm = 2.0_rp*(dm - 0.5_rp)
+      dm = 2.0_wp*(dm - 0.5_wp)
       dm = INT(q00/lambdaz * dm)
 
       ! Constants
-      invR0        = 1.0_rp / R0
+      invR0        = 1.0_wp / R0
       rhoi_over_R0 = rhoi * invR0
-      invC3        = 1.0_rp / C3
+      invC3        = 1.0_wp / C3
       Te_over_Ti   = Te / Ti
       R2           = (rhoi_over_R0 / normB)**2
       ATeTi        = Aeff * Te_over_Ti
 
-      sx  = 1.0_rp / lambdax
-      sz  = 1.0_rp / lambdaz
-      sw1 = 1.0_rp / tauc
-      swc = 1.0_rp / taucc
+      sx  = 1.0_wp / lambdax
+      sz  = 1.0_wp / lambdaz
+      sw1 = 1.0_wp / tauc
+      swc = 1.0_wp / taucc
 
-      w000  = 0.0_rp
-      kx000 = 0.0_rp
-      trunc = 10.0_rp
+      w000  = 0.0_wp
+      kx000 = 0.0_wp
+      trunc = 10.0_wp
 
       !-------------------------
       ! ITG block
@@ -1269,16 +1269,16 @@ END SUBROUTINE PDF_abcap  !=====================================================
 
         CALL PDF_ky(Np, lambday, k0i, ky(i,:))
 
-        ky(i,:) = REAL(INT(ky(i,:)*C2), rp) / C2
-        kz(i,:) = REAL(INT(kz(i,:)),    rp) / C3
+        ky(i,:) = REAL(INT(ky(i,:)*C2), wp) / C2
+        kz(i,:) = REAL(INT(kz(i,:)),    wp) / C3
 
         kperp(i,:) = (rhoi_over_R0) * SQRT( &
-          kx(i,:)*gees(1,1)*kx(i,:) + 2.0_rp*kx(i,:)*gees(1,2)*ky(i,:) + &
-          2.0_rp*kx(i,:)*gees(1,3)*kz(i,:) + ky(i,:)*gees(2,2)*ky(i,:) + &
-          2.0_rp*ky(i,:)*gees(2,3)*kz(i,:) + kz(i,:)*gees(3,3)*kz(i,:) )
+          kx(i,:)*gees(1,1)*kx(i,:) + 2.0_wp*kx(i,:)*gees(1,2)*ky(i,:) + &
+          2.0_wp*kx(i,:)*gees(1,3)*kz(i,:) + ky(i,:)*gees(2,2)*ky(i,:) + &
+          2.0_wp*ky(i,:)*gees(2,3)*kz(i,:) + kz(i,:)*gees(3,3)*kz(i,:) )
 
         w(i,:) = w(i,:) + ( +Ln*R2*(kx(i,:)*Vstar1 + ky(i,:)*Vstar2 + kz(i,:)*Vstar3) ) / &
-                        (1.0_rp + ATeTi*kperp(i,:)**2)
+                        (1.0_wp + ATeTi*kperp(i,:)**2)
       END DO
 
       !-------------------------
@@ -1305,40 +1305,40 @@ END SUBROUTINE PDF_abcap  !=====================================================
 
         CALL PDF_ky(Np, lambday, k0e, ky(i,:))
 
-        ky(i,:) = REAL(INT(ky(i,:)*C2), rp) / C2
-        kz(i,:) = REAL(INT(kz(i,:)),    rp) / C3
+        ky(i,:) = REAL(INT(ky(i,:)*C2), wp) / C2
+        kz(i,:) = REAL(INT(kz(i,:)),    wp) / C3
 
         kperp(i,:) = (rhoi_over_R0) * SQRT( &
-          kx(i,:)*gees(1,1)*kx(i,:) + 2.0_rp*kx(i,:)*gees(1,2)*ky(i,:) + &
-          2.0_rp*kx(i,:)*gees(1,3)*kz(i,:) + ky(i,:)*gees(2,2)*ky(i,:) + &
-          2.0_rp*ky(i,:)*gees(2,3)*kz(i,:) + kz(i,:)*gees(3,3)*kz(i,:) )
+          kx(i,:)*gees(1,1)*kx(i,:) + 2.0_wp*kx(i,:)*gees(1,2)*ky(i,:) + &
+          2.0_wp*kx(i,:)*gees(1,3)*kz(i,:) + ky(i,:)*gees(2,2)*ky(i,:) + &
+          2.0_wp*ky(i,:)*gees(2,3)*kz(i,:) + kz(i,:)*gees(3,3)*kz(i,:) )
 
         w(i,:) = w(i,:) + ( -Ln*Te_over_Ti*R2*(kx(i,:)*Vstar1 + ky(i,:)*Vstar2 + kz(i,:)*Vstar3) ) / &
-                        (1.0_rp + ATeTi*kperp(i,:)**2)
+                        (1.0_wp + ATeTi*kperp(i,:)**2)
       END DO
 
       DEALLOCATE(tmp4)
 
-      w       = REAL(USE_freq, rp) * w
+      w       = REAL(USE_freq, wp) * w
 
     ELSE
 
-      ph     = 0.0_rp
-      phx    = 0.0_rp
-      phy    = 0.0_rp
-      kx     = 0.0_rp
-      ky     = 0.0_rp
-      kz     = 0.0_rp
-      w      = 0.0_rp
-      wc     = 0.0_rp
-      kperp  = 0.0_rp
+      ph     = 0.0_wp
+      phx    = 0.0_wp
+      phy    = 0.0_wp
+      kx     = 0.0_wp
+      ky     = 0.0_wp
+      kz     = 0.0_wp
+      w      = 0.0_wp
+      wc     = 0.0_wp
+      kperp  = 0.0_wp
 
     END IF
 
     ! First trajectory without turbulence
-    ph(:,1)     = 0.0_rp; phx(:,1)     = 0.0_rp; phy(:,1)     = 0.0_rp
-    kx(:,1)     = 0.0_rp; ky(:,1)      = 0.0_rp; kz(:,1)      = 0.0_rp
-    w(:,1)      = 0.0_rp; wc(:,1)      = 0.0_rp; kperp(:,1)   = 0.0_rp
+    ph(:,1)     = 0.0_wp; phx(:,1)     = 0.0_wp; phy(:,1)     = 0.0_wp
+    kx(:,1)     = 0.0_wp; ky(:,1)      = 0.0_wp; kz(:,1)      = 0.0_wp
+    w(:,1)      = 0.0_wp; wc(:,1)      = 0.0_wp; kperp(:,1)   = 0.0_wp
 
   END SUBROUTINE wavenum
 
@@ -1349,14 +1349,14 @@ END SUBROUTINE PDF_abcap  !=====================================================
   SUBROUTINE wavenum_single(normB, Vstar1, Vstar2, Vstar3, gees)
     IMPLICIT NONE
 
-    REAL(KIND=rp), DIMENSION(Nc)   :: w1s, w2s
-    REAL(KIND=rp), DIMENSION(5,Nc) :: g
+    REAL(KIND=wp), DIMENSION(Nc)   :: w1s, w2s
+    REAL(KIND=wp), DIMENSION(5,Nc) :: g
     INTEGER                        :: i
 
-    REAL(KIND=rp)                  :: normB, Vstar1, Vstar2, Vstar3
-    REAL(KIND=rp), DIMENSION(3,3)  :: gees
+    REAL(KIND=wp)                  :: normB, Vstar1, Vstar2, Vstar3
+    REAL(KIND=wp), DIMENSION(3,3)  :: gees
 
-    REAL(KIND=rp)                  :: w000, kx000, trunc
+    REAL(KIND=wp)                  :: w000, kx000, trunc
 
     !-----------------------------
     ! Allocate/resize arrays
@@ -1373,9 +1373,9 @@ END SUBROUTINE PDF_abcap  !=====================================================
       ALLOCATE(kxs, kys, kperps, kzs, ws, phrmps, phxs, phys, wcs, dms, MOLD=phs)
     END IF
 
-    w000  = 0.0_rp
-    kx000 = 0.0_rp
-    trunc = 10.0_rp
+    w000  = 0.0_wp
+    kx000 = 0.0_wp
+    trunc = 10.0_wp
 
     !-----------------------------
     ! Turbulence on/off
@@ -1388,13 +1388,13 @@ END SUBROUTINE PDF_abcap  !=====================================================
       CALL RANDOM_NUMBER(phys)
       CALL RANDOM_NUMBER(dms)
 
-      dms  = 2.0_rp*(dms - 0.5_rp)
+      dms  = 2.0_wp*(dms - 0.5_wp)
       dms  = INT(q00/lambdaz * dms)
 
-      phs    = pi*(2.0_rp*phs    - 1.0_rp)
-      phrmps = pi*(2.0_rp*phrmps - 1.0_rp)
-      phxs   = pi*(2.0_rp*phxs   - 1.0_rp)
-      phys   = pi*(2.0_rp*phys   - 1.0_rp)
+      phs    = pi*(2.0_wp*phs    - 1.0_wp)
+      phrmps = pi*(2.0_wp*phrmps - 1.0_wp)
+      phxs   = pi*(2.0_wp*phxs   - 1.0_wp)
+      phys   = pi*(2.0_wp*phys   - 1.0_wp)
 
       ! Correlated (kx,kz,w,wc) as Nc samples
       CALL PDF_G(4, Nc, g(1:4,:), wavelength=[lambdax, lambdaz, tauc, taucc])
@@ -1421,19 +1421,19 @@ END SUBROUTINE PDF_abcap  !=====================================================
 
       DO i = 1, Nci
         kys(i) = g(5,i)
-        kys(i) = 1.0_rp * INT(kys(i)*C2) / C2
+        kys(i) = 1.0_wp * INT(kys(i)*C2) / C2
 
-        kz(i,:) = REAL(INT(kz(i,:), rp)) / C3   ! kept as in original paste
+        kz(i,:) = REAL(INT(kz(i,:), wp)) / C3   ! kept as in original paste
 
         kperps(i) = (rhoi/R0) * SQRT( &
-          kxs(i)*gees(1,1)*kxs(i) + 2.0_rp*kxs(i)*gees(1,2)*kys(i) + &
-          2.0_rp*kxs(i)*gees(1,3)*kzs(i) + kys(i)*gees(2,2)*kys(i) + &
-          2.0_rp*kys(i)*gees(2,3)*kzs(i) + kzs(i)*gees(3,3)*kzs(i) )
+          kxs(i)*gees(1,1)*kxs(i) + 2.0_wp*kxs(i)*gees(1,2)*kys(i) + &
+          2.0_wp*kxs(i)*gees(1,3)*kzs(i) + kys(i)*gees(2,2)*kys(i) + &
+          2.0_wp*kys(i)*gees(2,3)*kzs(i) + kzs(i)*gees(3,3)*kzs(i) )
 
         w2s(i) = +Ln*(Ti/Ti) * ((rhoi/R0/normB)**2) * (kxs(i)*Vstar1 + kys(i)*Vstar2 + kzs(i)*Vstar3)
-        w2s(i) = w2s(i) / (1.0_rp + Aeff*(Te/Ti)*kperps(i)**2)
+        w2s(i) = w2s(i) / (1.0_wp + Aeff*(Te/Ti)*kperps(i)**2)
 
-        ws(i) = w1s(i) + 1.0_rp*w2s(i)
+        ws(i) = w1s(i) + 1.0_wp*w2s(i)
       END DO
 
       !-------------------------
@@ -1443,42 +1443,42 @@ END SUBROUTINE PDF_abcap  !=====================================================
 
       DO i = Nci+1, Nc
         kys(i) = g(5,i)
-        kys(i) = 1.0_rp * INT(kys(i)*C2) / C2
+        kys(i) = 1.0_wp * INT(kys(i)*C2) / C2
 
-        kz(i,:) = REAL(INT(kz(i,:), rp)) / C3   ! kept as in original paste
+        kz(i,:) = REAL(INT(kz(i,:), wp)) / C3   ! kept as in original paste
 
         kperps(i) = (rhoi/R0) * SQRT( &
-          kxs(i)*gees(1,1)*kxs(i) + 2.0_rp*kxs(i)*gees(1,2)*kys(i) + &
-          2.0_rp*kxs(i)*gees(1,3)*kzs(i) + kys(i)*gees(2,2)*kys(i) + &
-          2.0_rp*kys(i)*gees(2,3)*kzs(i) + kzs(i)*gees(3,3)*kzs(i) )
+          kxs(i)*gees(1,1)*kxs(i) + 2.0_wp*kxs(i)*gees(1,2)*kys(i) + &
+          2.0_wp*kxs(i)*gees(1,3)*kzs(i) + kys(i)*gees(2,2)*kys(i) + &
+          2.0_wp*kys(i)*gees(2,3)*kzs(i) + kzs(i)*gees(3,3)*kzs(i) )
 
         w2s(i) = -Ln*(Te/Ti) * ((rhoi/R0/normB)**2) * (kxs(i)*Vstar1 + kys(i)*Vstar2 + kzs(i)*Vstar3)
-        w2s(i) = w2s(i) / (1.0_rp + Aeff*(Te/Ti)*kperps(i)**2)
+        w2s(i) = w2s(i) / (1.0_wp + Aeff*(Te/Ti)*kperps(i)**2)
 
-        ws(i) = w1s(i) + 1.0_rp*w2s(i)
+        ws(i) = w1s(i) + 1.0_wp*w2s(i)
       END DO
 
-      ws       = REAL(USE_freq, rp) * ws
+      ws       = REAL(USE_freq, wp) * ws
 
     ELSEIF (USE_turb /= ON) THEN
 
-      phs      = 0.0_rp
-      phxs     = 0.0_rp
-      phys     = 0.0_rp
-      kxs      = 0.0_rp
-      kys      = 0.0_rp
-      kzs      = 0.0_rp
-      ws       = 0.0_rp
-      wcs      = 0.0_rp
-      kperps   = 0.0_rp
+      phs      = 0.0_wp
+      phxs     = 0.0_wp
+      phys     = 0.0_wp
+      kxs      = 0.0_wp
+      kys      = 0.0_wp
+      kzs      = 0.0_wp
+      ws       = 0.0_wp
+      wcs      = 0.0_wp
+      kperps   = 0.0_wp
 
     END IF
 
     ! First sample without turbulence
-    phs(1)     = 0.0_rp; phxs(1)    = 0.0_rp; phys(1)    = 0.0_rp
-    kxs(1)     = 0.0_rp; kys(1)     = 0.0_rp; kzs(1)     = 0.0_rp
-    ws(1)      = 0.0_rp; wcs(1)     = 0.0_rp
-    kperps(1)  = 0.0_rp; 
+    phs(1)     = 0.0_wp; phxs(1)    = 0.0_wp; phys(1)    = 0.0_wp
+    kxs(1)     = 0.0_wp; kys(1)     = 0.0_wp; kzs(1)     = 0.0_wp
+    ws(1)      = 0.0_wp; wcs(1)     = 0.0_wp
+    kperps(1)  = 0.0_wp; 
 
   END SUBROUTINE wavenum_single
 
@@ -1489,7 +1489,7 @@ END SUBROUTINE PDF_abcap  !=====================================================
   SUBROUTINE Larmor_old(ind, X, Y, Z, mut)
     IMPLICIT NONE
 
-    REAL(KIND=rp), DIMENSION(Np) :: X, Y, Z, mut, B
+    REAL(KIND=wp), DIMENSION(Np) :: X, Y, Z, mut, B
     INTEGER                      :: i, ind
 
     IF (ALLOCATED(L)) THEN
@@ -1505,12 +1505,12 @@ END SUBROUTINE PDF_abcap  !=====================================================
       !$OMP PRIVATE (i)
       DO i = 1, Np
         ! L(:,i) = BESSEL_J0(kperp(:,i)*SQRT(2.0*Aw*ABS(mut(i))/Zw**2/B(i)))
-        L(:,i) = BESSEL_J0(kperp(:,i) * SQRT(2.0_rp*As*ABS(mut(i))/Zs**2))
+        L(:,i) = BESSEL_J0(kperp(:,i) * SQRT(2.0_wp*As*ABS(mut(i))/Zs**2))
       END DO
       !$OMP END PARALLEL DO
 
     ELSE
-      L = 1.0_rp
+      L = 1.0_wp
     END IF
 
   END SUBROUTINE Larmor_old

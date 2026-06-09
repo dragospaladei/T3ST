@@ -19,14 +19,14 @@
        IMPLICIT NONE
 
        ! I/O variables
-	       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT) :: X, Y, Z, mu, vp, Einit, F0, G0, FM, betaF, betaD
-       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT) :: alpha_1, alpha_2, alpha_3
+	       REAL(KIND=wp), DIMENSION(Np), INTENT(OUT) :: X, Y, Z, mu, vp, Einit, F0, G0, FM, betaF, betaD
+       REAL(KIND=wp), DIMENSION(Np), INTENT(OUT) :: alpha_1, alpha_2, alpha_3
 
        ! Local variables
-       REAL(KIND=rp), DIMENSION(Np)                 :: En, PA, aux, Jac
-       REAL(KIND=rp), DIMENSION(Np)                 :: phi0, phi1, phi2, B, Bx, By, Bz, q1, q2, q3
-       REAL(KIND=rp), DIMENSION(Np)                 :: rhot, delta_q1, temp, dens
-       REAL(KIND=rp)                                :: m1, m2
+       REAL(KIND=wp), DIMENSION(Np)                 :: En, PA, aux, Jac
+       REAL(KIND=wp), DIMENSION(Np)                 :: phi0, phi1, phi2, B, Bx, By, Bz, q1, q2, q3
+       REAL(KIND=wp), DIMENSION(Np)                 :: rhot, delta_q1, temp, dens
+       REAL(KIND=wp)                                :: m1, m2
        ! ------------------------------------------------------------------------------------------------------------------------
        ! Pitch angle PA = (-pi, pi) or fixed
        ! ------------------------------------------------------------------------------------------------------------------------
@@ -46,7 +46,7 @@
        ! ------------------------------------------------------------------------------------------------------------------------
        ! Energy En distribution :: note, these are kinetic energies only.
        ! ------------------------------------------------------------------------------------------------------------------------
-       Ts = Ts + 1.0e-18_rp! avoid pure zero's in energy
+       Ts = Ts + 1.0e-18_wp! avoid pure zero's in energy
 
        IF (energy_type == 1) THEN
           En = Es
@@ -88,14 +88,14 @@
 
 !       pb = pb*Np/sum(pb)
 
- !      Weight = 0.0_rp
+ !      Weight = 0.0_wp
 
       CALL Onlycoordq_new_all(X, Y, Z, rhot)
       q1 = C1*rhot
       delta_q1 = q1 - C1*q10
 
-      temp = Ts*exp(delta_q1*a0/C1*Lts) !Ts*(1.0_rp + delta_q1*a0/C1*Lts)
-      dens= 1.0*exp(delta_q1*a0/C1*Lns) !1.0*(1.0_rp + delta_q1*a0/C1*Lns)
+      temp = Ts*exp(delta_q1*a0/C1*Lts) !Ts*(1.0_wp + delta_q1*a0/C1*Lts)
+      dens= 1.0*exp(delta_q1*a0/C1*Lns) !1.0*(1.0_wp + delta_q1*a0/C1*Lns)
 
 ! here we define 3 "weights": 
 ! 1) G0 the marker distribution in the z phase space implemented :: it is a pure Maxwellian in energy (no jacobian resulting from there); the rhot*a0*X = r*R comes from the jacobian of the transformation between uniform (r,theta,varphi) coordinates and real space (x,y,z) - cartesian
@@ -103,9 +103,9 @@
 ! 3) beta the exponential weight associated with our modified deltaF scheme
 
       Jac = (rhot*a0*X)
-      FM  = dens*exp(-En/temp)/temp**1.5_rp
-      F0  = dens*exp(-En/temp)/temp**1.5_rp
-      G0  =  1.0*exp(-En/Ts)/Ts**(1.5_rp)/Jac
+      FM  = dens*exp(-En/temp)/temp**1.5_wp
+      F0  = dens*exp(-En/temp)/temp**1.5_wp
+      G0  =  1.0*exp(-En/Ts)/Ts**(1.5_wp)/Jac
 !      FM  = FM/(sum(FM*Jac)/Np)               ! normalization of JF_M
  !     F0  = F0/(sum(F0*Jac)/Np)               ! normalization of JF_0
       G0  = G0/(sum(G0*Jac)/Np)               ! normalization of JG_0
@@ -115,9 +115,9 @@
 	      betaF = log(F0/FM)
 	      betaD = log(F0/FM)
 	      Einit = En
-	      alpha_1 = 0.0_rp
-      alpha_2 = 0.0_rp
-      alpha_3 = 0.0_rp
+	      alpha_1 = 0.0_wp
+      alpha_2 = 0.0_wp
+      alpha_3 = 0.0_wp
       
 !      write(*,*) sum(G0*Jac)/Np,sum(F0*Jac)/Np,sum(FM*Jac)/Np,sum(F0/G0)/Np
  !     pause
@@ -142,14 +142,14 @@ END SUBROUTINE
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT)    :: X, Y, Z
-       REAL(KIND=rp), DIMENSION(Np)                 :: Vp
-       REAL(KIND=rp), DIMENSION(Np)                 :: aux, aux2, aux1, aux3
-       REAL(KIND=rp)                                :: rmin, rmax
+       REAL(KIND=wp), DIMENSION(Np), INTENT(OUT)    :: X, Y, Z
+       REAL(KIND=wp), DIMENSION(Np)                 :: Vp
+       REAL(KIND=wp), DIMENSION(Np)                 :: aux, aux2, aux1, aux3
+       REAL(KIND=wp)                                :: rmin, rmax
 
 
-       rmin = max(0.0_rp, 0.5_rp - 0.5_rp*annulus_width)
-       rmax = min(1.0_rp, 0.5_rp + 0.5_rp*annulus_width)
+       rmin = max(0.0_wp, 0.5_wp - 0.5_wp*annulus_width)
+       rmax = min(1.0_wp, 0.5_wp + 0.5_wp*annulus_width)
 
        IF (position_type .eq. 1) THEN
           X = X0
@@ -199,18 +199,18 @@ SUBROUTINE potent_3D(q_1, q_2, q_3, time, phi0)
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=rp), DIMENSION(Np), INTENT(IN) :: q_1, q_2, q_3
-       REAL(KIND=rp), INTENT(IN) :: time
+       REAL(KIND=wp), DIMENSION(Np), INTENT(IN) :: q_1, q_2, q_3
+       REAL(KIND=wp), INTENT(IN) :: time
 
-       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT):: phi0
+       REAL(KIND=wp), DIMENSION(Np), INTENT(OUT):: phi0
 
-       REAL(KIND=rp), DIMENSION(Np) :: gpar, gprim, env
+       REAL(KIND=wp), DIMENSION(Np) :: gpar, gprim, env
        ! Local variables
        INTEGER                         :: i
 
 
       ! Defaults (kept as in your original snippet)
-      gpar    = exp((cos(q_3/C3)-1.0_rp)/lbalonz**2)*balloon   ! this must be periodic
+      gpar    = exp((cos(q_3/C3)-1.0_wp)/lbalonz**2)*balloon   ! this must be periodic
       gprim   = -sin(q_3/C3)/lbalonz**2/C3*balloon ! note that this is g'/g
       env     = noballoon + gpar             ! ballooning envelope multiplier
 

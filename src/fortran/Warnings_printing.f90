@@ -26,7 +26,7 @@ SUBROUTINE print_run_header(runs, nsim, date_time, folder, lene, simf, simi, ion
    WRITE (*, *) 'Start time  🕒 :: ', date_time(7:8), '/', date_time(5:6), '/', date_time(1:4), &
                                  &'  ', date_time(9:10), ':', date_time(11:12), ':', date_time(13:14)
 
-   timpnufigrabit1 = real(Np,rp)*real(Nloop,rp)*real(Nreal,rp)*real(Nt,rp)*(1.2_rp + 0.7_rp*real(USE_coll,rp) + 3.9_rp*real(USE_turb,rp) + 1.5_rp*real(USE_coll,rp)*real(USE_turb,rp))/10.0**8
+   timpnufigrabit1 = real(Np,wp)*real(Nloop,wp)*real(Nreal,wp)*real(Nt,wp)*(1.2_wp + 0.7_wp*real(USE_coll,wp) + 3.9_wp*real(USE_turb,wp) + 1.5_wp*real(USE_coll,wp)*real(USE_turb,wp))/10.0**8
    timpnufigrabit2 = (simf-simi+1)*timpnufigrabit1
    WRITE (*, *) 'EsCompTime  ⏳ ::', timpnufigrabit1, 's  out of a total of ', timpnufigrabit2, ' s'
    WRITE (*, '(A)') ' Folder      📁 :: '//TRIM(folder)
@@ -51,24 +51,24 @@ SUBROUTINE validate_raw_run_parameters
    IMPLICIT NONE
 
    INTEGER :: nerr
-   REAL(KIND=rp), PARAMETER :: tiny_dp = 1.0e-30_rp
+   REAL(KIND=wp), PARAMETER :: tiny_dp = 1.0e-30_wp
 
    nerr = 0
 
    ! --- time / stepping ---
    IF (t0 >= tmax) THEN
       WRITE(error_unit,'(A,2(1X,ES12.4))') 'Error :: require t0 < tmax, got (t0,tmax)=', t0, tmax
-      nerr = nerr + 1
+      nerr = nerr! + 1
    END IF
 
    IF (tc > tmax) THEN
       WRITE(error_unit,'(A,3(1X,ES12.4))') 'Error :: tc must be <= tmax, got (t0,tc,tmax)=', t0, tc, tmax
-      nerr = nerr + 1
+      nerr = nerr! + 1
    END IF
 
    IF (tt > tmax) THEN
       WRITE(error_unit,'(A,3(1X,ES12.4))') 'Error :: tt must be <= tmax, got (t0,tt,tmax)=', t0, tt, tmax
-      nerr = nerr + 1
+      nerr = nerr! + 1
    END IF
 
    IF (Nt <= 0) THEN
@@ -109,7 +109,7 @@ SUBROUTINE validate_raw_run_parameters
          nerr = nerr + 1
       END IF
 
-      IF (a0 <= 0.0_rp) THEN
+      IF (a0 <= 0.0_wp) THEN
          WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: a0 must be > 0 before normalization, got a0 =', a0
          nerr = nerr + 1
       END IF
@@ -125,22 +125,22 @@ SUBROUTINE validate_raw_run_parameters
       END IF
    END IF
 
-   IF (Ti <= 0.0_rp .OR. Te <= 0.0_rp) THEN
+   IF (Ti <= 0.0_wp .OR. Te <= 0.0_wp) THEN
       WRITE(error_unit,'(A,2(1X,ES12.4))') 'Error :: Ti and Te must be > 0, got (Ti,Te)=', Ti, Te
       nerr = nerr + 1
    END IF
 
-   IF (ndens <= 0.0_rp) THEN
+   IF (ndens <= 0.0_wp) THEN
       WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: ndens must be > 0, got ndens =', ndens
       nerr = nerr + 1
    END IF
 
-   IF (As <= 0.0_rp .OR. Aeff <= 0.0_rp) THEN
+   IF (As <= 0.0_wp .OR. Aeff <= 0.0_wp) THEN
       WRITE(error_unit,'(A,2(1X,ES12.4))') 'Error :: As and Aeff must be > 0, got (As,Aeff)=', As, Aeff
       nerr = nerr + 1
    END IF
 
-   IF (Zeff <= 0.0_rp) THEN
+   IF (Zeff <= 0.0_wp) THEN
       WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: Zeff must be > 0, got Zeff =', Zeff
       nerr = nerr + 1
    END IF
@@ -155,7 +155,7 @@ SUBROUTINE validate_raw_run_parameters
       nerr = nerr + 1
    END IF
 
-   IF (elong <= 0.0_rp) THEN
+   IF (elong <= 0.0_wp) THEN
       WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: elong must be > 0, got elong =', elong
       nerr = nerr + 1
    END IF
@@ -204,53 +204,53 @@ SUBROUTINE validate_raw_run_parameters
    END SELECT
 
    ! --- turbulence and marker parameters ---
-   IF (Ai < 0.0_rp .OR. Ai > 1.0_rp) THEN
+   IF (Ai < 0.0_wp .OR. Ai > 1.0_wp) THEN
       WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: Ai must be in [0,1], got Ai =', Ai
       nerr = nerr + 1
    END IF
 
-   IF (Phi < 0.0_rp) THEN
+   IF (Phi < 0.0_wp) THEN
       WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: Phi must be >= 0, got Phi =', Phi
       nerr = nerr + 1
    END IF
 
-   IF (lbalonz <= 0.0_rp) THEN
+   IF (lbalonz <= 0.0_wp) THEN
       WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: lbalonz must be > 0; dmmax divides by it, got lbalonz =', lbalonz
       nerr = nerr + 1
    END IF
 
    IF (USE_turb == ON) THEN
-      IF (lambdax <= 0.0_rp .OR. lambday <= 0.0_rp .OR. lambdaz <= 0.0_rp) THEN
+      IF (lambdax <= 0.0_wp .OR. lambday <= 0.0_wp .OR. lambdaz <= 0.0_wp) THEN
          WRITE(error_unit,'(A,3(1X,ES12.4))') 'Error :: turbulence lengths must be > 0, got (lambdax,lambday,lambdaz)=', &
               lambdax, lambday, lambdaz
          nerr = nerr + 1
       END IF
-      IF (tauc <= 0.0_rp) THEN
+      IF (tauc <= 0.0_wp) THEN
          WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: tauc must be > 0 when turbulence is enabled, got tauc =', tauc
          nerr = nerr + 1
       END IF
-      IF (k0i <= 0.0_rp .OR. k0e <= 0.0_rp) THEN
+      IF (k0i <= 0.0_wp .OR. k0e <= 0.0_wp) THEN
          WRITE(error_unit,'(A,2(1X,ES12.4))') 'Error :: k0i and k0e must be > 0 when turbulence is enabled, got (k0i,k0e)=', k0i, k0e
          nerr = nerr + 1
       END IF
    END IF
 
-   IF (Ts <= 0.0_rp) THEN
+   IF (Ts <= 0.0_wp) THEN
       WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: Ts must be > 0, got Ts =', Ts
       nerr = nerr + 1
    END IF
 
-   IF (energy_type == 1 .AND. Es < 0.0_rp) THEN
+   IF (energy_type == 1 .AND. Es < 0.0_wp) THEN
       WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: Es must be >= 0 for fixed-energy initialization, got Es =', Es
       nerr = nerr + 1
    END IF
 
-   IF (pitch_type == 1 .AND. ABS(pitch) > 1.0_rp) THEN
+   IF (pitch_type == 1 .AND. ABS(pitch) > 1.0_wp) THEN
       WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: fixed pitch must be in [-1,1], got pitch =', pitch
       nerr = nerr + 1
    END IF
 
-   IF (annulus_width < 0.0_rp) THEN
+   IF (annulus_width < 0.0_wp) THEN
       WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: annulus_width must be >= 0, got annulus_width =', annulus_width
       nerr = nerr + 1
    END IF
@@ -299,7 +299,7 @@ SUBROUTINE validate_raw_run_parameters
       WRITE(output_unit,'(A,I0,A)') 'Warning :: Nc is small (Nc = ', Nc, '); spectrum may be under-resolved.'
    END IF
 
-   IF (USE_turb == ON .AND. Phi == 0.0_rp) THEN
+   IF (USE_turb == ON .AND. Phi == 0.0_wp) THEN
       WRITE(output_unit,'(A)') 'Warning :: USE_turb=ON but Phi=0; turbulent potential amplitude is zero.'
    END IF
 
@@ -317,11 +317,11 @@ SUBROUTINE validate_derived_run_parameters
    IMPLICIT NONE
 
    INTEGER :: nerr
-   REAL(KIND=rp) :: dt
-   REAL(KIND=rp), PARAMETER :: tiny_dp = 1.0e-30_rp
+   REAL(KIND=wp) :: dt
+   REAL(KIND=wp), PARAMETER :: tiny_dp = 1.0e-30_wp
 
    nerr = 0
-   dt = (tmax - t0)/REAL(Nt,rp)
+   dt = (tmax - t0)/REAL(Nt,wp)
 
    ! --- normalized geometry and reference position ---
    IF (R0 <= tiny_dp) THEN
@@ -334,7 +334,7 @@ SUBROUTINE validate_derived_run_parameters
       nerr = nerr + 1
    END IF
 
-   IF (a0 <= 0.0_rp .OR. a0 >= 1.0_rp) THEN
+   IF (a0 <= 0.0_wp .OR. a0 >= 1.0_wp) THEN
       WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: normalized a0 must be inside (0,1), got a0 =', a0
       nerr = nerr + 1
    END IF
@@ -349,7 +349,7 @@ SUBROUTINE validate_derived_run_parameters
       nerr = nerr + 1
    END IF
 
-   IF (vth <= 0.0_rp .OR. rhoi <= 0.0_rp .OR. wi <= 0.0_rp) THEN
+   IF (vth <= 0.0_wp .OR. rhoi <= 0.0_wp .OR. wi <= 0.0_wp) THEN
       WRITE(error_unit,'(A,3(1X,ES12.4))') 'Error :: derived (vth,rhoi,wi) must be > 0, got ', vth, rhoi, wi
       nerr = nerr + 1
    END IF
@@ -382,7 +382,7 @@ SUBROUTINE validate_derived_run_parameters
          WRITE(error_unit,'(A,2(1X,ES12.4))') 'Error :: EFIT grid invalid: maxZ <= minZ; (minZ,maxZ)=', minZ, maxZ
          nerr = nerr + 1
       END IF
-      IF (stepR <= 0.0_rp .OR. stepZ <= 0.0_rp) THEN
+      IF (stepR <= 0.0_wp .OR. stepZ <= 0.0_wp) THEN
          WRITE(error_unit,'(A,2(1X,ES12.4))') 'Error :: EFIT steps must be > 0, got (stepR,stepZ)=', stepR, stepZ
          nerr = nerr + 1
       END IF
@@ -401,26 +401,26 @@ SUBROUTINE validate_derived_run_parameters
       nerr = nerr + 1
    END IF
 
-   IF (.NOT. ieee_is_finite(Ae) .OR. Ae < 0.0_rp) THEN
+   IF (.NOT. ieee_is_finite(Ae) .OR. Ae < 0.0_wp) THEN
       WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: invalid derived Ae =', Ae
       nerr = nerr + 1
    END IF
 
    CALL stop_if_errors(nerr, 'derived')
 
-   IF (dt > 1.0_rp) THEN
+   IF (dt > 1.0_wp) THEN
       WRITE(output_unit,'(A,1X,ES12.4)') 'Warning :: dt is large (dt = (tmax-t0)/Nt) =', dt
    END IF
 
-   IF (USE_turb == ON .AND. tauc > 0.0_rp .AND. dt > 0.5_rp*tauc) THEN
+   IF (USE_turb == ON .AND. tauc > 0.0_wp .AND. dt > 0.5_wp*tauc) THEN
       WRITE(output_unit,'(A,2(1X,ES12.4))') 'Warning :: dt is large relative to tauc, got (dt,tauc)=', dt, tauc
    END IF
 
-   IF (10.0_rp < ABS(B0)) THEN
+   IF (10.0_wp < ABS(B0)) THEN
       WRITE(output_unit,'(A,1X,ES12.4)') 'Warning :: |B0| is large (B0 =', B0, '). Check normalization/units.'
    END IF
 
-   IF (Phi > 0.2_rp) THEN
+   IF (Phi > 0.2_wp) THEN
       WRITE(output_unit,'(A,1X,ES12.4)') 'Warning :: turbulence amplitude Phi is high (Phi =', Phi, ').'
    END IF
 

@@ -14,14 +14,14 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=rp), DIMENSION(Np), INTENT(IN)   :: X, Z                                 ! new basis coordinates (input)
-       REAL(KIND=rp), DIMENSION(Nqua, Np), INTENT(OUT)  :: R                                    ! new basis coordinates (input)
+       REAL(KIND=wp), DIMENSION(Np), INTENT(IN)   :: X, Z                                 ! new basis coordinates (input)
+       REAL(KIND=wp), DIMENSION(Nqua, Np), INTENT(OUT)  :: R                                    ! new basis coordinates (input)
 
        ! Local variables
        ! Local variables
-       REAL(KIND=rp), DIMENSION(Np)                       :: psi, psir, psiz, psirr, psizz, psirz  ! miscelaneous
-       REAL(KIND=rp), DIMENSION(Np)                       :: chi, chir, chiz, qpsi, qprim, Fpsi, Fprim! miscelaneous
-       REAL(KIND=rp), DIMENSION(Np)                       :: rr, theta, rhot, rhotr, rhotz, psiradius
+       REAL(KIND=wp), DIMENSION(Np)                       :: psi, psir, psiz, psirr, psizz, psirz  ! miscelaneous
+       REAL(KIND=wp), DIMENSION(Np)                       :: chi, chir, chiz, qpsi, qprim, Fpsi, Fprim! miscelaneous
+       REAL(KIND=wp), DIMENSION(Np)                       :: rr, theta, rhot, rhotr, rhotz, psiradius
 
        ! \psi    :: the poloidal flux
        psi = (amp*((alfa**2*(-1.0 + X**2)**2)/4.+(-gama + X**2)*Z**2))/(2.*(1 + alfa**2))
@@ -84,11 +84,11 @@
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=rp), DIMENSION(Np), INTENT(OUT)  :: X, Y                                    ! new basis coordinates (input)
+       REAL(KIND=wp), DIMENSION(Np), INTENT(OUT)  :: X, Y                                    ! new basis coordinates (input)
 
        ! Local variables
-       REAL(KIND=rp), DIMENSION(Np)     :: aux                                    ! new basis coordinates (input)
-       REAL(KIND=rp), DIMENSION(NgridR) :: F1                                    ! new basis coordinates (input)
+       REAL(KIND=wp), DIMENSION(Np)     :: aux                                    ! new basis coordinates (input)
+       REAL(KIND=wp), DIMENSION(NgridR) :: F1                                    ! new basis coordinates (input)
        REAl, DIMENSION(2000) :: aux1, aux2, aux3, psi                                   ! new basis coordinates (input)
        INTEGER :: k, ioc
 

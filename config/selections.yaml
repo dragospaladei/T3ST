@@ -9,14 +9,14 @@ selections:
     database: "Full_database"
     method: "random"
     n_samples: 99
-    seed: 42
+    seed: random
 
   - name: "Full_db_random_999"
     description: "Random sample of 999 runs from the maximal 12D database."
     database: "Full_database"
     method: "random"
     n_samples: 999
-    seed: 42
+    seed: random
 
   - name: "Slice_3d_Ln_lx_ly"
     description: "3D slice where only Ln, lambdax, and lambday vary."
@@ -28,7 +28,6 @@ selections:
       lambdaz: 5.0
       lbalonz: 5.0
       tauc: 10.0
-      gamma_ZF: 0.0
       As: 1.0
       Zs: 1.0
       Ts: 1.0
@@ -62,7 +61,6 @@ selections:
       lambdaz: 2
       lbalonz: 2
       tauc: 2
-      gamma_ZF: 2
       As: 2
       Zs: 2
       Ts: 2
@@ -75,7 +73,6 @@ selections:
       Ln: 2
       Phi: 2
       Ai: 2
-      gamma_ZF: 2
       As: 2
       Zs: 2
 
@@ -126,12 +123,6 @@ selections:
     database: "Full_database"
     method: "slice"
     free_parameters: ["tauc"]
-
-  - name: "Vary_gamma_ZF_only"
-    description: "1D slice: vary gamma_ZF only; all other axes fixed to base_scenario values."
-    database: "Full_database"
-    method: "slice"
-    free_parameters: ["gamma_ZF"]
     
   - name: "Vary_As_only"
     description: "1D slice: vary As only; all other axes fixed to base_scenario values."

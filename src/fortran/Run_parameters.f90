@@ -30,24 +30,24 @@ MODULE constants
    !---------------------------------------------------------------------------------
    ! Universal constants
    !---------------------------------------------------------------------------------
-   REAL(KIND=rp), PARAMETER :: pi   = 3.1415926545_rp         ! pi
-   REAL(KIND=rp), PARAMETER :: E    = 2.7182818284_rp         ! Euler's number
-   REAL(KIND=rp), PARAMETER :: q0   = 1.60217*10.0**(-19.0)   ! elementary charge
-   REAL(KIND=rp), PARAMETER :: mi   = 1.67262*10.0**(-27.0)   ! proton mass
-   REAL(KIND=rp), PARAMETER :: me   = 9.10938*10.0**(-31.0)   ! electron mass
-   REAL(KIND=rp), PARAMETER :: eps  = 8.85418*10.0**(-12.0)   ! vacuum dielectric constant
-   REAL(KIND=rp), PARAMETER :: mu0  = 1.25663*10.0**(-6.0)    ! vacuum magnetic permeability
-   REAL(KIND=rp), PARAMETER :: kB   = 1.38064*10.0**(-23.0)   ! Boltzmann constant
-   REAL(KIND=rp), PARAMETER :: logL = 17.0                    ! Coulomb logarithm
+   REAL(KIND=wp), PARAMETER :: pi   = 3.1415926545_wp         ! pi
+   REAL(KIND=wp), PARAMETER :: E    = 2.7182818284_wp         ! Euler's number
+   REAL(KIND=wp), PARAMETER :: q0   = 1.60217*10.0**(-19.0)   ! elementary charge
+   REAL(KIND=wp), PARAMETER :: mi   = 1.67262*10.0**(-27.0)   ! proton mass
+   REAL(KIND=wp), PARAMETER :: me   = 9.10938*10.0**(-31.0)   ! electron mass
+   REAL(KIND=wp), PARAMETER :: eps  = 8.85418*10.0**(-12.0)   ! vacuum dielectric constant
+   REAL(KIND=wp), PARAMETER :: mu0  = 1.25663*10.0**(-6.0)    ! vacuum magnetic permeability
+   REAL(KIND=wp), PARAMETER :: kB   = 1.38064*10.0**(-23.0)   ! Boltzmann constant
+   REAL(KIND=wp), PARAMETER :: logL = 17.0                    ! Coulomb logarithm
    INTEGER, PARAMETER       :: ON = 1
    INTEGER, PARAMETER       :: OFF = 0
-   REAL(KIND=rp), PARAMETER :: eps_xi    = 1.0e-15_rp
-   REAL(KIND=rp), PARAMETER :: eps_rr    = 1.0e-15_rp
-   REAL(KIND=rp), PARAMETER :: eps_root  = 1.0e-15_rp
-   REAL(KIND=rp), PARAMETER :: eps_B     = 1.0e-15_rp
-   REAL(KIND=rp), PARAMETER :: eps_Bsp   = 1.0e-15_rp
-   REAL(KIND=rp), PARAMETER :: eps_omega = 1.0e-15_rp
-   REAL(KIND=rp), PARAMETER :: eps_large = 1.0e-6_rp
+   REAL(KIND=wp), PARAMETER :: eps_xi    = 1.0e-15_wp
+   REAL(KIND=wp), PARAMETER :: eps_rr    = 1.0e-15_wp
+   REAL(KIND=wp), PARAMETER :: eps_root  = 1.0e-15_wp
+   REAL(KIND=wp), PARAMETER :: eps_B     = 1.0e-15_wp
+   REAL(KIND=wp), PARAMETER :: eps_Bsp   = 1.0e-15_wp
+   REAL(KIND=wp), PARAMETER :: eps_omega = 1.0e-15_wp
+   REAL(KIND=wp), PARAMETER :: eps_large = 1.0e-6_wp
 
 
    !---------------------------------------------------------------------------------
@@ -70,10 +70,10 @@ MODULE constants
    !---------------------------------------------------------------------------------
    ! Numerical parameters
    !---------------------------------------------------------------------------------
-   REAL(KIND=rp) :: t0                             ! simulation start time        [R0/vth]
-   REAL(KIND=rp) :: tc                             ! collisions start time        [R0/vth]
-   REAL(KIND=rp) :: tt                             ! turbulence start time        [R0/vth]
-   REAL(KIND=rp) :: tmax                           ! simulation end time          [R0/vth]
+   REAL(KIND=wp) :: t0                             ! simulation start time        [R0/vth]
+   REAL(KIND=wp) :: tc                             ! collisions start time        [R0/vth]
+   REAL(KIND=wp) :: tt                             ! turbulence start time        [R0/vth]
+   REAL(KIND=wp) :: tmax                           ! simulation end time          [R0/vth]
 
    INTEGER       :: Nt                             ! number of time steps
    INTEGER       :: Nreal                          ! realizations of turbulent field
@@ -88,62 +88,62 @@ MODULE constants
    !---------------------------------------------------------------------------------
    ! Plasma / normalization
    !---------------------------------------------------------------------------------
-   REAL(KIND=rp) :: Ti                             ! ion temperature @ r00
-   REAL(KIND=rp) :: Te                             ! electron temperature @ r00
-   REAL(KIND=rp) :: Zeff                           ! effective charge number
-   REAL(KIND=rp) :: Aeff                           ! effective mass number
-   REAL(KIND=rp) :: ndens                          ! ion density @ r00             [m^-3] (imported in 1e19 m^-3)
+   REAL(KIND=wp) :: Ti                             ! ion temperature @ r00
+   REAL(KIND=wp) :: Te                             ! electron temperature @ r00
+   REAL(KIND=wp) :: Zeff                           ! effective charge number
+   REAL(KIND=wp) :: Aeff                           ! effective mass number
+   REAL(KIND=wp) :: ndens                          ! ion density @ r00             [m^-3] (imported in 1e19 m^-3)
 
-   REAL(KIND=rp) :: vth                            ! thermal velocity (H ions)     [m/s] @ r00
-   REAL(KIND=rp) :: rhoi                           ! Larmor radius (H ions)        [m]   @ r00 (B0)
-   REAL(KIND=rp) :: wi                             ! Larmor frequency              [Hz]
-   REAL(KIND=rp) :: c0                             ! collision-related constant
-   REAL(KIND=rp) :: delta                          ! collision-related constant
+   REAL(KIND=wp) :: vth                            ! thermal velocity (H ions)     [m/s] @ r00
+   REAL(KIND=wp) :: rhoi                           ! Larmor radius (H ions)        [m]   @ r00 (B0)
+   REAL(KIND=wp) :: wi                             ! Larmor frequency              [Hz]
+   REAL(KIND=wp) :: c0                             ! collision-related constant
+   REAL(KIND=wp) :: delta                          ! collision-related constant
 
    !---------------------------------------------------------------------------------
    ! Gradients / drives
    !---------------------------------------------------------------------------------
-   REAL(KIND=rp) :: Ln                             ! density gradient length       [R0*d(lnn)/dr]
-   REAL(KIND=rp) :: Li                             ! ion temperature gradient      [R0*d(lnTi)/dr]
-   REAL(KIND=rp) :: Le                             ! electron temperature gradient [R0*d(lnTe)/dr]
+   REAL(KIND=wp) :: Ln                             ! density gradient length       [R0*d(lnn)/dr]
+   REAL(KIND=wp) :: Li                             ! ion temperature gradient      [R0*d(lnTi)/dr]
+   REAL(KIND=wp) :: Le                             ! electron temperature gradient [R0*d(lnTe)/dr]
 
    !---------------------------------------------------------------------------------
    ! Geometry / equilibrium
    !---------------------------------------------------------------------------------
    INTEGER       :: magnetic_model                 ! equilibrium: 1-EFIT, 2-EFIT-sa, 3-Solovev, 4-Circular
 
-   REAL(KIND=rp) :: B0                             ! magnetic field @ axis         [T]
-   REAL(KIND=rp) :: R0                             ! major radius                  [m]
-   REAL(KIND=rp) :: a0                             ! minor radius                  [m]
+   REAL(KIND=wp) :: B0                             ! magnetic field @ axis         [T]
+   REAL(KIND=wp) :: R0                             ! major radius                  [m]
+   REAL(KIND=wp) :: a0                             ! minor radius                  [m]
 
-   REAL(KIND=rp) :: s1                             ! circular q-profile coefficient
-   REAL(KIND=rp) :: s2                             ! circular q-profile coefficient
-   REAL(KIND=rp) :: s3                             ! circular q-profile coefficient
+   REAL(KIND=wp) :: s1                             ! circular q-profile coefficient
+   REAL(KIND=wp) :: s2                             ! circular q-profile coefficient
+   REAL(KIND=wp) :: s3                             ! circular q-profile coefficient
 
-   REAL(KIND=rp) :: amp                            ! Solovev flux amplitude
-   REAL(KIND=rp) :: elong                          ! elongation
+   REAL(KIND=wp) :: amp                            ! Solovev flux amplitude
+   REAL(KIND=wp) :: elong                          ! elongation
 
    INTEGER       :: device                         ! (1=MAST, 2=TCV, 3=WEST, 4=JTSA)
    INTEGER       :: shot                           ! shot number
    INTEGER       :: shotslice                      ! time (ms) for equilibrium slice
 
-   REAL(KIND=rp) :: Omgt0                          ! toroidal angular frequency    [1e3 Hz] @ r00
-   REAL(KIND=rp) :: Omgtprim                       ! d ln Omgt / d rhot            [1] @ r00
+   REAL(KIND=wp) :: Omgt0                          ! toroidal angular frequency    [1e3 Hz] @ r00
+   REAL(KIND=wp) :: Omgtprim                       ! d ln Omgt / d rhot            [1] @ r00
 
-   REAL(KIND=rp) :: q00                            ! safety factor @ r00
-   REAL(KIND=rp) :: r00                            ! reference surface (for global evaluation)
-   REAL(KIND=rp) :: q10                            ! reference surface (for global evaluation)
-   REAL(KIND=rp) :: psi0                           ! poloidal flux @ r0
+   REAL(KIND=wp) :: q00                            ! safety factor @ r00
+   REAL(KIND=wp) :: r00                            ! reference surface (for global evaluation)
+   REAL(KIND=wp) :: q10                            ! reference surface (for global evaluation)
+   REAL(KIND=wp) :: psi0                           ! poloidal flux @ r0
 
    ! Extra equilibrium / imported-data helpers
-   REAL(KIND=rp) :: alfa                           ! Solovev parameter (separatrix/ellipticity-related)
-   REAL(KIND=rp) :: gama                           ! Solovev parameter (sqrt(gama)=separatrix position)
+   REAL(KIND=wp) :: alfa                           ! Solovev parameter (separatrix/ellipticity-related)
+   REAL(KIND=wp) :: gama                           ! Solovev parameter (sqrt(gama)=separatrix position)
    CHARACTER(LEN=:), ALLOCATABLE            :: efit_file
-   REAL(KIND=rp), ALLOCATABLE, DIMENSION(:) :: Efit_data
+   REAL(KIND=wp), ALLOCATABLE, DIMENSION(:) :: Efit_data
    INTEGER                                  :: NgridR, NgridZ, Nqua, Ngrid
-   REAL(KIND=rp)                            :: minR, maxR, minZ, maxZ
-   REAL(KIND=rp)                            :: stepR, stepZ
-   REAL(KIND=rp)                            :: triang
+   REAL(KIND=wp)                            :: minR, maxR, minZ, maxZ
+   REAL(KIND=wp)                            :: stepR, stepZ
+   REAL(KIND=wp)                            :: triang
 
    !---------------------------------------------------------------------------------
    ! Turbulence model
@@ -153,52 +153,52 @@ MODULE constants
    INTEGER       :: y_corr                         ! y correlation: 1-Madi, 2-GENE
    INTEGER       :: t_corr                         ! t correlation: 1-gaussian, 2-exponential
 
-   REAL(KIND=rp) :: Phi                            ! turbulence amplitude [ePhi/Ti]
-   REAL(KIND=rp) :: turbprof                       ! exponent for synthetic turb. profile
-   REAL(KIND=rp) :: Ai                             ! ITG fraction
+   REAL(KIND=wp) :: Phi                            ! turbulence amplitude [ePhi/Ti]
+   REAL(KIND=wp) :: turbprof                       ! exponent for synthetic turb. profile
+   REAL(KIND=wp) :: Ai                             ! ITG fraction
 
-   REAL(KIND=rp) :: lambdax                        ! x correlation length [rhoi units]
-   REAL(KIND=rp) :: lambday                        ! y correlation length [rhoi units]
-   REAL(KIND=rp) :: lambdaz                        ! z correlation length due to decoherence [q0*R0 units]
-   REAL(KIND=rp) :: lbalonz                        ! z correlation length due to ballooning envelope [q0*R0 units]
-   REAL(KIND=rp) :: tauc                           ! time correlation [R0/vth]
-   REAL(KIND=rp) :: k0i                            ! ITG dominant ky [1/rhoi]
-   REAL(KIND=rp) :: k0e                            ! TEM dominant ky [1/rhoi]
-   REAL(KIND=rp) :: gamma_ZF                       ! zonal-flow shearing rate
-   REAL(KIND=rp) :: gamma_E                        ! rotational shearing rate
+   REAL(KIND=wp) :: lambdax                        ! x correlation length [rhoi units]
+   REAL(KIND=wp) :: lambday                        ! y correlation length [rhoi units]
+   REAL(KIND=wp) :: lambdaz                        ! z correlation length due to decoherence [q0*R0 units]
+   REAL(KIND=wp) :: lbalonz                        ! z correlation length due to ballooning envelope [q0*R0 units]
+   REAL(KIND=wp) :: tauc                           ! time correlation [R0/vth]
+   REAL(KIND=wp) :: k0i                            ! ITG dominant ky [1/rhoi]
+   REAL(KIND=wp) :: k0e                            ! TEM dominant ky [1/rhoi]
+   REAL(KIND=wp) :: gamma_ZF                       ! zonal-flow shearing rate
+   REAL(KIND=wp) :: gamma_E                        ! rotational shearing rate
 
-   REAL(KIND=rp) :: Ae                             ! TEM fraction
+   REAL(KIND=wp) :: Ae                             ! TEM fraction
    INTEGER       :: dmmax                          ! maximal parallel number
 
    !---------------------------------------------------------------------------------
    ! Particle initial conditions / markers
    !---------------------------------------------------------------------------------
-   REAL(KIND=rp) :: X0                             ! starting position R
-   REAL(KIND=rp) :: Y0                             ! starting position Z
-   REAL(KIND=rp) :: Z0                             ! starting position phi
+   REAL(KIND=wp) :: X0                             ! starting position R
+   REAL(KIND=wp) :: Y0                             ! starting position Z
+   REAL(KIND=wp) :: Z0                             ! starting position phi
 
-   REAL(KIND=rp) :: Ts                             ! energy average [Ti units] @ r00
-   REAL(KIND=rp) :: Es                             ! average ion energy [Ti units]
-   REAL(KIND=rp) :: pitch                          ! average pitch angle
-   REAL(KIND=rp) :: As                             ! ion mass number
-   REAL(KIND=rp) :: Zs                             ! ionization state
-   REAL(KIND=rp) :: taucc                          ! inverse collision frequency [R0/vth]
-   REAL(KIND=rp) :: Lns                            ! density gradient for the species
-   REAL(KIND=rp) :: Lts                            ! temperature gradient of the species
-   REAL(KIND=rp) :: annulus_width                  ! full radial width for local-annulus initialization
+   REAL(KIND=wp) :: Ts                             ! energy average [Ti units] @ r00
+   REAL(KIND=wp) :: Es                             ! average ion energy [Ti units]
+   REAL(KIND=wp) :: pitch                          ! average pitch angle
+   REAL(KIND=wp) :: As                             ! ion mass number
+   REAL(KIND=wp) :: Zs                             ! ionization state
+   REAL(KIND=wp) :: taucc                          ! inverse collision frequency [R0/vth]
+   REAL(KIND=wp) :: Lns                            ! density gradient for the species
+   REAL(KIND=wp) :: Lts                            ! temperature gradient of the species
+   REAL(KIND=wp) :: annulus_width                  ! full radial width for local-annulus initialization
 
    INTEGER       :: position_type                  ! init position: 1-fixed point, ...
    INTEGER       :: pitch_type                     ! init pitch: 1-fixed, 2-random uniform
    INTEGER       :: energy_type                    ! init energy: 1-fixed, 2-Boltzmann
 
-   REAL(KIND=rp) :: usetilt, balloon, noballoon, norm ! helpers
+   REAL(KIND=wp) :: usetilt, balloon, noballoon, norm ! helpers
 
    !---------------------------------------------------------------------------------
    ! Misc. derived helpers
    !---------------------------------------------------------------------------------
-   REAL(KIND=rp) :: C1                             ! q1 = C1*Q1
-   REAL(KIND=rp) :: C2                             ! q2 = C2*Q2
-   REAL(KIND=rp) :: C3                             ! q3 = C3*Q3
+   REAL(KIND=wp) :: C1                             ! q1 = C1*Q1
+   REAL(KIND=wp) :: C2                             ! q2 = C2*Q2
+   REAL(KIND=wp) :: C3                             ! q3 = C3*Q3
 
 CONTAINS
 
@@ -216,7 +216,7 @@ CONTAINS
       IMPLICIT NONE
 
       INTEGER, INTENT(IN)             :: run      ! row index in Sim_XXX.dat / DB_XXX.dat
-      REAL(KIND=rp), DIMENSION(cols1) :: pp       ! parameter vector for this run
+      REAL(KIND=wp), DIMENSION(cols1) :: pp       ! parameter vector for this run
 
       pp = array1(run, :)
 
@@ -318,9 +318,9 @@ CONTAINS
       !---------------------------------------------------------------------------------
       ! Convert imported units and evaluate derived normalization quantities.
       !---------------------------------------------------------------------------------
-      Ti    = Ti*1000.0_rp                     ! imported in keV
-      Te    = Te*1000.0_rp                     ! imported in keV
-      ndens = ndens*10.0_rp**19                ! imported in 1e19 m^-3
+      Ti    = Ti*1000.0_wp                     ! imported in keV
+      Te    = Te*1000.0_wp                     ! imported in keV
+      ndens = ndens*10.0_wp**19                ! imported in 1e19 m^-3
 
       vth  = sqrt(Ti*q0/mi)
       rhoi = mi*vth/q0/abs(B0)
@@ -328,12 +328,12 @@ CONTAINS
 
       r00 = sqrt((X0 - R0)**2 + Y0**2)
 
-      gama = 1.0_rp - 2.0_rp*sqrt((a0/R0)**2 - (a0/R0)**4)
-      alfa = elong*(sqrt(2.0_rp - gama) - sqrt(gama)) / sqrt(2.0_rp - 2.0_rp*gama)
-      amp  = 0.5_rp*(1.0_rp + alfa**2) / (1.0_rp - gama) / s1
+      gama = 1.0_wp - 2.0_wp*sqrt((a0/R0)**2 - (a0/R0)**4)
+      alfa = elong*(sqrt(2.0_wp - gama) - sqrt(gama)) / sqrt(2.0_wp - 2.0_wp*gama)
+      amp  = 0.5_wp*(1.0_wp + alfa**2) / (1.0_wp - gama) / s1
 
       a0    = a0/R0
-      Omgt0 = Omgt0*10.0_rp**3 / (vth/R0)
+      Omgt0 = Omgt0*10.0_wp**3 / (vth/R0)
 
       r00 = r00/R0
       X0  = X0/R0
@@ -344,29 +344,29 @@ CONTAINS
 
       C1 = a0*R0/rhoi
       C2 = -r00/q00 * R0/rhoi
-      C3 = 1.0_rp
+      C3 = 1.0_wp
 
       Nci = int(Nc*Ai**2)
       Nce = Nc - Nci
 
-      Ae = sqrt(1.0_rp - Ai**2)
+      Ae = sqrt(1.0_wp - Ai**2)
 
-      c0 = logL*ndens/8.0_rp/pi * (Zeff*Zs*q0**2/(eps*mi*As))**2
+      c0 = logL*ndens/8.0_wp/pi * (Zeff*Zs*q0**2/(eps*mi*As))**2
 
-      delta = 5.0_rp*4.0_rp/3.0_rp/sqrt(pi) * (tmax - t0)/Nt * R0*2.0_rp*logL*ndens*(Zeff*Zs*q0**2)**2 / &
-              (pi*eps**2*mi**2*As**2*vth**4*sqrt(2.0_rp/Aeff)**3)
-      taucc = 0.0_rp
+      delta = 5.0_wp*4.0_wp/3.0_wp/sqrt(pi) * (tmax - t0)/Nt * R0*2.0_wp*logL*ndens*(Zeff*Zs*q0**2)**2 / &
+              (pi*eps**2*mi**2*As**2*vth**4*sqrt(2.0_wp/Aeff)**3)
+      taucc = 0.0_wp
 
       CALL validate_derived_run_parameters
 
       gamma_E = gamma_ZF + Omgtprim          ! total shearing rate used by turbulence
-      usetilt = real(USE_tilt, rp)
-      balloon = real(USE_balloon, rp)        ! integer switch -> 0.0 or 1.0
-      noballoon = 1.0_rp - balloon
-      norm = 1.0_rp / sqrt(real(Nc, rp)/2.0_rp)
+      usetilt = real(USE_tilt, wp)
+      balloon = real(USE_balloon, wp)        ! integer switch -> 0.0 or 1.0
+      noballoon = 1.0_wp - balloon
+      norm = 1.0_wp / sqrt(real(Nc, wp)/2.0_wp)
 
       ! dmmax = 2
-      dmmax = 2 + int(sqrt(-2.0_rp*log(0.05_rp)/lbalonz))
+      dmmax = 2 + int(sqrt(-2.0_wp*log(0.05_wp)/lbalonz))
 
    END SUBROUTINE load_run_parameters
 

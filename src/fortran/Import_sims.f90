@@ -43,9 +43,9 @@ MODULE sims
    ! parameter name through parameter_index(), so column order can change safely as long
    ! as the header row is correct.
    !---------------------------------------------------------------------------------
-   INTEGER, PARAMETER :: rp = selected_real_kind(7)
+   INTEGER, PARAMETER :: wp = selected_real_kind(7)
 
-   REAL(KIND=rp), ALLOCATABLE, DIMENSION(:, :) :: array1
+   REAL(KIND=wp), ALLOCATABLE, DIMENSION(:, :) :: array1
    INTEGER                                     :: rows1
    INTEGER                                     :: cols1
 

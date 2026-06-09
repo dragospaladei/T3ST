@@ -21,16 +21,16 @@ SUBROUTINE EFIT2(X, Y, R)
    !---------------------------------------------------------------------------------
    ! I/O
    !---------------------------------------------------------------------------------
-   REAL(KIND=rp), DIMENSION(Np),      INTENT(IN)  :: X, Y
-   REAL(KIND=rp), DIMENSION(Nqua, Np), INTENT(OUT) :: R
+   REAL(KIND=wp), DIMENSION(Np),      INTENT(IN)  :: X, Y
+   REAL(KIND=wp), DIMENSION(Nqua, Np), INTENT(OUT) :: R
 
    !---------------------------------------------------------------------------------
    ! Locals
    !---------------------------------------------------------------------------------
    INTEGER,       DIMENSION(Np) :: poz1, poz2
    INTEGER                    :: i, j
-   REAL(KIND=rp), DIMENSION(Np) :: F1, F2, F3, F4
-   REAL(KIND=rp), DIMENSION(Np) :: X1, Y1, Xef, Yef
+   REAL(KIND=wp), DIMENSION(Np) :: F1, F2, F3, F4
+   REAL(KIND=wp), DIMENSION(Np) :: X1, Y1, Xef, Yef
 
    !---------------------------------------------------------------------------------
    ! Cell indices and local coordinates
@@ -74,17 +74,17 @@ SUBROUTINE EFITsa(X, Y, R)
    !---------------------------------------------------------------------------------
    ! I/O
    !---------------------------------------------------------------------------------
-   REAL(KIND=rp), DIMENSION(Np),      INTENT(IN)  :: X, Y
-   REAL(KIND=rp), DIMENSION(Nqua, Np), INTENT(OUT) :: R
+   REAL(KIND=wp), DIMENSION(Np),      INTENT(IN)  :: X, Y
+   REAL(KIND=wp), DIMENSION(Nqua, Np), INTENT(OUT) :: R
 
    !---------------------------------------------------------------------------------
    ! Locals
    !---------------------------------------------------------------------------------
    INTEGER,       DIMENSION(Np) :: poz1, poz2
    INTEGER                    :: i, j
-   REAL(KIND=rp), DIMENSION(Np) :: F1, F2, F3, F4
-   REAL(KIND=rp), DIMENSION(Np) :: X1, Y1, Xef, Yef
-   REAL(KIND=rp), DIMENSION(Np) :: rr, theta, chi, chir, chiz
+   REAL(KIND=wp), DIMENSION(Np) :: F1, F2, F3, F4
+   REAL(KIND=wp), DIMENSION(Np) :: X1, Y1, Xef, Yef
+   REAL(KIND=wp), DIMENSION(Np) :: rr, theta, chi, chir, chiz
 
    !---------------------------------------------------------------------------------
    ! Cell indices and local coordinates
@@ -115,12 +115,12 @@ SUBROUTINE EFITsa(X, Y, R)
    !---------------------------------------------------------------------------------
    ! Overwrite chi, chir, chiz with circular expressions
    !---------------------------------------------------------------------------------
-   rr    = sqrt((X - 1.0_rp)**2 + Y**2) + 1.0e-7_rp
-   theta = atan2(Y, X - 1.0_rp)
+   rr    = sqrt((X - 1.0_wp)**2 + Y**2) + 1.0e-7_wp
+   theta = atan2(Y, X - 1.0_wp)
 
-   chi  = 2.0_rp*atan( sqrt((1.0_rp - rr)/(1.0_rp + rr)) * tan(theta/2.0_rp) )
-   chir =  sin(theta) * (rr**2 - X) / X / rr / sqrt(1.0_rp - rr**2)
-   chiz = -(rr - cos(theta)) / rr / sqrt(1.0_rp - rr**2)
+   chi  = 2.0_wp*atan( sqrt((1.0_wp - rr)/(1.0_wp + rr)) * tan(theta/2.0_wp) )
+   chir =  sin(theta) * (rr**2 - X) / X / rr / sqrt(1.0_wp - rr**2)
+   chiz = -(rr - cos(theta)) / rr / sqrt(1.0_wp - rr**2)
 
    R(Nqua - 2, :) = chi
    R(Nqua - 1, :) = chir
@@ -139,29 +139,29 @@ SUBROUTINE psisurf_efit_old(X, Y, Vp)
    !---------------------------------------------------------------------------------
    ! I/O
    !---------------------------------------------------------------------------------
-   REAL(KIND=rp), DIMENSION(Np), INTENT(OUT) :: X, Y
-   REAL(KIND=rp), DIMENSION(Np), INTENT(IN)  :: Vp
+   REAL(KIND=wp), DIMENSION(Np), INTENT(OUT) :: X, Y
+   REAL(KIND=wp), DIMENSION(Np), INTENT(IN)  :: Vp
 
    !---------------------------------------------------------------------------------
    ! Locals
    !---------------------------------------------------------------------------------
-   REAL(KIND=rp), DIMENSION(Np)      :: aux, keep
+   REAL(KIND=wp), DIMENSION(Np)      :: aux, keep
    INTEGER,       DIMENSION(NgridR)  :: aux1
 
    LOGICAL                          :: mask(NgridR)
-   REAL(KIND=rp), DIMENSION(NgridR) :: Rvals, Zvals, diff, targeta
+   REAL(KIND=wp), DIMENSION(NgridR) :: Rvals, Zvals, diff, targeta
    INTEGER                          :: i, j, k, ioc, joc
-   REAL(KIND=rp), DIMENSION(NgridR) :: F, psi, psir, psiz, normB
+   REAL(KIND=wp), DIMENSION(NgridR) :: F, psi, psir, psiz, normB
 
    ! Random line angle
    CALL random_number(aux)
-   aux = pi*(2.0_rp*aux - 1.0_rp)
+   aux = pi*(2.0_wp*aux - 1.0_wp)
 
    DO k = 1, Np
 
       ! Build indices along a straight line in (R,Z) via tan(theta)
       DO i = 1, NgridR
-         j = int(-minZ/stepZ + tan(aux(k))*(minR - 1.0_rp + i*stepR)/stepZ)
+         j = int(-minZ/stepZ + tan(aux(k))*(minR - 1.0_wp + i*stepR)/stepZ)
          aux1(i) = i*NgridR + j
       END DO
 
@@ -181,19 +181,19 @@ SUBROUTINE psisurf_efit_old(X, Y, Vp)
 
       ! R and Z samples along that line
       Rvals = [(minR + (i-1)*stepR, i=1, NgridR)]
-      Zvals = tan(aux(k))*(Rvals - 1.0_rp)
+      Zvals = tan(aux(k))*(Rvals - 1.0_wp)
 
       ! Target psi along the line
-      targeta = real(USE_PC,rp)*rhoi/R0*As/Zs*F/normB*Vp(k) + psi0
+      targeta = real(USE_PC,wp)*rhoi/R0*As/Zs*F/normB*Vp(k) + psi0
 
       ! Mask inside plasma region
-      mask = ((Rvals - 1.0_rp)**2 + Zvals**2 <= (a0**2))
+      mask = ((Rvals - 1.0_wp)**2 + Zvals**2 <= (a0**2))
 
       ! Difference array and minimum restricted to mask
       diff = abs(psi - targeta)
-      ioc  = minloc(merge(diff, huge(100.0_rp), mask), 1)
+      ioc  = minloc(merge(diff, huge(100.0_wp), mask), 1)
 
-      joc = int(-minZ/stepZ + tan(aux(k))*(minR - 1.0_rp + ioc*stepR)/stepZ)
+      joc = int(-minZ/stepZ + tan(aux(k))*(minR - 1.0_wp + ioc*stepR)/stepZ)
 
       keep(k) = ioc
       X(k)    = minR + ioc*stepR
@@ -214,19 +214,19 @@ SUBROUTINE psisurf_efit3(X, Y, Vp)
    !---------------------------------------------------------------------------------
    ! Arguments
    !---------------------------------------------------------------------------------
-   REAL(KIND=rp), DIMENSION(Np), INTENT(OUT) :: X, Y
-   REAL(KIND=rp), DIMENSION(Np), INTENT(IN)  :: Vp
+   REAL(KIND=wp), DIMENSION(Np), INTENT(OUT) :: X, Y
+   REAL(KIND=wp), DIMENSION(Np), INTENT(IN)  :: Vp
 
    !---------------------------------------------------------------------------------
    ! Locals
    !---------------------------------------------------------------------------------
    INTEGER :: i, j, k, npts, idx
-   REAL(KIND=rp), DIMENSION(NgridR, NgridZ) :: psi, F, psir, psiz, normB, phi3
-   REAL(KIND=rp), DIMENSION(NgridR)         :: Rvals
-   REAL(KIND=rp), DIMENSION(NgridZ)         :: Zvals
+   REAL(KIND=wp), DIMENSION(NgridR, NgridZ) :: psi, F, psir, psiz, normB, phi3
+   REAL(KIND=wp), DIMENSION(NgridR)         :: Rvals
+   REAL(KIND=wp), DIMENSION(NgridZ)         :: Zvals
 
-   REAL(KIND=rp) :: dR_loc, dZ_loc, Kconst, urand
-   REAL(KIND=rp), ALLOCATABLE :: Rc(:), Zc(:)
+   REAL(KIND=wp) :: dR_loc, dZ_loc, Kconst, urand
+   REAL(KIND=wp), ALLOCATABLE :: Rc(:), Zc(:)
 
    !---------------------------------------------------------------------------------
    ! Grid vectors
@@ -252,7 +252,7 @@ SUBROUTINE psisurf_efit3(X, Y, Vp)
    END DO
 
    ! Constant prefactor K = (USE_PC*rhoi/R0)*(As/Zs)
-   Kconst = real(USE_PC,rp)*rhoi/R0*As/Zs
+   Kconst = real(USE_PC,wp)*rhoi/R0*As/Zs
 
    !---------------------------------------------------------------------------------
    ! Parallel loop over particles: build phi3 and sample from phi3=0 contour intersections
@@ -271,7 +271,7 @@ SUBROUTINE psisurf_efit3(X, Y, Vp)
       END IF
 
       CALL random_number(urand)
-      idx = INT(1 + urand * REAL(npts-1, rp))   ! random intersection
+      idx = INT(1 + urand * REAL(npts-1, wp))   ! random intersection
 
       X(k) = Rc(idx)
       Y(k) = Zc(idx)
@@ -289,13 +289,13 @@ CONTAINS
       USE constants
       IMPLICIT NONE
 
-      REAL(KIND=rp), INTENT(IN)  :: phi3(NgridR, NgridZ), Rvals(NgridR), Zvals(NgridZ)
-      REAL(KIND=rp), ALLOCATABLE, INTENT(OUT) :: Rc(:), Zc(:)
+      REAL(KIND=wp), INTENT(IN)  :: phi3(NgridR, NgridZ), Rvals(NgridR), Zvals(NgridZ)
+      REAL(KIND=wp), ALLOCATABLE, INTENT(OUT) :: Rc(:), Zc(:)
       INTEGER, INTENT(OUT) :: npts
 
       INTEGER  :: i, j, icount
-      REAL(rp) :: f00, f10, f01, f11, t, rint, zint
-      REAL(rp), ALLOCATABLE :: rtemp(:), ztemp(:)
+      REAL(wp) :: f00, f10, f01, f11, t, rint, zint
+      REAL(wp), ALLOCATABLE :: rtemp(:), ztemp(:)
 
       ALLOCATE(rtemp(NgridR*NgridZ*4))
       ALLOCATE(ztemp(NgridR*NgridZ*4))
@@ -309,7 +309,7 @@ CONTAINS
             f11 = phi3(i+1, j+1)
 
             ! Bottom edge: (i,j) -> (i+1,j)
-            IF (f00*f10 < 0.0_rp) THEN
+            IF (f00*f10 < 0.0_wp) THEN
                t    = f00 / (f00 - f10)
                rint = Rvals(i) + t*(Rvals(i+1) - Rvals(i))
                zint = Zvals(j)
@@ -319,7 +319,7 @@ CONTAINS
             END IF
 
             ! Top edge: (i,j+1) -> (i+1,j+1)
-            IF (f01*f11 < 0.0_rp) THEN
+            IF (f01*f11 < 0.0_wp) THEN
                t    = f01 / (f01 - f11)
                rint = Rvals(i) + t*(Rvals(i+1) - Rvals(i))
                zint = Zvals(j+1)
@@ -329,7 +329,7 @@ CONTAINS
             END IF
 
             ! Left edge: (i,j) -> (i,j+1)
-            IF (f00*f01 < 0.0_rp) THEN
+            IF (f00*f01 < 0.0_wp) THEN
                t    = f00 / (f00 - f01)
                rint = Rvals(i)
                zint = Zvals(j) + t*(Zvals(j+1) - Zvals(j))
@@ -339,7 +339,7 @@ CONTAINS
             END IF
 
             ! Right edge: (i+1,j) -> (i+1,j+1)
-            IF (f10*f11 < 0.0_rp) THEN
+            IF (f10*f11 < 0.0_wp) THEN
                t    = f10 / (f10 - f11)
                rint = Rvals(i+1)
                zint = Zvals(j) + t*(Zvals(j+1) - Zvals(j))
@@ -373,11 +373,11 @@ CONTAINS
    SUBROUTINE order_points_by_angle(Rc, Zc)
       USE constants
       IMPLICIT NONE
-      REAL(KIND=rp), INTENT(INOUT) :: Rc(:), Zc(:)
+      REAL(KIND=wp), INTENT(INOUT) :: Rc(:), Zc(:)
 
       INTEGER :: n, i, j, itmp
-      REAL(rp) :: cx, cz, tmpa, tmpr, tmpz
-      REAL(rp), ALLOCATABLE :: ang(:)
+      REAL(wp) :: cx, cz, tmpa, tmpr, tmpz
+      REAL(wp), ALLOCATABLE :: ang(:)
       INTEGER,  ALLOCATABLE :: idx(:)
 
       n = SIZE(Rc)
@@ -422,8 +422,8 @@ CONTAINS
       USE constants
       IMPLICIT NONE
 
-      REAL(KIND=rp), INTENT(IN)  :: Rc(:), Zc(:), s(:), starget
-      REAL(KIND=rp), INTENT(OUT) :: Rout, Zout
+      REAL(KIND=wp), INTENT(IN)  :: Rc(:), Zc(:), s(:), starget
+      REAL(KIND=wp), INTENT(OUT) :: Rout, Zout
 
       INTEGER :: i
 
