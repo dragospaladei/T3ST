@@ -56,7 +56,7 @@
        ! q(r)    :: the safety factor
        qpsi = s1 + s2*rr*(1.0/a0) + s3*rr**2*(1.0/a0)**2
        ! q'(r)   :: radial derivative of the safety factor
-       qprim = s1*(1.0/a0) + 2.0*s3*(1.0/a0)**2 ! a0 a fost deja scalat
+       qprim = s2*(1.0/a0) + 2.0*s3*(1.0/a0)**2 ! a0 a fost deja scalat
 
        !       R = transpose(reshape([psi, psir, psiz, psirr, psirz, psizz, Fpsi, Fprim, qpsi, qprim, rhot, rhotr, rhotz, chi, chir, chiz], [Np,Nqua]))
 

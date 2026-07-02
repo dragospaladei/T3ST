@@ -808,10 +808,14 @@ END SUBROUTINE PDF_abcap  !=====================================================
         !-------------------------
         ! Correlated draws: (kx,kz,w,wc) from Gaussian generator
         !-------------------------
-        CALL PDF_G(4, npts, tmp4, wavelength=[lambdax, lambdaz, tauc, taucc])
+        CALL PDF_G(4, npts, tmp4, wavelength=[lambdax, lambdaz, tauc, MERGE(taucc, 1.0_wp, taucc /= 0.0_wp)])
 
         kzrow = tmp4(2,:)
-        wcrow = tmp4(4,:)
+        IF (taucc == 0.0_wp) THEN
+          wcrow = 0.0_wp
+        ELSE
+          wcrow = tmp4(4,:)
+        END IF
 
         ! Radial spectrum selection
         IF (x_corr == 1) THEN
@@ -902,6 +906,7 @@ END SUBROUTINE PDF_abcap  !=====================================================
 
           w(i,:) = wrow + ( sgn * Ln * R2 * (kx(i,:)*Vstar1 + ky(i,:)*Vstar2 + kz(i,:)*Vstar3) ) / &
                          (1.0_wp + ATeTi*kperp(i,:)**2)
+
 
         END IF
 

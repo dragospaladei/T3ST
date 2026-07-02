@@ -3,10 +3,10 @@
 # Any missing parameter can be filled by GUI defaults; extra keys should be treated as an error.
 
 CycloneBaseCase:
-  t0: 0
+  t0: 50
   tc: -1
   tt: -1
-  tmax: 50
+  tmax: 0
   Nt: 1000
   Nreal: 1
   Nc: 50
@@ -50,6 +50,7 @@ CycloneBaseCase:
   k0i: 0.05
   k0e: 0.05
   gamma_ZF: 0.0
+  Beta : 0.0
   X0: 1.95
   Y0: 0
   Z0: 0
@@ -125,6 +126,7 @@ CycloneBaseZhang:
   k0i: 0.05
   k0e: 0.05
   gamma_ZF: 0.0
+  Beta : 0.0
   X0: 2.022
   Y0: 0.0
   Z0: 0
@@ -200,6 +202,7 @@ MAST-U:
   k0i: 0.1
   k0e: 0.1
   gamma_ZF: 0.0
+  Beta : 0.0
   X0: 1.2
   Y0: 0
   Z0: 0
@@ -275,6 +278,7 @@ TCV:
   k0i: 0.1
   k0e: 0.1
   gamma_ZF: 0.0
+  Beta : 0.0
   X0: 1.03
   Y0: 0
   Z0: 0
@@ -350,6 +354,7 @@ WEST:
   k0i: 0.1
   k0e: 0.1
   gamma_ZF: 0.0
+  Beta : 0.0
   X0: 2.75
   Y0: 0
   Z0: 0

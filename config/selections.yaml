@@ -18,13 +18,19 @@ selections:
     n_samples: 999
     seed: random
 
+  - name: "Full_db_random_Reduced_999"
+    description: "Random sample of 999 runs from the maximal 12D database."
+    database: "Full_database_reduced"
+    method: "random"
+    n_samples: 999
+    seed: random
+
   - name: "Slice_3d_Ln_lx_ly"
     description: "3D slice where only Ln, lambdax, and lambday vary."
     database: "Full_database"
     method: "slice"
     fixed_indices:
       Phi: 0.01   
-      Ai: 1.0
       lambdaz: 5.0
       lbalonz: 5.0
       tauc: 10.0
@@ -38,7 +44,6 @@ selections:
     method: "slice"
     fixed_indices:
       Phi: 0.01
-      Ai: 1.0
       lambdax: 5.0
       lambday: 5.0
       lambdaz: 5.0
@@ -55,7 +60,6 @@ selections:
     strides:
       Ln: 2
       Phi: 2
-      Ai: 2
       lambdax: 2
       lambday: 2
       lambdaz: 2
@@ -72,7 +76,6 @@ selections:
     strides:
       Ln: 2
       Phi: 2
-      Ai: 2
       As: 2
       Zs: 2
 
@@ -87,12 +90,6 @@ selections:
     database: "Full_database"
     method: "slice"
     free_parameters: ["Phi"]
-
-  - name: "Vary_Ai_only"
-    description: "1D slice: vary Ai only; all other axes fixed to base_scenario values."
-    database: "Full_database"
-    method: "slice"
-    free_parameters: ["Ai"]
     
   - name: "Vary_lambdax_only"
     description: "1D slice: vary lambdax only; all other axes fixed to base_scenario values."

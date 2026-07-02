@@ -279,7 +279,7 @@ if (magnetic_model == 4) then
        ! R contains: d_r\psi, d_z\psi, F(psi), rot(b), grad(B)
        ! ------------------------------------------------------------------------------------------------------------------------
 
-       CALL MagnModel(X, Z, R)
+       CALL MagnModel(X, Y, R)
 
        psir = R(2, :)
        psiz = R(3, :)

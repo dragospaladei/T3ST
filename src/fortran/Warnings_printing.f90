@@ -150,6 +150,10 @@ SUBROUTINE validate_raw_run_parameters
       nerr = nerr + 1
    END IF
 
+   IF (ABS(Zs) <= tiny_dp) THEN
+      WRITE(output_unit,'(A,1X,ES12.4)') 'Warning :: Zs should be nonzero, got Zs =', Zs
+   END IF
+
    IF (ABS(s1) <= tiny_dp) THEN
       WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: s1 must be nonzero; amp is derived using 1/s1, got s1 =', s1
       nerr = nerr + 1
@@ -211,6 +215,11 @@ SUBROUTINE validate_raw_run_parameters
 
    IF (Phi < 0.0_wp) THEN
       WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: Phi must be >= 0, got Phi =', Phi
+      nerr = nerr + 1
+   END IF
+
+   IF (Beta < 0.0_wp) THEN
+      WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: Beta must be >= 0, got Beta =', Beta
       nerr = nerr + 1
    END IF
 
@@ -301,6 +310,10 @@ SUBROUTINE validate_raw_run_parameters
 
    IF (USE_turb == ON .AND. Phi == 0.0_wp) THEN
       WRITE(output_unit,'(A)') 'Warning :: USE_turb=ON but Phi=0; turbulent potential amplitude is zero.'
+   END IF
+
+   IF (USE_magnturb == ON .AND. Beta == 0.0_wp) THEN
+      WRITE(output_unit,'(A)') 'Warning :: USE_magnturb=ON but Beta=0; magnetic turbulence amplitude is zero.'
    END IF
 
 END SUBROUTINE validate_raw_run_parameters

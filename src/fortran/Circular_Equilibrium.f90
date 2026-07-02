@@ -28,7 +28,6 @@ SUBROUTINE Circular(X, Y, R)
    REAL(KIND=wp), DIMENSION(Np) :: rhot, rhotr, rhotz, rhotrr, rhotrz, rhotzz
    REAL(KIND=wp), DIMENSION(Np) :: psi, psir, psiz, psirr, psizz, psirz
    REAL(KIND=wp), DIMENSION(Np) :: chi, chir, chiz, qpsi, qprim, Fpsi, Fprim
-   INTEGER :: i
 
    !---------------------------------------------------------------------------------
    ! Geometry / coordinates
@@ -263,4 +262,3 @@ CONTAINS
    END SUBROUTINE init_tables
 
 END SUBROUTINE psisurf_circ
-

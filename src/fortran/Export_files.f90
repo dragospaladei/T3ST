@@ -20,9 +20,10 @@ INTEGER, PARAMETER, PUBLIC :: f_betaDinit  = f_betaFinit  + 1
 INTEGER, PARAMETER, PUBLIC :: f_FMinit     = f_betaDinit  + 1
 INTEGER, PARAMETER, PUBLIC :: f_F0init     = f_FMinit     + 1
 INTEGER, PARAMETER, PUBLIC :: f_G0init     = f_F0init     + 1
+INTEGER, PARAMETER, PUBLIC :: f_Vtxinit    = f_G0init     + 1
 
 ! ---- trajectories ----
-INTEGER, PARAMETER, PUBLIC :: f_Xtraj      = f_G0init     + 1
+INTEGER, PARAMETER, PUBLIC :: f_Xtraj      = f_Vtxinit    + 1
 INTEGER, PARAMETER, PUBLIC :: f_Ytraj      = f_Xtraj      + 1
 INTEGER, PARAMETER, PUBLIC :: f_Ztraj      = f_Ytraj      + 1
 INTEGER, PARAMETER, PUBLIC :: f_Vptraj     = f_Ztraj      + 1
@@ -125,6 +126,7 @@ CONTAINS
     fname(f_FMinit)     = 'FMinit'
     fname(f_F0init)     = 'F0init'
     fname(f_G0init)     = 'G0init'
+    fname(f_Vtxinit)    = 'Vtxinit'
 
     fname(f_Xtraj)      = 'Xtraj'
     fname(f_Ytraj)      = 'Ytraj'
@@ -359,11 +361,12 @@ SUBROUTINE write_final_state(X, Y, Z, Vp, mu, betaF, betaD, FM, Ham, q1al, q2al,
    WRITE(funit(f_q2out)) q2al
    WRITE(funit(f_Vtxout)) Vtxal
    WRITE(funit(f_mask2out)) mask2al
-
+   WRITE(funit(f_Vtxinit)) Vtx_init
+   
    inv_np = 1.0_wp / REAL(SIZE(F0), wp)
-   WRITE(funit(f_S1out)) FM/G0*inv_np*alpha_1*Vtx_init
-   WRITE(funit(f_S2out)) FM/G0*inv_np*alpha_2*Vtx_init
-   WRITE(funit(f_S3out)) FM/G0*inv_np*alpha_3*Vtx_init
+   WRITE(funit(f_S1out)) FM/G0*inv_np*alpha_1
+   WRITE(funit(f_S2out)) FM/G0*inv_np*alpha_2
+   WRITE(funit(f_S3out)) FM/G0*inv_np*alpha_3
 END SUBROUTINE write_final_state
 
 

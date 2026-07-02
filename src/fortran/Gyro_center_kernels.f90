@@ -49,6 +49,7 @@ contains
 
       ! Turbulence accumulators
       real(wp) :: phi0, phix, phiy, phiz, phixt, phiyt, phizt
+      real(wp) :: Apar0, Aparx, Apary, Aparz
       real(wp) :: Tprofile, faza, zintc, zints, gpar, gprim
       ! --- hoisted invariants ---
       real(wp) :: env1
@@ -66,7 +67,7 @@ contains
       real(wp) :: invB, invB3, invBsp
       real(wp) :: a02, tau, s_star
       real(wp) :: t_tmp, sqrt_t1
-      real(wp) :: tsc, msc, temp, dens, Hi0
+      real(wp) :: tsc, msc, temp, dens, Hi0, msg
       integer  :: poz1, poz2
       real(wp) :: X1, Y1, Xef, Yef
       real(wp) :: F1, F2, F3, F4
@@ -354,6 +355,8 @@ contains
       !---------------------------------------------------------------------------------
       phi0 = 0.0_wp; phix = 0.0_wp; phiy = 0.0_wp; phiz = 0.0_wp
       phixt = 0.0_wp; phiyt = 0.0_wp; phizt = 0.0_wp
+      Apar0 = 0.0_wp; Aparx = 0.0_wp; Apary = 0.0_wp; Aparz = 0.0_wp
+      msg = 0.0_wp
 
       ! turbulence must be ON and must have started
 !      if ((USE_turb == ON) .and. ((time - tt)*sign(1.0_wp, tmax - t0) >= 0.0_wp)) then
@@ -577,6 +580,17 @@ contains
             Esz = Esz + (msc*(M(3, 1)*phixt + M(3, 2)*phiyt + M(3, 3)*phizt))*invB
          END IF
 
+         IF (USE_magnturb == ON) THEN
+            msg = Tprofile
+            Apar0 = phi0
+            Aparx = phix
+            Apary = phiy
+            Aparz = phiz
+            Esx = Esx + Beta*msg*vpi*(G(1, 1)*Aparx + G(1, 2)*Apary + G(1, 3)*Aparz)
+            Esy = Esy + Beta*msg*vpi*(G(2, 1)*Aparx + G(2, 2)*Apary + G(2, 3)*Aparz)
+            Esz = Esz + Beta*msg*vpi*(G(3, 1)*Aparx + G(3, 2)*Apary + G(3, 3)*Aparz)
+         END IF
+         
       end if  ! use_turb condition
 
       ! Turbulent-only E (difference from baseline)
@@ -587,18 +601,18 @@ contains
       !---------------------------------------------------------------------------------
       ! Drifts & accelerations
       !---------------------------------------------------------------------------------
-      vx = vpi*Bsx*invBsp + (rhoi/R0)*invBsp*(F(1, 1)*Esx + F(1, 2)*Esy + F(1, 3)*Esz)
-      vy = vpi*Bsy*invBsp + (rhoi/R0)*invBsp*(F(2, 1)*Esx + F(2, 2)*Esy + F(2, 3)*Esz)
-      vz = vpi*Bsz*invBsp + (rhoi/R0)*invBsp*(F(3, 1)*Esx + F(3, 2)*Esy + F(3, 3)*Esz)
+      vx = (vpi - Beta*Zs/As*Apar0)*Bsx*invBsp + (rhoi/R0)*invBsp*(F(1, 1)*Esx + F(1, 2)*Esy + F(1, 3)*Esz)
+      vy = (vpi - Beta*Zs/As*Apar0)*Bsy*invBsp + (rhoi/R0)*invBsp*(F(2, 1)*Esx + F(2, 2)*Esy + F(2, 3)*Esz)
+      vz = (vpi - Beta*Zs/As*Apar0)*Bsz*invBsp + (rhoi/R0)*invBsp*(F(3, 1)*Esx + F(3, 2)*Esy + F(3, 3)*Esz)
 
       ap = (Zs/As)*(Esx*Bsx + Esy*Bsy + Esz*Bsz)*invBsp
 
       !---------------------------------------------------------------------------------
       ! Drifts & accelerations::: the perturbative (turbulent) components
       !---------------------------------------------------------------------------------
-      Vx_1 = (rhoi/R0)*invBsp*(F(1, 1)*Etx + F(1, 2)*Ety + F(1, 3)*Etz)
-      Vy_1 = (rhoi/R0)*invBsp*(F(2, 1)*Etx + F(2, 2)*Ety + F(2, 3)*Etz)
-      Vz_1 = (rhoi/R0)*invBsp*(F(3, 1)*Etx + F(3, 2)*Ety + F(3, 3)*Etz)
+      Vx_1 = (- Beta*Zs/As*Apar0)*Bsx*invBsp + (rhoi/R0)*invBsp*(F(1, 1)*Etx + F(1, 2)*Ety + F(1, 3)*Etz)
+      Vy_1 = (- Beta*Zs/As*Apar0)*Bsx*invBsp + (rhoi/R0)*invBsp*(F(2, 1)*Etx + F(2, 2)*Ety + F(2, 3)*Etz)
+      Vz_1 = (- Beta*Zs/As*Apar0)*Bsx*invBsp + (rhoi/R0)*invBsp*(F(3, 1)*Etx + F(3, 2)*Ety + F(3, 3)*Etz)
       ap_1 = (Zs/As)*(Etx*Bsx + Ety*Bsy + Etz*Bsz)*invBsp
 
       !---------------------------------------------------------------------------------
@@ -613,13 +627,13 @@ contains
       !---------------------------------------------------------------------------------
       ! Energy (Hamiltonian)
       !---------------------------------------------------------------------------------
-      Hi = As*vpi*vpi*0.5_wp + mui*B - As*xi2*Omega*Omega*0.5_wp &
+      Hi = As*(vpi - Zs/As*Apar0)**2*0.5_wp + mui*B - As*xi2*Omega*Omega*0.5_wp &
            + Zs*xi2*Omega*Omega*0.5_wp*tau*(1.0_wp - R02avrg/xi2) &
            + Zs*Phi*phi0
       Hi0 = As*vpi*vpi*0.5_wp + mui*B - As*xi2*Omega*Omega*0.5_wp &
            + Zs*xi2*Omega*Omega*0.5_wp*tau*(1.0_wp - R02avrg/xi2) 
       Pc = psi - As/Zs*rhoi/R0*Fpsi/B*(vpi + 1.0_wp*Fpsi/B*Omega)
-      kin = As*0.5_wp*vpi*vpi + mui*B         ! note that this form is pure kinetic energy, without rotational or potential contributions
+      kin = As*0.5_wp*(vpi - Zs/As*Apar0)**2 + mui*B   ! pure kinetic energy, without rotational or potential contributions
       check_1 = phi0
       check_2 = phix
       check_3 = phiy
@@ -630,14 +644,15 @@ contains
       
       temp = Ts*exp(delta_q1*a0/C1*Lts) !Ts*(1.0_wp + delta_q1*a0/C1*Lts)
       dens= 1.0*exp(delta_q1*a0/C1*Lns) !1.0*(1.0_wp + delta_q1*a0/C1*Lns)
-      vbD = -(-ap_1*As*vpi/temp - mui/temp*(vx_1*gradBx + vy_1*gradBy + vz_1*gradBz) + Vtx*a0/C1*(Lns + Lts*(Hi0/temp - 1.5_wp))) ! atentie la semnul lui Lns!
-      vbF = -(-ap*As*vpi/temp - mui/temp*(vx*gradBx + vy*gradBy + vz*gradBz) + VFx*a0/C1*(Lns + Lts*(Hi0/temp - 1.5_wp))) ! atentie la semnul lui Lns!
       FMi = dens*exp(-Hi0 / temp) / temp**1.5_wp
       
       vs_1 = -(-ap_1*As*vpi/temp - mui/temp*(vx_1*gradBx + vy_1*gradBy + vz_1*gradBz))   ! the - is from rhs = - dfM/dt; the second - is from -E/T, the Maxwellian structure
       vs_2 = -(+ Vtx) 
       vs_3 = -(+ Vtx*(Hi0/temp - 1.5_wp))     
       
+      vbD = -(-ap_1*As*vpi/temp - mui/temp*(vx_1*gradBx + vy_1*gradBy + vz_1*gradBz) + Vtx*a0/C1*(Lns + Lts*(Hi0/temp - 1.5_wp))) ! atentie la semnul lui Lns!
+      vbF = -(-ap*As*vpi/temp - mui/temp*(vx*gradBx + vy*gradBy + vz*gradBz) + VFx*a0/C1*(Lns + Lts*(Hi0/temp - 1.5_wp))) ! atentie la semnul lui Lns!
+
 end subroutine gyrocenter_drifts
 
    pure subroutine collision_kicks(sm1, sm2, dt_local, xi, yi, zi, vpi, mui, B, vcolx, vcoly, vcolz, vcolm, vcolp)

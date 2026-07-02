@@ -45,7 +45,6 @@ PROGRAM T3ST
    !-----------------------------------------------------------------------------------------------------
    ! Folders and simulations
    !-----------------------------------------------------------------------------------------------------
-   CHARACTER(LEN=10000)          :: CWD
    CHARACTER(LEN=:), ALLOCATABLE :: address
    CHARACTER(LEN=:), ALLOCATABLE :: folder
    CHARACTER(LEN=35)             :: runs, nsim
@@ -57,7 +56,7 @@ PROGRAM T3ST
    ! Timing
    !-----------------------------------------------------------------------------------------------------
    INTEGER           :: count0, count3
-   INTEGER           :: count_rate, count_max
+   INTEGER           :: count_rate
    CHARACTER(LEN=18) :: date_time
 
    !-----------------------------------------------------------------------------------------------------
@@ -183,7 +182,7 @@ PROGRAM T3ST
    DO run = simi, simf
 
       CALL DATE_AND_TIME(date=date_time(1:8), time=date_time(9:18))
-      CALL SYSTEM_CLOCK(count0, count_rate, count_max)
+      CALL SYSTEM_CLOCK(count0, count_rate)
       CALL load_run_parameters(run)
 
 !========================================================================================================
@@ -233,7 +232,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
          "Ti", "Te", "Zeff", "Aeff", "ndens", "vth", "rhoi", "wi", "Ln", "Li", "Le", &
          "magnetic_model", "B0", "R0", "a0", "s1", "s2", "s3", "q00", "r00", "psi0", &
          "amp", "elong", "device", "shot", "shotslice", "NgridR", "NgridZ", "Omgt0", "Omgtprim", &
-         "turb_model", "x_corr", "y_corr", "t_corr", "Phi", "turbprof", "Ai", "Ae", &
+         "turb_model", "x_corr", "y_corr", "t_corr", "Phi", "beta", "turbprof", "Ai", "Ae", &
          "lambdax", "lambday", "lambdaz", "lbalonz", "tauc", "k0i", "k0e", "gamma_ZF", "gamma_E", &
          "X0", "Y0", "Z0", "Ts", "Es", "pitch", "As", "Zs", "taucc", &
          "position_type", "annulus_width", "pitch_type", "energy_type", "Lns", "Lts", &
@@ -248,7 +247,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
          s3, q00, r00, psi0, amp, elong, REAL(device, wp), REAL(shot, wp), &
          REAL(shotslice, wp), REAL(NgridR, wp), REAL(NgridZ, wp), Omgt0, Omgtprim, &
          REAL(turb_model, wp), REAL(x_corr, wp), REAL(y_corr, wp), REAL(t_corr, wp), &
-         Phi, turbprof, Ai, Ae, lambdax, lambday, lambdaz, lbalonz, tauc, k0i, k0e, &
+         Phi, Beta, turbprof, Ai, Ae, lambdax, lambday, lambdaz, lbalonz, tauc, k0i, k0e, &
          gamma_ZF, gamma_E, X0, Y0, Z0, Ts, Es, pitch, As, Zs, taucc, &
          REAL(position_type, wp), annulus_width, REAL(pitch_type, wp), REAL(energy_type, wp), &
          REAL(Lns, wp), REAL(Lts, wp),  REAL(USE_larmor, wp), &
@@ -316,7 +315,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                      REAL(wp) :: vx, vy, vz, vm, ap, vbF, vbD
                      REAL(wp) :: Wx, Wy, Wz, Wm, Wvp, WbF, WbD
                      REAL(wp) :: Walpha_1, Walpha_2, Walpha_3
-                     REAL(wp) :: q1, q2, q3, Vrt, Vrr, FMi, F0i, G0i
+                     REAL(wp) :: q1, q2, q3, FMi, F0i, G0i
                      REAL(wp) :: pbGF, pbFF, pbFD, pbDF, pbDD, pbSS
                      REAL(wp) :: Hi, B, Vtx, VFx, sm1, sm2, Pc, kin
                      REAL(wp) :: check_1, check_2, check_3, vs_1, vs_2, vs_3
@@ -645,7 +644,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
 ! PROGRESS BAR
 !========================================================================================================
 
-            progress = REAL(k2 * re) / REAL(Nloop * Nreal)
+            progress = REAL((re - 1) * Nloop + k2) / REAL(Nloop * Nreal)
             filled   = INT(progress * barWidth)
 
             bar = REPEAT(' ', LEN(bar))
@@ -711,7 +710,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
 
       CALL close_output_files()
 
-      CALL SYSTEM_CLOCK(count3, count_rate, count_max)
+      CALL SYSTEM_CLOCK(count3, count_rate)
 
       WRITE(*, *) ' '
       WRITE(*, *) 'Total computation time  = ', REAL(count3 - count0) / REAL(count_rate)

@@ -470,6 +470,12 @@ parameters:
     group: Turbulence
     help: Zonal-flow shearing rate
 
+  - name: Beta
+    kind: float
+    default: 0.0
+    group: Turbulence
+    help: Local MAGNETIC turbulence amplitude (e v_th A_A/Ti)
+
   # --- Particle Initial Conditions / markers ---
   - name: X0
     kind: float

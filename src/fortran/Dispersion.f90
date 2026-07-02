@@ -34,7 +34,7 @@ SUBROUTINE dispersion(normB, Vstar1, Vstar2, Vstar3, gees)
    REAL(KIND=wp), DIMENSION(Np)       :: B
 
    REAL(KIND=wp), DIMENSION(3, 3, Np) :: GG
-   REAL(KIND=wp), DIMENSION(3)        :: lame, beta
+   REAL(KIND=wp), DIMENSION(3)        :: lame, beta_vec
    REAL(KIND=wp), DIMENSION(3, 3)     :: gege, kron
 
    INTEGER :: i, j, k, p
@@ -59,7 +59,7 @@ SUBROUTINE dispersion(normB, Vstar1, Vstar2, Vstar3, gees)
    !---------------------------------------------------------------------------------
    normB = B(1)                        ! |B| from covariant components
    lame  = (/ hx(1), hy(1), hz(1) /)
-   beta  = (/ Bx(1), By(1), Bz(1) /)
+   beta_vec = (/ Bx(1), By(1), Bz(1) /)
 
    gege = GG(:, :, 1)
 
@@ -90,11 +90,10 @@ SUBROUTINE dispersion(normB, Vstar1, Vstar2, Vstar3, gees)
          DO k = 1, 3
             DO p = 1, 3
                gees(i, j) = gees(i, j) + gege(k, i) * gege(p, j) * &
-                            (kron(k, p)/(lame(k)*lame(p)) - beta(k)*beta(p)/normB**2)
+                            (kron(k, p)/(lame(k)*lame(p)) - beta_vec(k)*beta_vec(p)/normB**2)
             END DO
          END DO
       END DO
    END DO
 
 END SUBROUTINE dispersion
-

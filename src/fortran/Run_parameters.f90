@@ -15,7 +15,7 @@
 !  --/--/2026   | D. I. Palade        | Continuous improvements
 ! Coordinate convention:
 !   (x,y,z) = (q1,q2,q3) are field-aligned turbulence coordinates.
-!   (X,Y,Z) are real-space coordinates, with Z the toroidal angle.
+!   (X,Y,Z) = (R,Z,varphi) are real-space coordinates, the cylindrical coordinates
 !========================================================================================================
 
 MODULE constants
@@ -53,7 +53,6 @@ MODULE constants
    !---------------------------------------------------------------------------------
    ! Switches
    !---------------------------------------------------------------------------------
-   ! INTEGER :: Method                              ! legacy full-f/delta-f switch
    INTEGER       :: USE_larmor                     ! FLR effects: 0=OFF, 1=ON
    INTEGER       :: USE_coll                       ! collisions: 0=OFF, 1=ON
    INTEGER       :: USE_turb                       ! turbulence: 0=OFF, 1=ON
@@ -154,6 +153,7 @@ MODULE constants
    INTEGER       :: t_corr                         ! t correlation: 1-gaussian, 2-exponential
 
    REAL(KIND=wp) :: Phi                            ! turbulence amplitude [ePhi/Ti]
+   REAL(KIND=wp) :: Beta                           ! magnetic turbulence amplitude [e vth A_parallel/Ti]
    REAL(KIND=wp) :: turbprof                       ! exponent for synthetic turb. profile
    REAL(KIND=wp) :: Ai                             ! ITG fraction
 
@@ -282,6 +282,7 @@ CONTAINS
       y_corr         = int(pp(parameter_index("y_corr")))
       t_corr         = int(pp(parameter_index("t_corr")))
       Phi            = pp(parameter_index("Phi"))
+      Beta           = pp(parameter_index("Beta"))
       turbprof       = pp(parameter_index("turbprof"))
       Ai             = pp(parameter_index("Ai"))
       lambdax        = pp(parameter_index("lambdax"))
