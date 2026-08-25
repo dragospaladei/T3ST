@@ -7,7 +7,7 @@
 ! Purpose: define main physical and numerical constants of the model
 !
 ! Record of revisions:
-!    Date       | Programmer          | Description
+!    Date       | Programmer          | Description	
 !  -----------  | ------------------- | -----------------------------------------
 !  --/--/2021   | D. I. Palade        | Initial version
 !  --/--/2023   | L. M. Pomarjanschi  | Corrections and development
@@ -109,11 +109,13 @@ MODULE constants
    !---------------------------------------------------------------------------------
    ! Geometry / equilibrium
    !---------------------------------------------------------------------------------
-   INTEGER       :: magnetic_model                 ! equilibrium: 1-EFIT, 2-EFIT-sa, 3-Solovev, 4-Circular
+   INTEGER       :: magnetic_model                 ! equilibrium: 1-EFIT, 2-Solovev, 3-Circular
 
    REAL(KIND=wp) :: B0                             ! magnetic field @ axis         [T]
    REAL(KIND=wp) :: R0                             ! major radius                  [m]
    REAL(KIND=wp) :: a0                             ! minor radius                  [m]
+   REAL(KIND=wp) :: safety                         ! reference analytical safety factor
+   REAL(KIND=wp) :: shear_mag                      ! analytical magnetic shear
 
    REAL(KIND=wp) :: s1                             ! circular q-profile coefficient
    REAL(KIND=wp) :: s2                             ! circular q-profile coefficient
@@ -131,8 +133,36 @@ MODULE constants
 
    REAL(KIND=wp) :: q00                            ! safety factor @ r00
    REAL(KIND=wp) :: r00                            ! reference surface (for global evaluation)
-   REAL(KIND=wp) :: q10                            ! reference surface (for global evaluation)
-   REAL(KIND=wp) :: psi0                           ! poloidal flux @ r0
+   REAL(KIND=wp) :: rhot0                          ! toroidal normalized radius @ r00
+   REAL(KIND=wp) :: psi0                           ! poloidal flux @ r00
+
+   !---------------------------------------------------------------------------------
+   ! Solovev precomputed straight-field-line geometry
+   !---------------------------------------------------------------------------------
+   INTEGER, PARAMETER :: Nsol     = 257     ! radial table points; must be odd
+   INTEGER, PARAMETER :: Ksol     = 16      ! retained cosine harmonics
+   INTEGER, PARAMETER :: NetaSol  = 1024    ! periodic eta quadrature points
+   INTEGER, PARAMETER :: NedgeSol = 1024    ! quadrature points for Phi_t at separatrix
+
+   ! The straight-field-line Fourier representation is deliberately stopped
+   ! inside the separatrix, where q and chi_eta become singular.
+   ! rpsi itself remains the physical coordinate sqrt(psi/psi_sep).
+   REAL(KIND=wp), PARAMETER :: SOL_RMAX = 0.95_wp
+
+   ! Flat Sol_data layout.
+   INTEGER, PARAMETER :: SOL_W0_OFF    = 0
+   INTEGER, PARAMETER :: SOL_W0R_OFF   = Nsol
+   INTEGER, PARAMETER :: SOL_T_OFF     = 2*Nsol
+   INTEGER, PARAMETER :: SOL_B_OFF     = 3*Nsol                 ! b_k blocks
+   INTEGER, PARAMETER :: SOL_BR_OFF    = (3 + Ksol)*Nsol        ! db_k/drpsi blocks
+   INTEGER, PARAMETER :: SOL_JEDGE_IDX = (3 + 2*Ksol)*Nsol + 1  ! true separatrix Jedge
+   INTEGER, PARAMETER :: SOL_NDATA     = SOL_JEDGE_IDX
+
+   ! Uniform table spacing in the physical coordinate rpsi=sqrt(psi/psi_sep).
+   REAL(KIND=wp), PARAMETER :: SOL_DR     = SOL_RMAX/REAL(Nsol - 1, wp)
+   REAL(KIND=wp), PARAMETER :: SOL_INV_DR = REAL(Nsol - 1, wp)/SOL_RMAX
+
+   REAL(KIND=wp), ALLOCATABLE :: Sol_data(:)
 
    ! Extra equilibrium / imported-data helpers
    REAL(KIND=wp) :: alfa                           ! Solovev parameter (separatrix/ellipticity-related)
@@ -196,9 +226,9 @@ MODULE constants
    !---------------------------------------------------------------------------------
    ! Misc. derived helpers
    !---------------------------------------------------------------------------------
-   REAL(KIND=wp) :: C1                             ! q1 = C1*Q1
-   REAL(KIND=wp) :: C2                             ! q2 = C2*Q2
-   REAL(KIND=wp) :: C3                             ! q3 = C3*Q3
+   REAL(KIND=wp) :: C1                             ! q1 = C1*f(psi)
+   REAL(KIND=wp) :: C2                             ! q2 = C2*(zeta - q(psi)*chi)
+   REAL(KIND=wp) :: C3                             ! q3 = C3*chi
 
 CONTAINS
 
@@ -217,6 +247,7 @@ CONTAINS
 
       INTEGER, INTENT(IN)             :: run      ! row index in Sim_XXX.dat / DB_XXX.dat
       REAL(KIND=wp), DIMENSION(cols1) :: pp       ! parameter vector for this run
+      INTEGER                         :: ierr_sol
 
       pp = array1(run, :)
 
@@ -226,7 +257,6 @@ CONTAINS
       ! Name-based indexing keeps this code robust if the GUI reorders columns.
       ! Integer parameters are converted explicitly; physical quantities remain real.
       !---------------------------------------------------------------------------------
-      ! Method         = int(pp(parameter_index("Method")))
       USE_larmor     = int(pp(parameter_index("USE_larmor")))
       USE_coll       = int(pp(parameter_index("USE_coll")))
       USE_turb       = int(pp(parameter_index("USE_turb")))
@@ -265,9 +295,8 @@ CONTAINS
       B0             = pp(parameter_index("B0"))
       R0             = pp(parameter_index("R0"))
       a0             = pp(parameter_index("a0"))
-      s1             = pp(parameter_index("s1"))
-      s2             = pp(parameter_index("s2"))
-      s3             = pp(parameter_index("s3"))
+      safety         = pp(parameter_index("safety"))
+      shear_mag      = pp(parameter_index("shear_mag"))
       amp            = pp(parameter_index("amp"))
       elong          = pp(parameter_index("elong"))
       device         = int(pp(parameter_index("device")))
@@ -309,12 +338,10 @@ CONTAINS
       energy_type    = int(pp(parameter_index("energy_type")))
       Lns            = pp(parameter_index("Lns"))
       Lts            = pp(parameter_index("Lts"))
-
-      CALL validate_raw_run_parameters
-
       
       Nqua = 16   ! number of quantities stored on the EFIT-like grid
-      CALL load_efit_equilibrium()
+      IF (magnetic_model == 1) CALL load_efit_equilibrium()
+      CALL validate_raw_run_parameters
 
       !---------------------------------------------------------------------------------
       ! Convert imported units and evaluate derived normalization quantities.
@@ -329,20 +356,49 @@ CONTAINS
 
       r00 = sqrt((X0 - R0)**2 + Y0**2)
 
-      gama = 1.0_wp - 2.0_wp*sqrt((a0/R0)**2 - (a0/R0)**4)
-      alfa = elong*(sqrt(2.0_wp - gama) - sqrt(gama)) / sqrt(2.0_wp - 2.0_wp*gama)
-      amp  = 0.5_wp*(1.0_wp + alfa**2) / (1.0_wp - gama) / s1
+      IF (.NOT. ALLOCATED(Sol_data)) ALLOCATE(Sol_data(SOL_NDATA))
+      IF (magnetic_model == 3) THEN
+           s1 = safety*(1.0_wp - shear_mag) + eps_large
+           s2 = safety*shear_mag*a0/r00 + eps_large
+           s3 = eps_large
+      ENDIF
 
-      a0    = a0/R0
-      Omgt0 = Omgt0*10.0_wp**3 / (vth/R0)
+      IF (magnetic_model == 2) THEN
+	epsa = a0/R0
+	gama = 1.0_wp - 2.0_wp*epsa*sqrt(1.0_wp-epsa**2)
+	alfa = elong*(sqrt(2.0_wp-gama)-sqrt(gama))/sqrt(2.0_wp*(1.0_wp-gama))
 
+	xref = X0/R0
+	zref = Y0/R0
+
+	dsep = 1.0_wp-gama
+	rpsi_ref = sqrt((xref*xref-1.0_wp)**2 + 4.0_wp*zref*zref*(xref*xref-gama)/(alfa*alfa))/dsep
+	w0_ref = solovev_w0_at_rpsi(rpsi_ref,gama)
+	disc = safety*safety - 0.25_wp*gama*dsep*dsep*rpsi_ref*rpsi_ref*w0_ref*w0_ref
+
+	IF (disc <= 0.0_wp) THEN
+	   ERROR STOP 'Requested Solovev q is incompatible with geometry'
+	END IF
+
+	amp = SIGN(1.0_wp,safety)*(1.0_wp+alfa*alfa)*w0_ref/alfa/SQRT(disc)
+
+	CALL build_solovev_data(Sol_data,ierr_sol)
+
+         IF (ierr_sol /= 0) THEN
+            WRITE(*, *) 'ERROR building Solovev table. ierr = ', ierr_sol
+            ERROR STOP 'Failed to build Solovev geometry data'
+         END IF
+      ELSE
+         Sol_data = 0.0_wp 
+      END IF
+
+      a0  = a0/R0
       r00 = r00/R0
       X0  = X0/R0
       Y0  = Y0/R0
-
-      CALL OnlyQ(X0, Y0, q00, psi0)
-      CALL Onlycoord_new(X0, Y0, Z0, q10) ! reference q1 for delta_q1
-
+      Omgt0 = Omgt0*10.0_wp**3 / (vth/R0)
+                 
+      CALL equilibrium_q_rhot_psi(X0, Y0, q00, rhot0, psi0)
       C1 = a0*R0/rhoi
       C2 = -r00/q00 * R0/rhoi
       C3 = 1.0_wp
@@ -378,7 +434,7 @@ CONTAINS
       CHARACTER(LEN=35) :: aux
       INTEGER           :: i
 
-      IF ((magnetic_model /= 1) .AND. (magnetic_model /= 2)) RETURN
+      IF (magnetic_model /= 1) RETURN
 
       WRITE(aux, '(I0)') shot
 
@@ -467,5 +523,371 @@ CONTAINS
       Efit_data(1 + 15*Ngrid : 16*Ngrid) = Efit_data(1 + 15*Ngrid : 16*Ngrid) * R0          ! chiZ
 
    END SUBROUTINE load_efit_equilibrium
+   
+     
+   
+   SUBROUTINE build_solovev_data(data_out, ierr)
+      IMPLICIT NONE
+
+      !-------------------------------------------------------------------
+      ! Outputs
+      !-------------------------------------------------------------------
+      REAL(KIND=wp), INTENT(OUT) :: data_out(SOL_NDATA)
+      INTEGER, INTENT(OUT)       :: ierr
+
+      !-------------------------------------------------------------------
+      ! Local arrays
+      !-------------------------------------------------------------------
+      REAL(KIND=wp) :: qnode(Nsol)
+      REAL(KIND=wp) :: fJ(Nsol)
+      REAL(KIND=wp) :: Jnode(Nsol)
+      REAL(KIND=wp) :: asum(Ksol)
+      REAL(KIND=wp) :: arsum(Ksol)
+      REAL(KIND=wp) :: coseta(NetaSol)
+      REAL(KIND=wp) :: coseta_mid(NetaSol)
+
+      !-------------------------------------------------------------------
+      ! Scalars
+      !-------------------------------------------------------------------
+      REAL(KIND=wp) :: delta_sep, delta
+      REAL(KIND=wp) :: psi_sep, psi
+      REAL(KIND=wp) :: rpsi
+      REAL(KIND=wp) :: eta, deta
+      REAL(KIND=wp) :: ce
+      REAL(KIND=wp) :: d1, d2
+      REAL(KIND=wp) :: w, wr
+      REAL(KIND=wp) :: w0, w0r
+      REAL(KIND=wp) :: ak, akr
+      REAL(KIND=wp) :: bk, bkr
+      REAL(KIND=wp) :: sum0, sum0r
+      REAL(KIND=wp) :: ck, ckm1, ckp1
+      REAL(KIND=wp) :: Fpsi, Farg
+      REAL(KIND=wp) :: Cqsol
+      REAL(KIND=wp) :: dr
+      REAL(KIND=wp) :: Jedge
+      REAL(KIND=wp) :: tedge, redge, dtedge
+      REAL(KIND=wp) :: qedge_int
+
+      INTEGER :: i, j, k
+      INTEGER :: ib, ibr
+
+      !===================================================================
+      ! Initialization / sanity checks
+      !===================================================================
+      ierr = 0
+      data_out = 0.0_wp
+
+      IF (alfa <= 0.0_wp) THEN
+         ierr = 1
+         RETURN
+      END IF
+
+      IF (MOD(Nsol - 1, 2) /= 0) THEN
+         ! Cumulative Simpson construction below assumes an even number
+         ! of radial intervals.
+         ierr = 2
+         RETURN
+      END IF
+
+      IF (NetaSol <= 2*Ksol) THEN
+         ierr = 3
+         RETURN
+      END IF
+
+      IF ((SOL_RMAX <= 0.0_wp) .OR. (SOL_RMAX >= 1.0_wp)) THEN
+         ierr = 4
+         RETURN
+      END IF
+
+      !===================================================================
+      ! Solovev separatrix normalization
+      !
+      ! For this parametrization the separatrix is delta_sep = 1-gamma.
+      ! Its midplane intersections are R^2=gamma and R^2=2-gamma.
+      ! Therefore
+      !
+      !   rpsi = sqrt(psi/psi_sep) = delta/delta_sep,
+      !
+      ! and the straight-angle table is built only up to SOL_RMAX<1.
+      !===================================================================
+      delta_sep = 1.0_wp - gama
+
+      IF ((delta_sep <= 0.0_wp) .OR. (gama <= 0.0_wp)) THEN
+         ierr = 5
+         RETURN
+      END IF
+
+      psi_sep = amp*alfa**2*delta_sep**2 &
+              /(8.0_wp*(1.0_wp + alfa**2))
+
+      deta  = 2.0_wp*Pi/REAL(NetaSol, wp)
+      dr    = SOL_DR
+      Cqsol = (1.0_wp + alfa**2)/(alfa*amp)
+
+      ! Periodic nodes for the Fourier table, and half-shifted nodes for
+      ! the separate separatrix-flux quadrature.
+      DO j = 1, NetaSol
+         eta = deta*REAL(j - 1, wp)
+         coseta(j) = COS(eta)
+
+         eta = deta*(REAL(j - 1, wp) + 0.5_wp)
+         coseta_mid(j) = COS(eta)
+      END DO
+
+      !===================================================================
+      ! Radial table: 0 <= rpsi <= SOL_RMAX
+      !===================================================================
+      DO i = 1, Nsol
+
+         rpsi = REAL(i - 1, wp)*dr
+         delta = delta_sep*rpsi
+         psi = psi_sep*rpsi*rpsi
+
+         !---------------------------------------------------------------
+         ! F(psi)
+         !---------------------------------------------------------------
+         Farg = 1.0_wp &
+              + 2.0_wp*amp*gama*psi/(1.0_wp + alfa**2)
+
+         IF (Farg <= 0.0_wp) THEN
+            ierr = 6
+            RETURN
+         END IF
+
+         Fpsi = SQRT(Farg)
+
+         !---------------------------------------------------------------
+         ! Fourier integrals of
+         !
+         !   w = 1 / [(1+delta cos eta)
+         !            sqrt(1-gamma+delta cos eta)]
+         !
+         ! and its exact derivative with respect to physical rpsi:
+         !
+         !   dw/drpsi = -delta_sep cos(eta) w *
+         !      [1/(1+delta cos eta)
+         !       + 1/(2(1-gamma+delta cos eta))].
+         !---------------------------------------------------------------
+         sum0  = 0.0_wp
+         sum0r = 0.0_wp
+         asum  = 0.0_wp
+         arsum = 0.0_wp
+
+         DO j = 1, NetaSol
+
+            ce = coseta(j)
+            d1 = 1.0_wp - 0.0_wp + delta*ce
+            d2 = delta_sep + delta*ce
+
+            IF ((d1 <= 0.0_wp) .OR. (d2 <= 0.0_wp)) THEN
+               ierr = 7
+               RETURN
+            END IF
+
+            w = 1.0_wp/(d1*SQRT(d2))
+
+            wr = -delta_sep*ce*w &
+               *(1.0_wp/d1 + 0.5_wp/d2)
+
+            sum0  = sum0  + w
+            sum0r = sum0r + wr
+
+            ! cos(k eta) recurrence: no Ksol transcendental calls.
+            ckm1 = 1.0_wp
+            ck   = ce
+
+            DO k = 1, Ksol
+               asum(k)  = asum(k)  + w*ck
+               arsum(k) = arsum(k) + wr*ck
+
+               IF (k < Ksol) THEN
+                  ckp1 = 2.0_wp*ce*ck - ckm1
+                  ckm1 = ck
+                  ck   = ckp1
+               END IF
+            END DO
+
+         END DO
+
+         !---------------------------------------------------------------
+         ! w = w0 + Sum_k a_k cos(k eta)
+         !---------------------------------------------------------------
+         w0  = sum0 /REAL(NetaSol, wp)
+         w0r = sum0r/REAL(NetaSol, wp)
+
+         data_out(SOL_W0_OFF  + i) = w0
+         data_out(SOL_W0R_OFF + i) = w0r
+
+         !---------------------------------------------------------------
+         ! Normalized straight-angle Fourier coefficients
+         !
+         !   b_k = a_k/w0,
+         !   b'_k = (a'_k w0 - a_k w'_0)/w0^2.
+         !---------------------------------------------------------------
+         DO k = 1, Ksol
+
+            ak  = 2.0_wp*asum(k) /REAL(NetaSol, wp)
+            akr = 2.0_wp*arsum(k)/REAL(NetaSol, wp)
+
+            bk  = ak/w0
+            bkr = (akr*w0 - ak*w0r)/(w0*w0)
+
+            ib  = SOL_B_OFF  + (k - 1)*Nsol + i
+            ibr = SOL_BR_OFF + (k - 1)*Nsol + i
+
+            data_out(ib)  = bk
+            data_out(ibr) = bkr
+
+         END DO
+
+         ! Exact symmetry values on the magnetic axis.
+         IF (i == 1) THEN
+            data_out(SOL_W0R_OFF + i) = 0.0_wp
+
+            DO k = 1, Ksol
+               ib = SOL_B_OFF + (k - 1)*Nsol + i
+               data_out(ib) = 0.0_wp
+
+               ! b_1'(0) is generally non-zero; higher first derivatives vanish.
+               IF (k >= 2) THEN
+                  ibr = SOL_BR_OFF + (k - 1)*Nsol + i
+                  data_out(ibr) = 0.0_wp
+               END IF
+            END DO
+         END IF
+
+         !---------------------------------------------------------------
+         ! q(rpsi) and toroidal-flux radial integrand
+         !---------------------------------------------------------------
+         qnode(i) = Cqsol*Fpsi*w0
+         fJ(i) = 2.0_wp*rpsi*qnode(i)
+
+      END DO
+
+      !===================================================================
+      ! Cumulative J(rpsi)=Integral_0^r 2 r' q(r') dr' on the table domain.
+      ! Simpson integration in pairs gives J at every radial table node.
+      !===================================================================
+      Jnode = 0.0_wp
+      Jnode(1) = 0.0_wp
+
+      DO i = 1, Nsol - 2, 2
+
+         Jnode(i + 1) = Jnode(i) &
+            + dr*(5.0_wp*fJ(i) + 8.0_wp*fJ(i + 1) - fJ(i + 2)) &
+            /12.0_wp
+
+         Jnode(i + 2) = Jnode(i) &
+            + dr*(fJ(i) + 4.0_wp*fJ(i + 1) + fJ(i + 2)) &
+            /3.0_wp
+
+      END DO
+
+      !===================================================================
+      ! True separatrix toroidal-flux normalization Jedge.
+      !
+      ! q(rpsi) diverges logarithmically as rpsi->1, but Jedge is finite.
+      ! We therefore use the endpoint-removing substitution
+      !
+      !      rpsi = 1 - t^2,    0<t<1,
+      !
+      ! so that
+      !
+      ! Jedge = Integral_0^1 4 t rpsi q(rpsi) dt.
+      !
+      ! Midpoint nodes avoid evaluating q exactly at the separatrix.  The
+      ! eta quadrature is half-shifted as well, which resolves the X-point
+      ! peak much better than sampling eta=pi directly.
+      !===================================================================
+      Jedge = 0.0_wp
+      dtedge = 1.0_wp/REAL(NedgeSol, wp)
+
+      DO i = 1, NedgeSol
+
+         tedge = (REAL(i, wp) - 0.5_wp)*dtedge
+         redge = 1.0_wp - tedge*tedge
+         delta = delta_sep*redge
+         psi   = psi_sep*redge*redge
+
+         Farg = 1.0_wp &
+              + 2.0_wp*amp*gama*psi/(1.0_wp + alfa**2)
+
+         IF (Farg <= 0.0_wp) THEN
+            ierr = 8
+            RETURN
+         END IF
+
+         Fpsi = SQRT(Farg)
+         sum0 = 0.0_wp
+
+         DO j = 1, NetaSol
+            ce = coseta_mid(j)
+            d1 = 1.0_wp + delta*ce
+            d2 = delta_sep + delta*ce
+
+            IF ((d1 <= 0.0_wp) .OR. (d2 <= 0.0_wp)) THEN
+               ierr = 9
+               RETURN
+            END IF
+
+            sum0 = sum0 + 1.0_wp/(d1*SQRT(d2))
+         END DO
+
+         w0 = sum0/REAL(NetaSol, wp)
+         qedge_int = Cqsol*Fpsi*w0
+
+         Jedge = Jedge &
+               + dtedge*4.0_wp*tedge*redge*qedge_int
+
+      END DO
+
+      IF (ABS(Jedge) <= TINY(1.0_wp)) THEN
+         ierr = 10
+         RETURN
+      END IF
+
+      !===================================================================
+      ! T(rpsi)=rho_t^2 = J(rpsi)/Jedge.
+      !
+      ! Important: the last table point is at SOL_RMAX<1, therefore
+      ! T(Nsol)<1.  rho_t=1 belongs to the true separatrix, not the table edge.
+      !===================================================================
+      DO i = 1, Nsol
+         data_out(SOL_T_OFF + i) = Jnode(i)/Jedge
+      END DO
+
+      data_out(SOL_T_OFF + 1) = 0.0_wp
+      data_out(SOL_JEDGE_IDX) = Jedge
+
+   END SUBROUTINE build_solovev_data
+
+PURE FUNCTION solovev_w0_at_rpsi(rpsi, gama) RESULT(w0)
+   IMPLICIT NONE
+
+   REAL(KIND=wp), INTENT(IN) :: rpsi, gama
+   REAL(KIND=wp) :: w0
+   REAL(KIND=wp) :: d, delta_loc, eta, ce
+   REAL(KIND=wp) :: d1, d2, deta
+   INTEGER :: j
+
+   d         = 1.0_wp - gama
+   delta_loc = d*rpsi
+   deta      = 2.0_wp*pi/REAL(NetaSol,wp)
+
+   w0 = 0.0_wp
+
+   DO j = 1, NetaSol
+      eta = deta*REAL(j-1,wp)
+      ce  = COS(eta)
+
+      d1 = 1.0_wp + delta_loc*ce
+      d2 = d        + delta_loc*ce
+
+      w0 = w0 + 1.0_wp/(d1*SQRT(d2))
+   END DO
+
+   w0 = w0/REAL(NetaSol,wp)
+
+END FUNCTION solovev_w0_at_rpsi
 
 END MODULE constants

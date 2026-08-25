@@ -21,13 +21,12 @@ CycloneBaseCase:
   Ln: 2.2
   Li: 6.9
   Le: 6.9
-  magnetic_model: 4
+  magnetic_model: 3
   B0: 2.5
   R0: 1.65
   a0: 0.600
-  s1: 0.28
-  s2: 2.24
-  s3: 0.0001
+  safety: 0.28
+  shear_mag: 2.24
   amp: 1.0
   elong: 1.2
   device: 3
@@ -41,12 +40,12 @@ CycloneBaseCase:
   t_corr: 1
   Phi: 0.01
   turbprof: 5.0
-  Ai: 1.0
+  Ai: 0.8
   lambdax: 5.0
   lambday: 5.0
-  lambdaz: 100.0
+  lambdaz: 2.0
   lbalonz: 1.5
-  tauc: 10.0
+  tauc: 5.0
   k0i: 0.05
   k0e: 0.05
   gamma_ZF: 0.0
@@ -97,13 +96,12 @@ CycloneBaseZhang:
   Ln: 2.2
   Li: 2.2
   Le: 6.9
-  magnetic_model: 4
+  magnetic_model: 3
   B0: 1.9
   R0: 1.71
   a0: 0.625
-  s1: 0.85
-  s2: 0.0
-  s3: 2.2
+  safety: 0.85
+  shear_mag: 0.0
   amp: 1.0
   elong: 1.2
   device: 3
@@ -120,8 +118,8 @@ CycloneBaseZhang:
   Ai: 1.0
   lambdax: 5.0
   lambday: 5.0
-  lambdaz: 1000.0
-  lbalonz: 1000.0
+  lambdaz: 100.0
+  lbalonz: 1.5
   tauc: 10.0
   k0i: 0.05
   k0e: 0.05
@@ -173,13 +171,12 @@ MAST-U:
   Ln: 2.2
   Li: 2
   Le: 3
-  magnetic_model: 2
+  magnetic_model: 1
   B0: 0.7
   R0: 0.9
   a0: 0.47
-  s1: 1.0
-  s2: 0.0
-  s3: 5.0
+  safety: 1.0
+  shear_mag: 0.0
   amp: 1.1
   elong: 1.2
   device: 1
@@ -197,7 +194,7 @@ MAST-U:
   lambdax: 5.0
   lambday: 5.0
   lambdaz: 1.0
-  lbalonz: 1000.0
+  lbalonz: 1.5
   tauc: 10.0
   k0i: 0.1
   k0e: 0.1
@@ -249,13 +246,12 @@ TCV:
   Ln: 7
   Li: 7
   Le: 7
-  magnetic_model: 2
+  magnetic_model: 1
   B0: 0.7
   R0: 0.9
   a0: 0.47
-  s1: 0.85
-  s2: 0.0
-  s3: 2.2
+  safety: 0.85
+  shear_mag: 0.0
   amp: 1.1
   elong: 1.2
   device: 2
@@ -273,7 +269,7 @@ TCV:
   lambdax: 5.0
   lambday: 5.0
   lambdaz: 2.0
-  lbalonz: 1000.0
+  lbalonz: 1.5
   tauc: 50.0
   k0i: 0.1
   k0e: 0.1
@@ -325,13 +321,12 @@ WEST:
   Ln: 2.2
   Li: 6.0
   Le: 6.0
-  magnetic_model: 2
+  magnetic_model: 1
   B0: 3.7
   R0: 2.5
   a0: 0.5
-  s1: 0.85
-  s2: 0.0
-  s3: 2.2
+  safety: 0.85
+  shear_mag: 0.0
   amp: 1.0
   elong: 1.2
   device: 3
@@ -349,7 +344,7 @@ WEST:
   lambdax: 5.0
   lambday: 5.0
   lambdaz: 1.0
-  lbalonz: 1000.0
+  lbalonz: 1.5
   tauc: 30.0
   k0i: 0.1
   k0e: 0.1
@@ -379,6 +374,108 @@ WEST:
   USE_real: 0
   USE_corr: 0
   USE_balloon: 0
+  USE_tilt: 1
+  USE_testing: 0
+
+
+# JT-60SA reference scenario 2 (S2), rho_tor = 0.5
+# Based on Krutkin et al., Nucl. Fusion 66 (2026) 016043.
+# This scenario therefore uses an estimated Solovev equilibrium constrained
+# to reproduce the local q = 0.911 and magnetic shear s_hat = 0.8346 at rho=0.5.
+
+JT60SA:
+  # Numerics: practical choices, not GENE grid parameters
+  t0: 100
+  tc: -1
+  tt: -1
+  tmax: 0
+  Nt: 2000
+  Nreal: 1
+  Nc: 50
+  Nloop: 1
+  Np: 50000
+  ntraj: 10
+
+  # Local plasma parameters at rho_tor = 0.5
+  Ti: 7.78582            # keV; Ti/Te = 1
+  Te: 7.78582            # keV
+  Zeff: 2.0              # inferred from D + fast-D + C6+ composition
+  Aeff: 2.0              # deuterium bulk plasma
+  ndens: 6.36            # 1e19 m^-3
+  # Paper gives a/L; converted using R0/a ~= 2.6
+  Ln: 2.06596            # R0/Lne = 2.6 * 0.7946
+  Li: 5.80060            # R0/LTi = 2.6 * 2.2310
+  Le: 5.78396            # R0/LTe = 2.6 * 2.2246
+
+  # Approximate shaped equilibrium
+  magnetic_model: 2      # Solovev; closest generic shaped model in this schema
+  B0: 2.36               # T, field at magnetic axis for S2
+  R0: 3.0                # m
+  a0: 1.15385            # m, inferred from aspect ratio R0/a ~= 2.6
+
+  # Analytical-equilibrium safety factor and magnetic shear.
+  # Estimated to reproduce q=0.911 and s_hat=0.8346 at rho=0.5,
+  # while taking q(0) approximately 0.6 from the published q-profile figure.
+  device: 3
+  shot: 54178
+  shotslice: 6
+  Omgt0: 0
+  Omgtprim: 0
+  safety: 0.60000
+  shear_mag: -0.2766412
+
+  amp: 1.0               # estimated Solovev amplitude
+  elong: 1.8             # estimated from the shaped S2 cross-section
+
+  # No JT-60SA entry exists in the device enum; device/shot/shotslice omitted.
+  Omgt0: 0               # rotation not specified in the paper
+  Omgtprim: 0
+
+  # Synthetic turbulence mapping to the GENE results
+  turb_model: 2
+  x_corr: 3              # GENE-like radial spectrum
+  y_corr: 2              # GENE-like binormal spectrum
+  t_corr: 2
+  Phi: 0.01              # schema default; not inferable from the paper
+  turbprof: 5.0
+  Ai: 0.60               # estimated ITG fraction; mixed ITG/TEM regime
+  lambdax: 5.0           # schema default
+  lambday: 5.0           # schema default
+  lambdaz: 10.0          # schema default
+  lbalonz: 1.5           # ballooning localized near the outer midplane
+  tauc: 10.0             # schema default
+  k0i: 0.35              # ITG example/dominant ion-scale range, ky*rho_s ~ 0.35
+  k0e: 0.35              # ion-scale TEM estimate; ETG scales were excluded nonlinearly
+  gamma_ZF: 0.0
+  Beta: 0.0              # not beta_e; this YAML field is magnetic-potential amplitude
+
+# Slow-deuterium test species, nominal case
+  X0: 3.57692            # m, estimated outer-midplane R at rho_tor=0.5
+  Y0: 0.0
+  Z0: 0.0
+  Ts: 1.0                # T_fast/T_i
+  Es: 1.0                # unused for energy_type=2
+  pitch: 0.0             # unused for pitch_type=2
+  As: 2.0
+  Zs: 1.0
+  position_type: 2       # flux_surface
+  annulus_width: 0.1     # unused for position_type=2
+  pitch_type: 2          # uniform pitch
+  energy_type: 2         # Maxwell-Boltzmann
+  Lns: -3.86958          # -R0/Ln_fast = -2.6 * 1.4883
+  Lts: -9.12236          # -R0/LT_fast = -2.6 * 3.5086
+
+  # Physics switches
+  USE_larmor: 1
+  USE_coll: 0
+  USE_turb: 1
+  USE_magnturb: 0        # this switch means applied RMP, not GENE A_parallel/B_parallel
+  USE_freq: 1
+  USE_polar: 0
+  USE_PC: 0
+  USE_real: 0
+  USE_corr: 0
+  USE_balloon: 1
   USE_tilt: 1
   USE_testing: 0
 

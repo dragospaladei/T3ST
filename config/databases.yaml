@@ -1,29 +1,6 @@
 databases:
-  - name: "Test_small"
-    description: "Small 3D database for testing"
-    base_scenario: "CycloneBaseCase"
-
-    varying_parameters:
-      - name: "Ln"
-        mode: "linspace"
-        min: 0.0
-        max: 10.0
-        nvals: 10
-
-      - name: "Phi"
-        mode: "linspace"
-        min: 0.0
-        max: 0.05
-        nvals: 10
-
-      - name: "Ai"
-        mode: "linspace"
-        min: 0.0
-        max: 1.0
-        nvals: 10
-
-  - name: "Full_database"
-    description: "Full_database"
+  - name: "Database_1"
+    description: "(Ln,Phi,Ai,lx,ly,lz,Lz,tc,Ts,As,Zs)"
     base_scenario: "CycloneBaseCase"
 
     varying_parameters:
@@ -36,7 +13,13 @@ databases:
       - name: "Phi"
         mode: "linspace"
         min: 0.0
-        max: 0.05
+        max: 0.06
+        nvals: 21
+
+      - name: "Ai"
+        mode: "linspace"
+        min: 0.0
+        max: 1.0
         nvals: 21
 
       - name: "lambdax"
@@ -53,20 +36,26 @@ databases:
 
       - name: "lambdaz"
         mode: "linspace"
-        min: 0.4
-        max: 10.0
+        min: 0.5
+        max: 5.0
         nvals: 21
 
       - name: "lbalonz"
         mode: "linspace"
-        min: 0.4
-        max: 4.0
+        min: 0.5
+        max: 5.0
         nvals: 21
 
       - name: "tauc"
         mode: "linspace"
         min: 0.5
-        max: 20.0
+        max: 10.0
+        nvals: 21
+
+      - name: "Ts"
+        mode: "linspace"
+        min: 0.1
+        max: 4.1
         nvals: 21
 
       - name: "As"
@@ -81,15 +70,9 @@ databases:
         max: 5.1
         nvals: 21
 
-      - name: "Ts"
-        mode: "linspace"
-        min: 0.1
-        max: 4.1
-        nvals: 21
-        
-        
-  - name: "Full_database_reduced"
-    description: "Full_database_reduced"
+# # # # # #  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  - name: "Database_2"
+    description: "(Ln,Phi,Ai,lx,ly,lz,Lz,tc,Ts,As)"
     base_scenario: "CycloneBaseCase"
 
     varying_parameters:
@@ -102,7 +85,13 @@ databases:
       - name: "Phi"
         mode: "linspace"
         min: 0.0
-        max: 0.05
+        max: 0.06
+        nvals: 21
+
+      - name: "Ai"
+        mode: "linspace"
+        min: 0.0
+        max: 1.0
         nvals: 21
 
       - name: "lambdax"
@@ -119,20 +108,318 @@ databases:
 
       - name: "lambdaz"
         mode: "linspace"
-        min: 0.4
-        max: 10.0
+        min: 0.5
+        max: 5.0
         nvals: 21
 
       - name: "lbalonz"
         mode: "linspace"
-        min: 0.4
-        max: 4.0
+        min: 0.5
+        max: 5.0
         nvals: 21
 
       - name: "tauc"
         mode: "linspace"
         min: 0.5
-        max: 20.0
+        max: 10.0
         nvals: 21
 
+      - name: "Ts"
+        mode: "linspace"
+        min: 0.1
+        max: 4.1
+        nvals: 21
 
+      - name: "As"
+        mode: "linspace"
+        min: 1.0
+        max: 5.0
+        nvals: 21
+
+# # # # # #  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  - name: "Database_3"
+    description: "(Ln,Phi,Ai,lx,ly,lz,Lz,tc,Ts)"
+    base_scenario: "CycloneBaseCase"
+
+    varying_parameters:
+      - name: "Ln"
+        mode: "linspace"
+        min: 0.0
+        max: 10.0
+        nvals: 21
+
+      - name: "Phi"
+        mode: "linspace"
+        min: 0.0
+        max: 0.06
+        nvals: 21
+
+      - name: "Ai"
+        mode: "linspace"
+        min: 0.0
+        max: 1.0
+        nvals: 21
+
+      - name: "lambdax"
+        mode: "linspace"
+        min: 1.0
+        max: 10.0
+        nvals: 21
+
+      - name: "lambday"
+        mode: "linspace"
+        min: 1.0
+        max: 10.0
+        nvals: 21
+
+      - name: "lambdaz"
+        mode: "linspace"
+        min: 0.5
+        max: 5.0
+        nvals: 21
+
+      - name: "lbalonz"
+        mode: "linspace"
+        min: 0.5
+        max: 5.0
+        nvals: 21
+
+      - name: "tauc"
+        mode: "linspace"
+        min: 0.5
+        max: 10.0
+        nvals: 21
+
+      - name: "Ts"
+        mode: "linspace"
+        min: 0.1
+        max: 4.1
+        nvals: 21
+# # # # # #  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  - name: "Database_4"
+    description: "(Ln,Phi,Ai,lx,ly,lz,Lz,tc)"
+    base_scenario: "CycloneBaseCase"
+
+    varying_parameters:
+      - name: "Ln"
+        mode: "linspace"
+        min: 0.0
+        max: 10.0
+        nvals: 21
+
+      - name: "Phi"
+        mode: "linspace"
+        min: 0.0
+        max: 0.06
+        nvals: 21
+
+      - name: "Ai"
+        mode: "linspace"
+        min: 0.0
+        max: 1.0
+        nvals: 21
+
+      - name: "lambdax"
+        mode: "linspace"
+        min: 1.0
+        max: 10.0
+        nvals: 21
+
+      - name: "lambday"
+        mode: "linspace"
+        min: 1.0
+        max: 10.0
+        nvals: 21
+
+      - name: "lambdaz"
+        mode: "linspace"
+        min: 0.5
+        max: 5.0
+        nvals: 21
+
+      - name: "lbalonz"
+        mode: "linspace"
+        min: 0.5
+        max: 5.0
+        nvals: 21
+
+      - name: "tauc"
+        mode: "linspace"
+        min: 0.5
+        max: 10.0
+        nvals: 21
+# # # # # #  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  - name: "Database_5"
+    description: "(Ln,Phi,Ai,lx,ly,lz,Lz)"
+    base_scenario: "CycloneBaseCase"
+
+    varying_parameters:
+      - name: "Ln"
+        mode: "linspace"
+        min: 0.0
+        max: 10.0
+        nvals: 21
+
+      - name: "Phi"
+        mode: "linspace"
+        min: 0.0
+        max: 0.06
+        nvals: 21
+
+      - name: "Ai"
+        mode: "linspace"
+        min: 0.0
+        max: 1.0
+        nvals: 21
+
+      - name: "lambdax"
+        mode: "linspace"
+        min: 1.0
+        max: 10.0
+        nvals: 21
+
+      - name: "lambday"
+        mode: "linspace"
+        min: 1.0
+        max: 10.0
+        nvals: 21
+
+      - name: "lambdaz"
+        mode: "linspace"
+        min: 0.5
+        max: 5.0
+        nvals: 21
+
+      - name: "lbalonz"
+        mode: "linspace"
+        min: 0.5
+        max: 5.0
+        nvals: 21
+# # # # # #  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  - name: "Database_6"
+    description: "(Ln,Phi,Ai,lx,ly,lz)"
+    base_scenario: "CycloneBaseCase"
+
+    varying_parameters:
+      - name: "Ln"
+        mode: "linspace"
+        min: 0.0
+        max: 10.0
+        nvals: 21
+
+      - name: "Phi"
+        mode: "linspace"
+        min: 0.0
+        max: 0.06
+        nvals: 21
+
+      - name: "Ai"
+        mode: "linspace"
+        min: 0.0
+        max: 1.0
+        nvals: 21
+
+      - name: "lambdax"
+        mode: "linspace"
+        min: 1.0
+        max: 10.0
+        nvals: 21
+
+      - name: "lambday"
+        mode: "linspace"
+        min: 1.0
+        max: 10.0
+        nvals: 21
+
+      - name: "lambdaz"
+        mode: "linspace"
+        min: 0.5
+        max: 5.0
+        nvals: 21
+# # # # # #  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  - name: "Database_7"
+    description: "(Ln,Phi,Ai,lx,ly)"
+    base_scenario: "CycloneBaseCase"
+
+    varying_parameters:
+      - name: "Ln"
+        mode: "linspace"
+        min: 0.0
+        max: 10.0
+        nvals: 21
+
+      - name: "Phi"
+        mode: "linspace"
+        min: 0.0
+        max: 0.06
+        nvals: 21
+
+      - name: "Ai"
+        mode: "linspace"
+        min: 0.0
+        max: 1.0
+        nvals: 21
+
+      - name: "lambdax"
+        mode: "linspace"
+        min: 1.0
+        max: 10.0
+        nvals: 21
+
+      - name: "lambday"
+        mode: "linspace"
+        min: 1.0
+        max: 10.0
+        nvals: 21
+# # # # # #  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  - name: "Database_8"
+    description: "(Ln,Phi,Ai,lx)"
+    base_scenario: "CycloneBaseCase"
+
+    varying_parameters:
+      - name: "Ln"
+        mode: "linspace"
+        min: 0.0
+        max: 10.0
+        nvals: 21
+
+      - name: "Phi"
+        mode: "linspace"
+        min: 0.0
+        max: 0.06
+        nvals: 21
+
+      - name: "Ai"
+        mode: "linspace"
+        min: 0.0
+        max: 1.0
+        nvals: 21
+
+      - name: "lambdax"
+        mode: "linspace"
+        min: 1.0
+        max: 10.0
+        nvals: 21
+# # # # # #  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  - name: "Database_9"
+    description: "(Ln,Phi,Ai)"
+    base_scenario: "CycloneBaseCase"
+
+    varying_parameters:
+      - name: "Ln"
+        mode: "linspace"
+        min: 0.0
+        max: 10.0
+        nvals: 21
+
+      - name: "Phi"
+        mode: "linspace"
+        min: 0.0
+        max: 0.06
+        nvals: 21
+
+      - name: "Ai"
+        mode: "linspace"
+        min: 0.0
+        max: 1.0
+        nvals: 21

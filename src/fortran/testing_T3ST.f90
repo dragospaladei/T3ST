@@ -419,9 +419,9 @@ contains
 
         time = dt * real(k - 1, wp)
 
-call gyrocenter_drifts(xi, yi, zi, vpi, mui, q1, q2, q3, time,                       &
-            vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx,     &
-            check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
+        call gyrocenter_drifts(xi, yi, zi, vpi, mui, q1, q2, q3, time, &
+             vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
+             check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph, Sol_data)
             
         Xh(k, ias)  = xi
         Yh(k, ias)  = yi
@@ -444,11 +444,10 @@ call gyrocenter_drifts(xi, yi, zi, vpi, mui, q1, q2, q3, time,                  
         WbD = vbD / 6.0_wp
         Wvp = ap / 6.0_wp
 
-call gyrocenter_drifts(xi + vx*dt/2.0_wp, yi + vy*dt/2.0_wp, zi + vz*dt/2.0_wp,      &
-            vpi + ap*dt/2.0_wp, mui + vm*dt/2.0_wp,                       &
-            q1, q2, q3, time + dt/2.0_wp,                                  &
-            vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx,     &
-            check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
+        call gyrocenter_drifts(xi + vx*dt/2.0_wp, yi + vy*dt/2.0_wp, zi + vz*dt/2.0_wp, &
+             vpi + ap*dt/2.0_wp, mui + vm*dt/2.0_wp, q1, q2, q3, time + dt/2.0_wp, &
+             vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
+             check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph, Sol_data)
                           
         Wx = Wx + vx / 3.0_wp
         Wy = Wy + vy / 3.0_wp
@@ -460,11 +459,10 @@ call gyrocenter_drifts(xi + vx*dt/2.0_wp, yi + vy*dt/2.0_wp, zi + vz*dt/2.0_wp, 
 
 
 ! RK2b
-call gyrocenter_drifts(xi + vx*dt/2.0_wp, yi + vy*dt/2.0_wp, zi + vz*dt/2.0_wp,      &
-            vpi + ap*dt/2.0_wp, mui + vm*dt/2.0_wp,                       &
-            q1, q2, q3, time + dt/2.0_wp,                                  &
-            vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx,     &
-            check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
+        call gyrocenter_drifts(xi + vx*dt/2.0_wp, yi + vy*dt/2.0_wp, zi + vz*dt/2.0_wp, &
+             vpi + ap*dt/2.0_wp, mui + vm*dt/2.0_wp, q1, q2, q3, time + dt/2.0_wp, &
+             vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
+             check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph, Sol_data)
 
 
         Wx = Wx + vx / 3.0_wp
@@ -476,11 +474,10 @@ call gyrocenter_drifts(xi + vx*dt/2.0_wp, yi + vy*dt/2.0_wp, zi + vz*dt/2.0_wp, 
         Wvp = Wvp + ap / 3.0_wp
 
 ! RK4
-call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt,                            &
-            vpi + ap*dt, mui + vm*dt,                                      &
-            q1, q2, q3, time + dt,                                         &
-            vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx,     &
-            check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
+        call gyrocenter_drifts(xi + vx*dt, yi + vy*dt, zi + vz*dt, &
+             vpi + ap*dt, mui + vm*dt, q1, q2, q3, time + dt, &
+             vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
+             check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph, Sol_data)
             
             
         Wx = Wx + vx / 6.0_wp

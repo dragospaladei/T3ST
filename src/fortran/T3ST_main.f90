@@ -264,8 +264,8 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
       t        = [(i8 * dt + t0, i8 = 0, Nt)]
       Vtx_init = 0.0_wp
       Lagr_corr = 0.0_wp
-      q1min = C1 * MAX(0.0_wp, q10 - 0.1_wp*annulus_width)
-      q1max = C1 * MIN(1.0_wp, q10 + 0.1_wp*annulus_width)
+      q1min = C1 * MAX(0.0_wp, rhot0 - 0.1_wp*annulus_width)
+      q1max = C1 * MIN(1.0_wp, rhot0 + 0.1_wp*annulus_width)
 
       diag_loops_checked = 0
       diag_loops_failed  = 0
@@ -291,8 +291,8 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
             END IF
 
             CALL write_initial_state(X, Y, Z, Vp, mu, Einit, betaF, betaD, FM, F0, G0)
-
-!========================================================================================================
+            
+ !========================================================================================================
 ! TIME PROPAGATION
 !========================================================================================================
 
@@ -358,7 +358,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
 
                         CALL gyrocenter_drifts(xi, yi, zi, vpi, mui, q1, q2, q3, t(k), &
                                     vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
-                                    check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
+                                    check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph, Sol_data)
 
                         CALL collision_kicks(sm1, sm2, dt_half, xi, yi, zi, vpi, mui, &
                                             B, vx, vy, vz, vm, ap)
@@ -379,7 +379,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                      ! RK4 stage 1.
                      CALL gyrocenter_drifts(xi, yi, zi, vpi, mui, q1, q2, q3, t(k), &
                                  vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
-                                 check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
+                                 check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph, Sol_data)
 
                      IF (k == 1) THEN
                         Vtx_init(i) = Vtx
@@ -400,7 +400,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                      ! Mask for particles outside the domain.
                      mask = 1.0_wp
 
-                     IF (ANY(magnetic_model == [1, 2])) THEN
+                     IF (magnetic_model == 1) THEN
                         maskR = (xi - minR) * (maxR - xi)
                         maskZ = (yi - minZ) * (maxZ - yi)
                         mask  = MERGE(1.0_wp, 0.0_wp, (maskR >= 0.0) .AND. (maskZ >= 0.0))
@@ -431,8 +431,8 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                      END IF
 
 !             IF (i == 12) THEN
-!               write(*,*) 'rk', exp((q1 - C1*q10)*a0/C1/R0*Lns), q1 - C1*q10, kin, FMi, F0i, exp((q1 - C1*q10)*a0/C1/R0*Lns)*exp(-kin/ Ts) / Ts**1.5_wp
-!             write(*,*) 'rk', exp((q1 - C1*q10)*a0/C1/R0*Lns), FMi!, F0i, exp((q1 - C1*q10)*a0/C1/R0*Lns)*exp(-kin/ Ts) / Ts**1.5_wp
+!               write(*,*) 'rk', exp((q1 - C1*rhot0)*a0/C1/R0*Lns), q1 - C1*rhot0, kin, FMi, F0i, exp((q1 - C1*rhot0)*a0/C1/R0*Lns)*exp(-kin/ Ts) / Ts**1.5_wp
+!             write(*,*) 'rk', exp((q1 - C1*rhot0)*a0/C1/R0*Lns), FMi!, F0i, exp((q1 - C1*rhot0)*a0/C1/R0*Lns)*exp(-kin/ Ts) / Ts**1.5_wp
 !                  WRITE(*, '("particle | ",I0,"| FM*Exp/F0 | ",G0.6,"| deltaFM/F0 | ",G0.6,"| kin/Ts | ",G0.6)') &
 !            i, 100.0*(FMi*exp(betaFi)/F0i-1.0), 100.0*(FMi/F0i-1.0_wp), kin-Hi
 !           END IF
@@ -444,7 +444,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                                      mui + vm * dt / 2.0_wp, &
                                      q1, q2, q3, t(k) + dt / 2.0_wp, &
                                      vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
-                                     check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
+                                     check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph, Sol_data)
 
                      Wx = Wx + vx / 3.0_wp
                      Wy = Wy + vy / 3.0_wp
@@ -465,7 +465,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                                      mui + vm * dt / 2.0_wp, &
                                      q1, q2, q3, t(k) + dt / 2.0_wp, &
                                      vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
-                                     check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
+                                     check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph, Sol_data)
 
                      Wx = Wx + vx / 3.0_wp
                      Wy = Wy + vy / 3.0_wp
@@ -483,7 +483,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                                  vpi + ap * dt, mui + vm * dt, &
                                  q1, q2, q3, t(k) + dt, &
                                  vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
-                                 check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
+                                 check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph, Sol_data)
 
                      Wx = Wx + vx / 6.0_wp
                      Wy = Wy + vy / 6.0_wp
@@ -539,7 +539,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
 
                         CALL gyrocenter_drifts(xi, yi, zi, vpi, mui, q1, q2, q3, t(k), &
                                     vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, &
-                                    check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph)
+                                    check_1, check_2, check_3, vs_1, vs_2, vs_3, Qx, Qy, Qz, Qw, Qph, Sol_data)
 
                         CALL collision_kicks(sm1, sm2, dt_half, xi, yi, zi, vpi, mui, &
                                              B, vx, vy, vz, vm, ap)
@@ -625,14 +625,14 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                CALL write_correlations(Vcorff, VcorTT, VcorTN, VcorNT)
             END IF
 
-            IF (ANY(magnetic_model == [1, 2])) THEN
+            IF (magnetic_model == 1) THEN
 
                CALL write_mask(REAL( &
                   COUNT( ((X - minR) * (maxR - X) >= 0.0_wp) .AND. &
                          ((Y - minZ) * (maxZ - Y) >= 0.0_wp) .AND. &
                          .NOT. IEEE_IS_NAN(X) .AND. .NOT. IEEE_IS_NAN(Y) ), wp))
 
-            ELSE IF (ANY(magnetic_model == [3, 4])) THEN
+            ELSE IF (ANY(magnetic_model == [2, 3])) THEN
 
                CALL write_mask(REAL( &
                   COUNT( ((X - (1.0_wp - a0)) * ((1.0_wp + a0) - X) >= 0.0_wp) .AND. &
@@ -726,7 +726,7 @@ folder = TRIM(address)//'Run_'//TRIM(runs)//'/'
                   t, q1al, q2al, q3al, Vtxal, mask2al, Pcc, ck1, ck2, ck3, Pctraj, &
                   ck1traj, ck2traj, ck3traj, Vtx_init, kin_init, Lagr_corr )
 
-      IF ((magnetic_model == 1) .OR. (magnetic_model == 2)) THEN
+      IF (magnetic_model == 1) THEN
          DEALLOCATE(Efit_data)
       END IF
 

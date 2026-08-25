@@ -17,46 +17,153 @@
        REAL(KIND=wp), DIMENSION(Np), INTENT(IN)   :: X, Z                                 ! new basis coordinates (input)
        REAL(KIND=wp), DIMENSION(Nqua, Np), INTENT(OUT)  :: R                                    ! new basis coordinates (input)
 
-       ! Local variables
-       ! Local variables
-       REAL(KIND=wp), DIMENSION(Np)                       :: psi, psir, psiz, psirr, psizz, psirz  ! miscelaneous
-       REAL(KIND=wp), DIMENSION(Np)                       :: chi, chir, chiz, qpsi, qprim, Fpsi, Fprim! miscelaneous
-       REAL(KIND=wp), DIMENSION(Np)                       :: rr, theta, rhot, rhotr, rhotz, psiradius
+       ! This is the array-oriented counterpart of the Solovev branch in
+       ! gyrocenter_drifts. Keep the two implementations mathematically synchronized.
+       REAL(KIND=wp), DIMENSION(Np) :: psi, psir, psiz, psirr, psizz, psirz
+       REAL(KIND=wp), DIMENSION(Np) :: chi, chir, chiz, qpsi, qprim, Fpsi, Fprim
+       REAL(KIND=wp), DIMENSION(Np) :: rhot, rhotr, rhotz
 
-       ! \psi    :: the poloidal flux
-       psi = (amp*((alfa**2*(-1.0 + X**2)**2)/4.+(-gama + X**2)*Z**2))/(2.*(1 + alfa**2))
-       ! d_R\psi :: R derivative of the poloidal flux (psi)
-       psir = (amp*(alfa**2*X*(-1.0 + X**2) + 2.0*X*Z**2))/(2.*(1.0 + alfa**2))
-       ! d_Z\psi :: Z derivative of the poloidal flux (psi)
-       psiz = (amp*(-gama + X**2)*Z)/(1.0 + alfa**2)
-       ! d_RR\psi :: R,R derivative of the poloidal flux (psi)
-       psirr = (amp*(2.0*alfa**2*X**2 + alfa**2*(-1.0 + X**2) + 2.0*Z**2))/(2.*(1.0 + alfa**2))
-       ! d_RZ\psi :: R,Z derivative of the poloidal flux (psi)
-       psirz = (2.0*amp*X*Z)/(1.0 + alfa**2)
-       ! d_ZZ\psi :: Z,Z derivative of the poloidal flux (psi)
-       psizz = (amp*(-gama + X**2))/(1.0 + alfa**2)
-       ! F(\psi)
+       REAL(KIND=wp) :: xi, zi, xi2, zi2
+       REAL(KIND=wp) :: psi_sep, delta_sep, delta2, delta_geom
+       REAL(KIND=wp) :: h2, hsqrt, rpsi, rpsi_tab, rpsir, rpsiz
+       REAL(KIND=wp) :: xsol, fsol, w0sol, w0sol_r, Ttor, Jedge
+       REAL(KIND=wp) :: vL, vR, Cqsol, Frpsi, qrpsi
+       REAL(KIND=wp) :: eta, etar, etaz, ceta, seta
+       REAL(KIND=wp) :: chi_rpsi, chi_eta
+       REAL(KIND=wp) :: bk, bkr, sink, cosk, snext, cnext
+       INTEGER :: i, k, isol, idxL, idxR, ibL, ibR
 
-       Fpsi = sqrt(1.0 + 2.0*amp*gama*psi/(1.0 + alfa**2))
-       Fprim = (amp*gama)/(1.0 + alfa**2)*Fpsi
+       delta_sep = 1.0_wp - gama
+       psi_sep = amp*alfa**2*delta_sep**2/(8.0_wp*(1.0_wp + alfa**2))
+       Cqsol = (1.0_wp + alfa**2)/(alfa*amp)
+       Jedge = Sol_data(SOL_JEDGE_IDX)
 
-    !!! taken from circular ...
-       ! straight poloidal angle = arctan(theta...)
+       DO i = 1, Np
+          xi = X(i)
+          zi = Z(i)
+          xi2 = xi*xi
+          zi2 = zi*zi
 
-       psiradius = (amp*((alfa**2*(-1.0 + (1.0 + a0)**2)**2)/4.))/(2.*(1 + alfa**2))
-       rr = sqrt(psi/psiradius)
-       theta = atan2(Z, X - 1.0)      ! atan(z,rr)
-       chi = 2.0*atan(sqrt((1.0 - rr)/(1.0 + rr))*tan(theta/2.0))
-       chir = sin(theta)*(rr**2 - X)/X/rr/Sqrt(1.0 - rr**2)
-       chiz = -(rr - cos(theta))/rr/Sqrt(1.0 - rr**2)
-       rhot = rr
-       rhotr = rr/2.0*psir/psi
-       rhotz = rr/2.0*psiz/psi
+          psi(i) = amp*(0.25_wp*alfa**2*(xi2 - 1.0_wp)**2 + (xi2 - gama)*zi2) &
+                   /(2.0_wp*(1.0_wp + alfa**2))
+          psir(i) = amp*(alfa**2*xi*(xi2 - 1.0_wp) + 2.0_wp*xi*zi2) &
+                    /(2.0_wp*(1.0_wp + alfa**2))
+          psiz(i) = amp*(xi2 - gama)*zi/(1.0_wp + alfa**2)
+          psirr(i) = amp*(2.0_wp*alfa**2*xi2 + alfa**2*(xi2 - 1.0_wp) + 2.0_wp*zi2) &
+                     /(2.0_wp*(1.0_wp + alfa**2))
+          psirz(i) = 2.0_wp*amp*xi*zi/(1.0_wp + alfa**2)
+          psizz(i) = amp*(xi2 - gama)/(1.0_wp + alfa**2)
 
-       ! q(r)    :: the safety factor
-       qpsi = s1 + s2*rr*(1.0/a0) + s3*rr**2*(1.0/a0)**2
-       ! q'(r)   :: radial derivative of the safety factor
-       qprim = s2*(1.0/a0) + 2.0*s3*(1.0/a0)**2 ! a0 a fost deja scalat
+          Fpsi(i) = sqrt(1.0_wp + 2.0_wp*amp*gama*psi(i)/(1.0_wp + alfa**2))
+          Fprim(i) = (amp*gama)/(1.0_wp + alfa**2)/Fpsi(i)
+
+          h2 = max(xi2 - gama, eps_root)
+          hsqrt = sqrt(h2)
+          delta2 = (xi2 - 1.0_wp)**2 + 4.0_wp*zi2*h2/(alfa*alfa)
+          delta_geom = sqrt(max(delta2, 0.0_wp))
+          rpsi = delta_geom/delta_sep
+          rpsi_tab = min(max(rpsi, 0.0_wp), SOL_RMAX)
+
+          xsol = rpsi_tab*SOL_INV_DR
+          isol = min(int(xsol), Nsol - 2)
+          fsol = xsol - real(isol, wp)
+          idxL = isol + 1
+          idxR = idxL + 1
+
+          vL = Sol_data(SOL_W0_OFF + idxL)
+          vR = Sol_data(SOL_W0_OFF + idxR)
+          IF (isol == 0) THEN
+             w0sol = vL + (vR - vL)*fsol*fsol
+             w0sol_r = 2.0_wp*(vR - vL)*fsol*SOL_INV_DR
+          ELSE
+             w0sol = vL + (vR - vL)*fsol
+             w0sol_r = (vR - vL)*SOL_INV_DR
+          END IF
+
+          vL = Sol_data(SOL_T_OFF + idxL)
+          vR = Sol_data(SOL_T_OFF + idxR)
+          IF (isol == 0) THEN
+             Ttor = vL + (vR - vL)*fsol*fsol
+          ELSE
+             Ttor = vL + (vR - vL)*fsol
+          END IF
+
+          qpsi(i) = Cqsol*Fpsi(i)*w0sol
+          Frpsi = 2.0_wp*psi_sep*rpsi*Fprim(i)
+          qrpsi = Cqsol*(Frpsi*w0sol + Fpsi(i)*w0sol_r)
+          rhot(i) = sqrt(max(Ttor, 0.0_wp))
+
+          IF ((rhot(i) > eps_rr) .AND. (abs(Jedge) > eps_B)) THEN
+             rhotr(i) = qpsi(i)*psir(i)/(2.0_wp*psi_sep*Jedge*rhot(i))
+             rhotz(i) = qpsi(i)*psiz(i)/(2.0_wp*psi_sep*Jedge*rhot(i))
+          ELSE
+             rhotr(i) = 0.0_wp
+             rhotz(i) = 0.0_wp
+          END IF
+
+          IF ((rpsi > eps_rr) .AND. (rhot(i) > eps_rr) .AND. (abs(qpsi(i)) > eps_B)) THEN
+             qprim(i) = Jedge*rhot(i)*qrpsi/(rpsi*qpsi(i))
+          ELSE
+             qprim(i) = 0.0_wp
+          END IF
+
+          IF (delta_geom > eps_rr) THEN
+             ceta = (xi2 - 1.0_wp)/delta_geom
+             seta = 2.0_wp*zi*hsqrt/(alfa*delta_geom)
+             eta = atan2(seta, ceta)
+             etar = -2.0_wp*xi*zi*(xi2 + 1.0_wp - 2.0_wp*gama)/(alfa*hsqrt*delta2)
+             etaz = 2.0_wp*(xi2 - 1.0_wp)*hsqrt/(alfa*delta2)
+          ELSE
+             eta = 0.0_wp
+             ceta = 1.0_wp
+             seta = 0.0_wp
+             etar = 0.0_wp
+             etaz = 0.0_wp
+          END IF
+
+          IF (rpsi > eps_rr) THEN
+             rpsir = psir(i)/(2.0_wp*psi_sep*rpsi)
+             rpsiz = psiz(i)/(2.0_wp*psi_sep*rpsi)
+          ELSE
+             rpsir = 0.0_wp
+             rpsiz = 0.0_wp
+          END IF
+
+          chi(i) = eta
+          chi_rpsi = 0.0_wp
+          chi_eta = 1.0_wp
+          sink = seta
+          cosk = ceta
+
+          DO k = 1, Ksol
+             ibL = SOL_B_OFF + (k - 1)*Nsol + idxL
+             ibR = ibL + 1
+             vL = Sol_data(ibL)
+             vR = Sol_data(ibR)
+
+             IF (isol == 0) THEN
+                bk = vR*fsol**k
+                bkr = real(k, wp)*vR*fsol**(k - 1)*SOL_INV_DR
+             ELSE
+                bk = vL + (vR - vL)*fsol
+                bkr = (vR - vL)*SOL_INV_DR
+             END IF
+
+             chi(i) = chi(i) + bk*sink/real(k, wp)
+             chi_rpsi = chi_rpsi + bkr*sink/real(k, wp)
+             chi_eta = chi_eta + bk*cosk
+
+             IF (k < Ksol) THEN
+                snext = sink*ceta + cosk*seta
+                cnext = cosk*ceta - sink*seta
+                sink = snext
+                cosk = cnext
+             END IF
+          END DO
+
+          chir(i) = chi_rpsi*rpsir + chi_eta*etar
+          chiz(i) = chi_rpsi*rpsiz + chi_eta*etaz
+       END DO
 
        !       R = transpose(reshape([psi, psir, psiz, psirr, psirz, psizz, Fpsi, Fprim, qpsi, qprim, rhot, rhotr, rhotz, chi, chir, chiz], [Np,Nqua]))
 
@@ -115,4 +222,3 @@
 
        end do
     END SUBROUTINE psisurf_solov2
-

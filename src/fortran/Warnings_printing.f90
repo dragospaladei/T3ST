@@ -103,7 +103,7 @@ SUBROUTINE validate_raw_run_parameters
    END IF
 
    ! --- physical parameters before normalization ---
-   IF (magnetic_model == 3 .OR. magnetic_model == 4) THEN
+   IF (magnetic_model == 2 .OR. magnetic_model == 3) THEN
       IF (R0 <= tiny_dp) THEN
          WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: R0 must be > 0 before normalization, got R0 =', R0
          nerr = nerr + 1
@@ -154,8 +154,9 @@ SUBROUTINE validate_raw_run_parameters
       WRITE(output_unit,'(A,1X,ES12.4)') 'Warning :: Zs should be nonzero, got Zs =', Zs
    END IF
 
-   IF (ABS(s1) <= tiny_dp) THEN
-      WRITE(error_unit,'(A,1X,ES12.4)') 'Error :: s1 must be nonzero; amp is derived using 1/s1, got s1 =', s1
+   IF (magnetic_model == 2 .AND. ABS(safety) <= tiny_dp) THEN
+      WRITE(error_unit,'(A,1X,ES12.4)') &
+         'Error :: safety must be nonzero for Solovev; amp is derived using 1/safety, got safety =', safety
       nerr = nerr + 1
    END IF
 
@@ -166,7 +167,7 @@ SUBROUTINE validate_raw_run_parameters
 
    ! --- model choices ---
    SELECT CASE (magnetic_model)
-   CASE (1, 2, 3, 4)
+   CASE (1, 2, 3)
    CASE DEFAULT
       WRITE(error_unit,'(A,I0)') 'Error :: magnetic_model not implemented, got magnetic_model = ', magnetic_model
       nerr = nerr + 1
@@ -374,7 +375,7 @@ SUBROUTINE validate_derived_run_parameters
    END IF
 
    ! --- EFIT-derived grid sanity ---
-   IF (magnetic_model == 1 .OR. magnetic_model == 2) THEN
+   IF (magnetic_model == 1) THEN
       IF (NgridR <= 1) THEN
          WRITE(error_unit,'(A,I0)') 'Error :: NgridR must be > 1 for EFIT, got NgridR = ', NgridR
          nerr = nerr + 1

@@ -224,7 +224,7 @@ parameters:
   - name: ndens
     kind: float
     units: "1e19 m^-3"
-    default: 4
+    default: 3
     group: Plasma
     help: Local plasma density (used only for the collision frequency calculation)
 
@@ -250,17 +250,15 @@ parameters:
   # --- Geometry / equilibrium ---
   - name: magnetic_model
     kind: enum
-    default: 4
+    default: 3
     group: Equilibrium
     help: Magnetic geometry model
     choices:
       - value: 1
         label: EFIT
       - value: 2
-        label: EFIT-sa
-      - value: 3
         label: Solovev
-      - value: 4
+      - value: 3
         label: Circular
 
   - name: B0
@@ -284,23 +282,17 @@ parameters:
     group: Equilibrium
     help: Minor radius
 
-  - name: s1
+  - name: safety
     kind: float
     default: 0.8
     group: Equilibrium
-    help: Safety-factor coefficient s1 in the model qpsi(rhot)=s1+s2*rhot+s3*rhot^2
+    help: Reference safety factor used by the circular model
 
-  - name: s2
+  - name: shear_mag
     kind: float
     default: 0.0
     group: Equilibrium
-    help: Safety-factor coefficient s2 in the model qpsi(rhot)=s1+s2*rhot+s3*rhot^2
-
-  - name: s3
-    kind: float
-    default: 2.2
-    group: Equilibrium
-    help: Safety-factor coefficient s3 in the model qpsi(rhot)=s1+s2*rhot+s3*rhot^2
+    help: Magnetic shear used by the circular model
 
   - name: amp
     kind: float

@@ -1,5 +1,5 @@
 !========================================================================================================
-! Subroutine :: interpol (EFIT2 / EFITsa / psisurf_efit2 / psisurf_efit3)
+! Subroutine :: interpol (EFIT2 / psisurf_efit2 / psisurf_efit3)
 ! Purpose    :: interpolate quantities known on a 2D grid (EFIT-like data)
 !
 ! Record of revisions:
@@ -59,74 +59,6 @@ SUBROUTINE EFIT2(X, Y, R)
    END DO
 
 END SUBROUTINE EFIT2
-
-
-!========================================================================================================
-! EFITsa: EFIT interpolation but overwrite (chi, chir, chiz) with circular-model expressions
-!
-! Note: using this model might lead to problems; observed that the theta-derivative of chi in
-!       EFIT data is not always the same sign as in the circular model.
-!========================================================================================================
-SUBROUTINE EFITsa(X, Y, R)
-   USE constants
-   IMPLICIT NONE
-
-   !---------------------------------------------------------------------------------
-   ! I/O
-   !---------------------------------------------------------------------------------
-   REAL(KIND=wp), DIMENSION(Np),      INTENT(IN)  :: X, Y
-   REAL(KIND=wp), DIMENSION(Nqua, Np), INTENT(OUT) :: R
-
-   !---------------------------------------------------------------------------------
-   ! Locals
-   !---------------------------------------------------------------------------------
-   INTEGER,       DIMENSION(Np) :: poz1, poz2
-   INTEGER                    :: i, j
-   REAL(KIND=wp), DIMENSION(Np) :: F1, F2, F3, F4
-   REAL(KIND=wp), DIMENSION(Np) :: X1, Y1, Xef, Yef
-   REAL(KIND=wp), DIMENSION(Np) :: rr, theta, chi, chir, chiz
-
-   !---------------------------------------------------------------------------------
-   ! Cell indices and local coordinates
-   !---------------------------------------------------------------------------------
-   poz1 = modulo(int((X - minR)/stepR), NgridR)
-   poz2 = modulo(int((Y - minZ)/stepZ), NgridZ)
-
-   X1  = minR + poz1*stepR
-   Y1  = minZ + poz2*stepZ
-
-   Xef = (X - X1)/stepR
-   Yef = (Y - Y1)/stepZ
-
-   !---------------------------------------------------------------------------------
-   ! Interpolate everything except the last 3 quantities (chi,chir,chiz)
-   !---------------------------------------------------------------------------------
-   DO i = 1, Nqua - 3
-      DO j = 1, Np
-         F1(j) = Efit_data(NgridR*NgridZ*(i - 1) +  poz1(j)   *NgridR +  poz2(j))
-         F2(j) = Efit_data(NgridR*NgridZ*(i - 1) + (poz1(j)+1)*NgridR +  poz2(j))
-         F3(j) = Efit_data(NgridR*NgridZ*(i - 1) +  poz1(j)   *NgridR + (poz2(j)+1))
-         F4(j) = Efit_data(NgridR*NgridZ*(i - 1) + (poz1(j)+1)*NgridR + (poz2(j)+1))
-      END DO
-
-      R(i, :) = F1 + (F2 - F1)*Xef + (F3 - F1)*Yef + Xef*Yef*(F1 + F4 - F2 - F3)
-   END DO
-
-   !---------------------------------------------------------------------------------
-   ! Overwrite chi, chir, chiz with circular expressions
-   !---------------------------------------------------------------------------------
-   rr    = sqrt((X - 1.0_wp)**2 + Y**2) + 1.0e-7_wp
-   theta = atan2(Y, X - 1.0_wp)
-
-   chi  = 2.0_wp*atan( sqrt((1.0_wp - rr)/(1.0_wp + rr)) * tan(theta/2.0_wp) )
-   chir =  sin(theta) * (rr**2 - X) / X / rr / sqrt(1.0_wp - rr**2)
-   chiz = -(rr - cos(theta)) / rr / sqrt(1.0_wp - rr**2)
-
-   R(Nqua - 2, :) = chi
-   R(Nqua - 1, :) = chir
-   R(Nqua    , :) = chiz
-
-END SUBROUTINE EFITsa
 
 
 !========================================================================================================
@@ -440,4 +372,3 @@ CONTAINS
    END SUBROUTINE interp_point_along_contour
 
 END SUBROUTINE psisurf_efit3
-

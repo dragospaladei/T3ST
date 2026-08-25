@@ -12,8 +12,8 @@ contains
 
    pure subroutine gyrocenter_drifts(xi, yi, zi, vpi, mui, q1, q2, q3, time, &
                           vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, check_1, check_2, check_3, &
-                          vs_1, vs_2, vs_3, Qx1, Qy1, Qz1, Qw1, Qph1)
-      !$omp declare simd(gyrocenter_drifts) uniform(time,Qx1,Qy1,Qz1,Qw1,Qph1) notinbranch
+                          vs_1, vs_2, vs_3, Qx1, Qy1, Qz1, Qw1, Qph1, Sol_data)
+      !$omp declare simd(gyrocenter_drifts) uniform(time,Qx1,Qy1,Qz1,Qw1,Qph1, Sol_data) notinbranch
 
       !---------------------------------------------------------------------------------
       ! Arguments
@@ -21,6 +21,7 @@ contains
       real(wp), intent(in)  :: xi, yi, zi, vpi, mui, time
       real(wp), intent(out) :: q1, q2, q3, vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx
       real(wp), intent(out) :: check_1, check_2, check_3, vs_1, vs_2, vs_3
+      real(wp), intent(in)  :: Sol_data(SOL_NDATA)
       real(wp), intent(in), contiguous :: Qx1(:), Qy1(:), Qz1(:), Qw1(:), Qph1(:)
       real(wp) ::  Q0wrp1
       !---------------------------------------------------------------------------------
@@ -66,7 +67,6 @@ contains
       real(wp) :: invxi, invxi2, invxi3, invhx, invhy, invhz
       real(wp) :: invB, invB3, invBsp
       real(wp) :: a02, tau, s_star
-      real(wp) :: t_tmp, sqrt_t1
       real(wp) :: tsc, msc, temp, dens, Hi0, msg
       integer  :: poz1, poz2
       real(wp) :: X1, Y1, Xef, Yef
@@ -75,6 +75,29 @@ contains
       real(wp) :: cos_ddm(-dmmax:dmmax)
       real(wp) :: sin_ddm(-dmmax:dmmax)
       integer :: n, jax, i
+      
+      ! Solovev flux-coordinate helpers
+	real(wp) :: psi_sep, delta_sep
+	real(wp) :: rpsi, rpsi_tab, rpsir, rpsiz
+	real(wp) :: h2, hsqrt, delta2, delta_geom
+	real(wp) :: eta, etar, etaz, ceta, seta
+
+	! Inline radial interpolation
+	real(wp) :: xsol, fsol
+	real(wp) :: w0sol, w0sol_r
+	real(wp) :: Ttor, Jedge
+	real(wp) :: vL, vR
+	real(wp) :: bk, bkr
+
+	! q and straight-angle derivatives
+	real(wp) :: Cqsol, Frpsi, qrpsi
+	real(wp) :: chi_rpsi, chi_eta
+
+	! Fourier recurrence
+	real(wp) :: sink, cosk, snext, cnext
+
+	integer :: isol, idxL, idxR
+	integer :: ibL, ibR, k
 
       !---------------------------------------------------------------------------------
       ! Quick aliases / hoists
@@ -108,7 +131,7 @@ contains
       !---------------------------------------------------------------------------------
       ! Geometry and magnetic equilibrium :: Straight-field-line angle, safety factor model, fluxes
       !---------------------------------------------------------------------------------
-      if (magnetic_model == 4) then   ! circular equilibrium
+      if (magnetic_model == 3) then   ! circular equilibrium
 
          theta = atan2(yi, xi_m1)
 
@@ -146,12 +169,10 @@ contains
          Fpsi = 1.0_wp
          Fprim = 0.0_wp
 
-         ! psi (closed form) kept, algebraically simplified
-         t_tmp = a02*s1/(s3 + eps_large)
-         sqrt_t1 = sqrt(t_tmp + 1.0_wp)
-         psi = -(a02/(s3 + eps_large))/sqrt_t1*(atanh(root1/sqrt_t1) - atanh(1.0_wp/sqrt_t1))
+         ! Circular poloidal flux
+         psi = a02/s2*(rr/a0 - s1/s2*log(1.0_wp + s2/s1*rr/a0))
 
-      else if (magnetic_model == 3) then
+      else if (magnetic_model == 2) then
 
          ! psi and derivatives (analytical model)
          psi = (amp*((alfa**2*(-1.0 + xi**2)**2)/4.0_wp + (-gama + xi**2)*yi**2))/(2.0_wp*(1.0_wp + alfa**2))
@@ -163,31 +184,272 @@ contains
 
          ! F(psi)
          Fpsi = sqrt(1.0_wp + 2.0_wp*amp*gama*psi/(1.0_wp + alfa**2))
-         Fprim = (amp*gama)/(1.0_wp + alfa**2)*Fpsi
+         Fprim = (amp*gama)/(1.0_wp + alfa**2)/Fpsi
 
-         ! chi and its derivatives (analogous to circular model)
-         psiradius = (amp*((alfa**2*(-1.0 + (1.0_wp + a0)**2)**2)/4.0_wp))/(2.0_wp*(1.0_wp + alfa**2))
-         rr = sqrt(psi/psiradius)*a0
-         ! note how for Solovev we use the local definition of effective radius (also nondimensional sqrt(psi/psiedge)
-         theta = atan2(yi, xi_m1)
 
-         chi = 2.0_wp*atan(sqrt((1.0_wp - rr)/(1.0_wp + rr))*tan(theta/2.0_wp))
-         chir = sin(theta)*(rr**2 - xi)/xi/rr/sqrt(1.0_wp - rr**2)
-         chiz = -(rr - cos(theta))/rr/sqrt(1.0_wp - rr**2)
+         !======================================================================
+         ! Solovev flux coordinates
+         ! rpsi  = sqrt(psi/psi_edge) : used ONLY as radial interpolation label
+         ! rhot  = sqrt(Phi_t/Phi_t_edge) : true toroidal-flux radius
+         ! chi   = straight-field-line poloidal angle in radians
+         ! Precomputed Sol_data contains:
+         !    w0(rpsi), T(rpsi)=rhot^2, b_k(rpsi), Jedge
+         !======================================================================
 
-         ! effective radius and derivatives
-         rhot = rr/a0
-         rhotr = rr/2.0_wp/a0*psir/psi
-         rhotz = rr/2.0_wp/a0*psiz/psi
+         !----------------------------------------------------------------------
+         ! Edge flux.
+         !
+         ! The chosen outer midplane boundary is R = 1+a0, Z=0.
+         !
+         ! delta = R^2 - 1 there, and psi = Psi0*delta^2
+         !----------------------------------------------------------------------
 
-         ! q(r) via Horner
-         qpsi = (s3*rhot + s2)*rhot + s1
-         qprim = 2.0_wp*s3*rhot + s2
-         !        note that this form of qpsi is an approximation and is not consistent with psi, thus, with field-alginement
+	delta_sep = 1.0_wp - gama
+	psi_sep = amp*alfa**2*delta_sep**2/(8.0_wp*(1.0_wp + alfa**2))
 
+         !----------------------------------------------------------------------
+         ! Exact Solovev geometrical quantities
+         !
+         ! delta^2 =  (R^2-1)^2 + 4 Z^2 (R^2-gamma)/alpha^2
+         !   rpsi = delta/delta_edge = sqrt(psi/psi_edge).
+         !----------------------------------------------------------------------
+
+         h2 = max(xi2 - gama, eps_root)
+         hsqrt = sqrt(h2)
+         delta2 = (xi2 - 1.0_wp)**2 + 4.0_wp*yi2*h2/(alfa*alfa)
+         delta_geom = sqrt(max(delta2, 0.0_wp))
+         rpsi = delta_geom/delta_sep
+
+         ! Clamp only the TABLE LOOKUP coordinate.
+         ! Normally particles should satisfy 0 <= rpsi <= SOL_R_MAX.
+rpsi_tab = min(rpsi, SOL_RMAX)
+         !======================================================================
+         ! Inline interpolation on uniform rpsi grid
+         ! xsol runs from 0 to Nsol-1.
+         ! isol is a zero-based cell number: 0 ... Nsol-2.
+         ! idxL,idxR are Fortran one-based table indices.
+         !======================================================================
+xsol = rpsi_tab*SOL_INV_DR
+
+         isol = min(int(xsol), Nsol - 2)
+         fsol = xsol - real(isol, wp)
+         idxL = isol + 1
+         idxR = idxL + 1
+
+         !----------------------------------------------------------------------
+         ! w0(rpsi)
+         ! w0 is even about the magnetic axis:      w0 = w00 + O(rpsi^2)
+         ! Therefore use rpsi^2 interpolation in the first radial cell.
+         ! Everywhere else use very cheap linear interpolation.
+         !----------------------------------------------------------------------
+
+         vL = Sol_data(SOL_W0_OFF + idxL)
+         vR = Sol_data(SOL_W0_OFF + idxR)
+
+         if (isol == 0) then
+            w0sol = vL + (vR - vL)*fsol*fsol
+            w0sol_r = 2.0_wp*(vR - vL)*fsol*SOL_INV_DR
+         else
+            w0sol = vL + (vR - vL)*fsol
+            w0sol_r = (vR - vL)*SOL_INV_DR
+         end if
+
+         !----------------------------------------------------------------------
+         ! T(rpsi) = rhot^2
+         !
+         ! Near the axis T ~ const*rpsi^2, so use the same first-cell
+         ! regularization.
+         !----------------------------------------------------------------------
+
+         vL = Sol_data(SOL_T_OFF + idxL)
+         vR = Sol_data(SOL_T_OFF + idxR)
+
+         if (isol == 0) then
+            Ttor = vL + (vR - vL)*fsol*fsol
+         else
+            Ttor = vL + (vR - vL)*fsol
+         end if
+
+         ! Jedge = integral_0^1 2*rpsi*q(rpsi) drpsi
+         Jedge = Sol_data(SOL_JEDGE_IDX)
+         !======================================================================
+         ! Safety factor q(rpsi)
+         !
+         ! q = [(1+alpha^2)/(alpha*amp)] F w0
+         !
+         ! The code uses R_axis = 1 in these normalized coordinates.
+         !======================================================================
+
+         Cqsol = (1.0_wp + alfa**2)/(alfa*amp)
+         qpsi = Cqsol*Fpsi*w0sol
+         !----------------------------------------------------------------------
+         ! dq/drpsi
+         ! dF/drpsi = (dF/dpsi)*(dpsi/drpsi)  = Fprim * 2*psi_edge*rpsi
+         !----------------------------------------------------------------------
+
+         Frpsi = 2.0_wp*psi_sep*rpsi*Fprim
+         qrpsi = Cqsol*(Frpsi*w0sol + Fpsi*w0sol_r)
+
+         !======================================================================
+         ! True toroidal-flux radius
+         !======================================================================
+
+         rhot = sqrt(max(Ttor, 0.0_wp))
+         !----------------------------------------------------------------------
+         ! rho_t spatial derivatives
+         !
+         ! d rho_t / d psi =   q /(2 psi_edge Jedge rho_t)
+         !
+         ! Thus:
+         ! rho_t,R = q psi_R /(2 psi_edge Jedge rho_t)
+         ! rho_t,Z = q psi_Z /(2 psi_edge Jedge rho_t)
+         !
+         ! rho_t is singular as a radial coordinate exactly on the magnetic
+         ! axis, just like any polar radial/angle coordinate pair.
+         !----------------------------------------------------------------------
+
+         if ((rhot > eps_rr) .and. (abs(Jedge) > eps_B)) then
+            rhotr = qpsi*psir/(2.0_wp*psi_sep*Jedge*rhot)
+            rhotz = qpsi*psiz/(2.0_wp*psi_sep*Jedge*rhot)
+         else
+
+            rhotr = 0.0_wp
+            rhotz = 0.0_wp
+         end if
+         !----------------------------------------------------------------------
+         ! qprim in THIS kernel means dq/drhot, not dq/dpsi.
+         ! drhot/drpsi = rpsi*q /(Jedge*rhot)
+         ! dq/drhot = Jedge*rhot*(dq/drpsi)/(rpsi*q)
+         !----------------------------------------------------------------------
+
+         if ((rpsi > eps_rr) .and. (rhot > eps_rr) .and. &
+             (abs(qpsi) > eps_B)) then
+            qprim = Jedge*rhot*qrpsi/(rpsi*qpsi)
+         else
+            ! Regular magnetic-axis limit for an even q(rpsi) profile.
+            qprim = 0.0_wp
+         end if
+         !======================================================================
+         ! Exact Solovev geometrical angle eta
+         !
+         ! cos eta = (R^2-1)/delta
+         ! sin eta = 2 Z sqrt(R^2-gamma)/(alpha delta)
+         !
+         ! This orientation is chosen to match the B_R,B_Z convention
+         ! used below in this routine.
+         !======================================================================
+
+         if (delta_geom > eps_rr) then
+
+            ceta = (xi2 - 1.0_wp)/delta_geom
+            seta = 2.0_wp*yi*hsqrt/(alfa*delta_geom)
+            eta = atan2(seta, ceta)
+            !---------------------------------------------------------------
+            ! Exact eta derivatives
+            !---------------------------------------------------------------
+
+            etar = -2.0_wp*xi*yi*(xi2 + 1.0_wp - 2.0_wp*gama)/(alfa*hsqrt*delta2)
+            etaz =  2.0_wp*(xi2 - 1.0_wp)*hsqrt/(alfa*delta2)
+         else
+
+            ! eta itself is undefined exactly at the magnetic axis.
+            eta  = 0.0_wp
+            ceta = 1.0_wp
+            seta = 0.0_wp
+            etar = 0.0_wp
+            etaz = 0.0_wp
+         end if
+         !----------------------------------------------------------------------
+         ! rpsi derivatives
+         !
+         ! psi = psi_edge*rpsi^2
+         !----------------------------------------------------------------------
+
+         if (rpsi > eps_rr) then
+            rpsir = psir/(2.0_wp*psi_sep*rpsi)
+            rpsiz = psiz/(2.0_wp*psi_sep*rpsi)
+         else
+            rpsir = 0.0_wp
+            rpsiz = 0.0_wp
+         end if
+         !======================================================================
+         ! Straight-field-line angle
+         !
+         ! chi(rpsi,eta) =
+         !
+         !     eta + Sum_k [ b_k(rpsi)/k * sin(k eta) ]
+         !
+         ! chi_eta =
+         !
+         !     1 + Sum_k b_k cos(k eta)
+         !
+         ! chi_rpsi =
+         !
+         !     Sum_k b_k'(rpsi)/k * sin(k eta)
+         !
+         ! No sin(k*eta), cos(k*eta) calls:
+         ! use recurrence from sin(eta),cos(eta).
+         !======================================================================
+
+         chi       = eta
+         chi_rpsi  = 0.0_wp
+         chi_eta   = 1.0_wp
+
+         sink = seta
+         cosk = ceta
+         do k = 1, Ksol
+
+            !---------------------------------------------------------------
+            ! Inline interpolation of b_k(rpsi)
+            !
+            ! b_k ~ rpsi^k at the magnetic axis.
+            ! Use that known regular behavior inside the first grid cell.
+            !---------------------------------------------------------------
+
+            ibL = SOL_B_OFF + (k - 1)*Nsol + idxL
+            ibR = ibL + 1
+
+            vL = Sol_data(ibL)
+            vR = Sol_data(ibR)
+
+            if (isol == 0) then
+
+               ! b_k(0)=0 by construction
+               bk = vR*fsol**k
+               bkr = real(k,wp)*vR*fsol**(k - 1)*SOL_INV_DR
+            else
+
+               bk = vL + (vR - vL)*fsol
+               bkr = (vR - vL)*SOL_INV_DR
+            end if
+            !---------------------------------------------------------------
+            ! Reconstruct chi and its two natural derivatives
+            !---------------------------------------------------------------
+
+            chi = chi + bk*sink/real(k,wp)
+            chi_rpsi = chi_rpsi + bkr*sink/real(k,wp)
+            chi_eta = chi_eta + bk*cosk
+
+            !---------------------------------------------------------------
+            ! sin[(k+1)eta], cos[(k+1)eta] recurrence
+            !---------------------------------------------------------------
+
+            if (k < Ksol) then
+               snext = sink*ceta + cosk*seta
+               cnext = cosk*ceta - sink*seta
+               sink = snext
+               cosk = cnext
+            end if
+         end do
+         !======================================================================
+         ! Spatial derivatives of the straight-field-line angle
+         !======================================================================
+
+         chir = chi_rpsi*rpsir + chi_eta*etar
+         chiz = chi_rpsi*rpsiz + chi_eta*etaz
       else
 
-         if ((magnetic_model == 1) .or. (magnetic_model == 2)) then
+         if (magnetic_model == 1) then
             ! Grid indices
             poz1 = modulo(int((xi - minR)/stepR), NgridR)
             poz2 = modulo(int((yi - minZ)/stepZ), NgridZ)
@@ -243,15 +505,6 @@ contains
             chiz = efit_vals(16)
          end if
 
-         if (magnetic_model == 2) then
-            rr = sqrt((xi - 1.0_wp)**2 + yi*yi) + 1.0e-7_wp
-            theta = atan2(yi, xi - 1.0_wp)
-
-            chi = 2.0_wp*atan(sqrt((1.0_wp - rr)/(1.0_wp + rr))*tan(0.5_wp*theta))
-            chir = sin(theta)*(rr*rr - xi)/(xi*rr*sqrt(1.0_wp - rr*rr))
-            chiz = -(rr - cos(theta))/(rr*sqrt(1.0_wp - rr*rr))
-         end if
-
       end if
 
       !---------------------------------------------------------------------------------
@@ -260,7 +513,7 @@ contains
       q1 = C1*rhot
       q2 = C2*(zi - qpsi*chi)
       q3 = C3*chi
-      delta_q1 = q1 - C1*q10
+      delta_q1 = q1 - C1*rhot0
 
       !---------------------------------------------------------------------------------
       ! Grad(qj) contravariant (G)
@@ -300,7 +553,7 @@ contains
       ! u, rotu, gradu, phi0 (e pur si muove)
       !---------------------------------------------------------------------------------
 
-      Omega = Omgt0*(1.0_wp + Omgtprim*(rhot - q10)) + eps_omega
+      Omega = Omgt0*(1.0_wp + Omgtprim*(rhot - rhot0)) + eps_omega
       R02avrg = 1.0_wp + a0*rhot/2.0_wp
       rotux = xi*Omgt0*Omgtprim*rhotz
       rotuy = -xi*Omgt0*Omgtprim*rhotr - 2.0_wp*Omega
@@ -345,10 +598,6 @@ contains
       F(3, 1) = -F(1, 3)
       F(3, 2) = -F(2, 3)
 
-      !---------------------------------------------------------------------------------
-      ! Zonal flow contribution ; note that by definition phi_ZF(x) is y,z independent;
-      !---------------------------------------------------------------------------------
-!     phi_ZF_x =
 
       !---------------------------------------------------------------------------------
       ! Turbulent contribution (SIMD)    !!! in the description of turbulence (x,y,z) (q1,q2,q3)= field-aligned; whereas in the remaining (X,Y,Z) = (R,Z,varphi)
@@ -547,8 +796,8 @@ contains
          Tprofile = Tprofile/tanh((turbprof*turbprof + 0.000001_wp)/16.0_wp)    ! scaled to mid-radius value; it's radial derivative is NOT taken into account in the ExB drift
          
          ! Zonal flow shearing effects; the average zonal flow was absorbed via a Galilean referance frame change
-         phi_ZF   = -gamma_E/2.0_wp*delta_q1**2
-         phi_ZF_x = -gamma_E*delta_q1
+         phi_ZF   = -rhoi/R0/(0.000001_wp+Phi)*gamma_E/2.0_wp*delta_q1**2
+         phi_ZF_x = -rhoi/R0/(0.000001_wp+Phi)*gamma_E*delta_q1
          
          phi0 = phi0 + phi_ZF 
          phix = phix + phi_ZF_x 
@@ -611,8 +860,8 @@ contains
       ! Drifts & accelerations::: the perturbative (turbulent) components
       !---------------------------------------------------------------------------------
       Vx_1 = (- Beta*Zs/As*Apar0)*Bsx*invBsp + (rhoi/R0)*invBsp*(F(1, 1)*Etx + F(1, 2)*Ety + F(1, 3)*Etz)
-      Vy_1 = (- Beta*Zs/As*Apar0)*Bsx*invBsp + (rhoi/R0)*invBsp*(F(2, 1)*Etx + F(2, 2)*Ety + F(2, 3)*Etz)
-      Vz_1 = (- Beta*Zs/As*Apar0)*Bsx*invBsp + (rhoi/R0)*invBsp*(F(3, 1)*Etx + F(3, 2)*Ety + F(3, 3)*Etz)
+      Vy_1 = (- Beta*Zs/As*Apar0)*Bsy*invBsp + (rhoi/R0)*invBsp*(F(2, 1)*Etx + F(2, 2)*Ety + F(2, 3)*Etz)
+      Vz_1 = (- Beta*Zs/As*Apar0)*Bsz*invBsp + (rhoi/R0)*invBsp*(F(3, 1)*Etx + F(3, 2)*Ety + F(3, 3)*Etz)
       ap_1 = (Zs/As)*(Etx*Bsx + Ety*Bsy + Etz*Bsz)*invBsp
 
       !---------------------------------------------------------------------------------
@@ -637,6 +886,13 @@ contains
       check_1 = phi0
       check_2 = phix
       check_3 = phiy
+      
+  check_1 = Bz/max(B,eps_B)
+
+  check_2 = qpsi*(Bx*chir + By*chiz)/max(B,eps_B)
+
+  check_3 = -chi*qprim*(Bx*rhotr + By*rhotz)/B
+
 
       !---------------------------------------------------------------------------------
       ! vW

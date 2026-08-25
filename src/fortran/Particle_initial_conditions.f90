@@ -69,8 +69,9 @@ SUBROUTINE initialize_particles(X, Y, Z, mu, Vp, Einit, F0, G0, FM, betaF, betaD
    ! ------------------------------------------------------------------------------------------------------------------------
 
    CALL magnetic_norm(X, Y, Z, B)                  ! the norm of the magnetic field evaluated at initial positions
-   CALL Onlycoord(X, Y, Z, q1, q2, q3, B, Vp)
-   CALL potent_3D(q1, q2, q3, t0, phi1)            ! the turbulent field values evaluated at initial positions
+   ! The former Onlycoord call populated q1/q2/q3 solely for potent_3D, which is
+   ! currently disabled. q1 is computed from rhot below.
+   ! CALL potent_3D(q1, q2, q3, t0, phi1)          ! turbulent field at initial positions
 
    mu = En/B*(1.0_wp - PA**2)                      !(En-Phi*Zw*phi0)/normB*SIN(PA)**2.
    ! CALL phi_zero(X,Y,Z,t0,phi2)                  ! the macroscopic electric potential field values evaluated at initial positions
@@ -93,9 +94,9 @@ SUBROUTINE initialize_particles(X, Y, Z, mu, Vp, Einit, F0, G0, FM, betaF, betaD
 
 !  Weight = 0.0_wp
 
-   CALL Onlycoordq_new_all(X, Y, Z, rhot)
+   CALL equilibrium_rhot_all(X, Y, Z, rhot)
    q1 = C1*rhot
-   delta_q1 = q1 - C1*q10
+   delta_q1 = q1 - C1*rhot0
 
    temp = Ts_eff*exp(delta_q1*a0/C1*Lts)           !Ts*(1.0_wp + delta_q1*a0/C1*Lts)
    dens = 1.0_wp*exp(delta_q1*a0/C1*Lns)           !1.0*(1.0_wp + delta_q1*a0/C1*Lns)
@@ -163,13 +164,13 @@ SUBROUTINE initialize_particle_positions(X, Y, Z, Vp)
       CALL random_number(aux)
       aux = pi*(2.0_wp*aux - 1.0_wp)
 
-      IF ((magnetic_model .eq. 1) .or. (magnetic_model .eq. 2)) THEN
+      IF (magnetic_model .eq. 1) THEN
          CALL psisurf_efit3(X, Y, Vp)
          Z = aux
-      ELSEIF (magnetic_model .eq. 3) THEN
+      ELSEIF (magnetic_model .eq. 2) THEN
          CALL psisurf_solov2(X, Y)
          Z = aux
-      ELSEIF (magnetic_model .eq. 4) THEN
+      ELSEIF (magnetic_model .eq. 3) THEN
          CALL psisurf_circ(X, Y, Vp)
          Z = aux
       END IF

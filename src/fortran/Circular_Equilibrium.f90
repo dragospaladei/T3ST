@@ -65,9 +65,7 @@ SUBROUTINE Circular(X, Y, R)
    Fprim = 0.0_wp
 
    ! Closed-form psi(r)
-   psi = -(a0**2/s3) / sqrt(1.0_wp + a0**2*s1/s3) * &
-         ( atanh( sqrt(1.0_wp - rr**2) / sqrt(1.0_wp + a0**2*s1/s3) ) - &
-           atanh( 1.0_wp / sqrt(1.0_wp + a0**2*s1/s3) ) )
+   psi = a0**2/s2*(rr/a0 - s1/s2*log(1.0_wp + s2/s1*rr/a0))
 
    !---------------------------------------------------------------------------------
    ! Pack results
@@ -130,9 +128,7 @@ SUBROUTINE psisurf_circ_old(X, Y, Vp)
       psiz  = psiprim*aux2/aux3
       normB = sqrt(F**2 + psir**2 + psiz**2) / (1.0 + aux2)
 
-      psi = -(a0**2/s3) / sqrt(1.0 + a0**2*s1/s3) * &
-            ( atanh( sqrt(1.0 - aux3**2) / sqrt(1.0 + a0**2*s1/s3) ) - &
-              atanh( 1.0 / sqrt(1.0 + a0**2*s1/s3) ) )
+      psi = a0**2/s2*(aux3/a0 - s1/s2*log(1.0_wp + s2/s1*aux3/a0))
 
       ioc = minloc(abs(psi/psi0 - real(USE_PC,wp)*rhoi/R0*As/Zs*F/normB*Vp(k)/psi0 - 1.0), 1)
 
@@ -225,7 +221,6 @@ CONTAINS
       !   psi_over_psi0(j) = psi(r)/psi0
       INTEGER  :: j
       REAL(wp) :: r, rh, inv_a0, qpsi, psip, one_m_r2
-      REAL(wp) :: inv_sqrt_beta, cA, cB, beta
 
       inv_a0 = 1.0_wp/a0
 
@@ -234,12 +229,6 @@ CONTAINS
          r      = (REAL(j, wp) - 0.5_wp) * a0 / REAL(Nr, wp)
          r_g(j) = r
       END DO
-
-      beta          = 1.0_wp + (a0*a0)*s1/s3
-      inv_sqrt_beta = 1.0_wp / sqrt(beta)
-
-      cA = -(a0*a0)/s3 * inv_sqrt_beta
-      cB = atanh(inv_sqrt_beta)
 
       DO j = 1, Nr
          r  = r_g(j)
@@ -253,7 +242,8 @@ CONTAINS
 
          inv_base_norm(j) = 1.0_wp / sqrt(1.0_wp + psip*psip)
          ! psi(r)/psi0
-         psi_over_psi0(j) = cA*(atanh(sqrt(one_m_r2)*inv_sqrt_beta) - cB) / psi0
+         psi_over_psi0(j) = &
+            (a0**2/s2*(r/a0 - s1/s2*log(1.0_wp + s2/s1*r/a0))) / psi0
          
          
 
