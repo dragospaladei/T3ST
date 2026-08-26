@@ -294,12 +294,6 @@ parameters:
     group: Equilibrium
     help: Magnetic shear used by the circular model
 
-  - name: amp
-    kind: float
-    units: "arb."
-    group: Equilibrium
-    help: Flux-surface amplitude (Solovev only)
-
   - name: elong
     kind: float
     group: Equilibrium

@@ -9,19 +9,20 @@
     !      !  01/01/2024   |     D. I. Palade       |   Remake
     !  ========================================================================================================================================================
 
-    SUBROUTINE Solovev(X, Z, R)
+    SUBROUTINE Solovev(npoints, X, Z, R)
        USE constants
        IMPLICIT NONE
 
        ! I/O variables
-       REAL(KIND=wp), DIMENSION(Np), INTENT(IN)   :: X, Z                                 ! new basis coordinates (input)
-       REAL(KIND=wp), DIMENSION(Nqua, Np), INTENT(OUT)  :: R                                    ! new basis coordinates (input)
+       INTEGER, INTENT(IN) :: npoints
+       REAL(KIND=wp), DIMENSION(npoints), INTENT(IN) :: X, Z
+       REAL(KIND=wp), DIMENSION(Nqua, npoints), INTENT(OUT) :: R
 
        ! This is the array-oriented counterpart of the Solovev branch in
        ! gyrocenter_drifts. Keep the two implementations mathematically synchronized.
-       REAL(KIND=wp), DIMENSION(Np) :: psi, psir, psiz, psirr, psizz, psirz
-       REAL(KIND=wp), DIMENSION(Np) :: chi, chir, chiz, qpsi, qprim, Fpsi, Fprim
-       REAL(KIND=wp), DIMENSION(Np) :: rhot, rhotr, rhotz
+       REAL(KIND=wp), DIMENSION(npoints) :: psi, psir, psiz, psirr, psizz, psirz
+       REAL(KIND=wp), DIMENSION(npoints) :: chi, chir, chiz, qpsi, qprim, Fpsi, Fprim
+       REAL(KIND=wp), DIMENSION(npoints) :: rhot, rhotr, rhotz
 
        REAL(KIND=wp) :: xi, zi, xi2, zi2
        REAL(KIND=wp) :: psi_sep, delta_sep, delta2, delta_geom
@@ -33,40 +34,40 @@
        REAL(KIND=wp) :: bk, bkr, sink, cosk, snext, cnext
        INTEGER :: i, k, isol, idxL, idxR, ibL, ibR
 
-       delta_sep = 1.0_wp - gama
-       psi_sep = amp*alfa**2*delta_sep**2/(8.0_wp*(1.0_wp + alfa**2))
-       Cqsol = (1.0_wp + alfa**2)/(alfa*amp)
+       delta_sep = 1.0_WP - gama
+       psi_sep = amp*alfa**2*delta_sep**2/(8.0_WP*(1.0_WP + alfa**2))
+       Cqsol = (1.0_WP + alfa**2)/(alfa*amp)
        Jedge = Sol_data(SOL_JEDGE_IDX)
 
-       DO i = 1, Np
+       DO i = 1, npoints
           xi = X(i)
           zi = Z(i)
           xi2 = xi*xi
           zi2 = zi*zi
 
-          psi(i) = amp*(0.25_wp*alfa**2*(xi2 - 1.0_wp)**2 + (xi2 - gama)*zi2) &
-                   /(2.0_wp*(1.0_wp + alfa**2))
-          psir(i) = amp*(alfa**2*xi*(xi2 - 1.0_wp) + 2.0_wp*xi*zi2) &
-                    /(2.0_wp*(1.0_wp + alfa**2))
-          psiz(i) = amp*(xi2 - gama)*zi/(1.0_wp + alfa**2)
-          psirr(i) = amp*(2.0_wp*alfa**2*xi2 + alfa**2*(xi2 - 1.0_wp) + 2.0_wp*zi2) &
-                     /(2.0_wp*(1.0_wp + alfa**2))
-          psirz(i) = 2.0_wp*amp*xi*zi/(1.0_wp + alfa**2)
-          psizz(i) = amp*(xi2 - gama)/(1.0_wp + alfa**2)
+          psi(i) = amp*(0.25_WP*alfa**2*(xi2 - 1.0_WP)**2 + (xi2 - gama)*zi2) &
+                   /(2.0_WP*(1.0_WP + alfa**2))
+          psir(i) = amp*(alfa**2*xi*(xi2 - 1.0_WP) + 2.0_WP*xi*zi2) &
+                    /(2.0_WP*(1.0_WP + alfa**2))
+          psiz(i) = amp*(xi2 - gama)*zi/(1.0_WP + alfa**2)
+          psirr(i) = amp*(2.0_WP*alfa**2*xi2 + alfa**2*(xi2 - 1.0_WP) + 2.0_WP*zi2) &
+                     /(2.0_WP*(1.0_WP + alfa**2))
+          psirz(i) = 2.0_WP*amp*xi*zi/(1.0_WP + alfa**2)
+          psizz(i) = amp*(xi2 - gama)/(1.0_WP + alfa**2)
 
-          Fpsi(i) = sqrt(1.0_wp + 2.0_wp*amp*gama*psi(i)/(1.0_wp + alfa**2))
-          Fprim(i) = (amp*gama)/(1.0_wp + alfa**2)/Fpsi(i)
+          Fpsi(i) = sqrt(1.0_WP + 2.0_WP*amp*gama*psi(i)/(1.0_WP + alfa**2))
+          Fprim(i) = (amp*gama)/(1.0_WP + alfa**2)/Fpsi(i)
 
           h2 = max(xi2 - gama, eps_root)
           hsqrt = sqrt(h2)
-          delta2 = (xi2 - 1.0_wp)**2 + 4.0_wp*zi2*h2/(alfa*alfa)
-          delta_geom = sqrt(max(delta2, 0.0_wp))
+          delta2 = (xi2 - 1.0_WP)**2 + 4.0_WP*zi2*h2/(alfa*alfa)
+          delta_geom = sqrt(max(delta2, 0.0_WP))
           rpsi = delta_geom/delta_sep
-          rpsi_tab = min(max(rpsi, 0.0_wp), SOL_RMAX)
+          rpsi_tab = min(max(rpsi, 0.0_WP), SOL_RMAX)
 
           xsol = rpsi_tab*SOL_INV_DR
           isol = min(int(xsol), Nsol - 2)
-          fsol = xsol - real(isol, wp)
+          fsol = xsol - REAL(isol, wp)
           idxL = isol + 1
           idxR = idxL + 1
 
@@ -74,7 +75,7 @@
           vR = Sol_data(SOL_W0_OFF + idxR)
           IF (isol == 0) THEN
              w0sol = vL + (vR - vL)*fsol*fsol
-             w0sol_r = 2.0_wp*(vR - vL)*fsol*SOL_INV_DR
+             w0sol_r = 2.0_WP*(vR - vL)*fsol*SOL_INV_DR
           ELSE
              w0sol = vL + (vR - vL)*fsol
              w0sol_r = (vR - vL)*SOL_INV_DR
@@ -89,49 +90,49 @@
           END IF
 
           qpsi(i) = Cqsol*Fpsi(i)*w0sol
-          Frpsi = 2.0_wp*psi_sep*rpsi*Fprim(i)
+          Frpsi = 2.0_WP*psi_sep*rpsi*Fprim(i)
           qrpsi = Cqsol*(Frpsi*w0sol + Fpsi(i)*w0sol_r)
-          rhot(i) = sqrt(max(Ttor, 0.0_wp))
+          rhot(i) = sqrt(max(Ttor, 0.0_WP))
 
           IF ((rhot(i) > eps_rr) .AND. (abs(Jedge) > eps_B)) THEN
-             rhotr(i) = qpsi(i)*psir(i)/(2.0_wp*psi_sep*Jedge*rhot(i))
-             rhotz(i) = qpsi(i)*psiz(i)/(2.0_wp*psi_sep*Jedge*rhot(i))
+             rhotr(i) = qpsi(i)*psir(i)/(2.0_WP*psi_sep*Jedge*rhot(i))
+             rhotz(i) = qpsi(i)*psiz(i)/(2.0_WP*psi_sep*Jedge*rhot(i))
           ELSE
-             rhotr(i) = 0.0_wp
-             rhotz(i) = 0.0_wp
+             rhotr(i) = 0.0_WP
+             rhotz(i) = 0.0_WP
           END IF
 
           IF ((rpsi > eps_rr) .AND. (rhot(i) > eps_rr) .AND. (abs(qpsi(i)) > eps_B)) THEN
              qprim(i) = Jedge*rhot(i)*qrpsi/(rpsi*qpsi(i))
           ELSE
-             qprim(i) = 0.0_wp
+             qprim(i) = 0.0_WP
           END IF
 
           IF (delta_geom > eps_rr) THEN
-             ceta = (xi2 - 1.0_wp)/delta_geom
-             seta = 2.0_wp*zi*hsqrt/(alfa*delta_geom)
+             ceta = (xi2 - 1.0_WP)/delta_geom
+             seta = 2.0_WP*zi*hsqrt/(alfa*delta_geom)
              eta = atan2(seta, ceta)
-             etar = -2.0_wp*xi*zi*(xi2 + 1.0_wp - 2.0_wp*gama)/(alfa*hsqrt*delta2)
-             etaz = 2.0_wp*(xi2 - 1.0_wp)*hsqrt/(alfa*delta2)
+             etar = -2.0_WP*xi*zi*(xi2 + 1.0_WP - 2.0_WP*gama)/(alfa*hsqrt*delta2)
+             etaz = 2.0_WP*(xi2 - 1.0_WP)*hsqrt/(alfa*delta2)
           ELSE
-             eta = 0.0_wp
-             ceta = 1.0_wp
-             seta = 0.0_wp
-             etar = 0.0_wp
-             etaz = 0.0_wp
+             eta = 0.0_WP
+             ceta = 1.0_WP
+             seta = 0.0_WP
+             etar = 0.0_WP
+             etaz = 0.0_WP
           END IF
 
           IF (rpsi > eps_rr) THEN
-             rpsir = psir(i)/(2.0_wp*psi_sep*rpsi)
-             rpsiz = psiz(i)/(2.0_wp*psi_sep*rpsi)
+             rpsir = psir(i)/(2.0_WP*psi_sep*rpsi)
+             rpsiz = psiz(i)/(2.0_WP*psi_sep*rpsi)
           ELSE
-             rpsir = 0.0_wp
-             rpsiz = 0.0_wp
+             rpsir = 0.0_WP
+             rpsiz = 0.0_WP
           END IF
 
           chi(i) = eta
-          chi_rpsi = 0.0_wp
-          chi_eta = 1.0_wp
+          chi_rpsi = 0.0_WP
+          chi_eta = 1.0_WP
           sink = seta
           cosk = ceta
 
@@ -143,14 +144,14 @@
 
              IF (isol == 0) THEN
                 bk = vR*fsol**k
-                bkr = real(k, wp)*vR*fsol**(k - 1)*SOL_INV_DR
+                bkr = REAL(k, wp)*vR*fsol**(k - 1)*SOL_INV_DR
              ELSE
                 bk = vL + (vR - vL)*fsol
                 bkr = (vR - vL)*SOL_INV_DR
              END IF
 
-             chi(i) = chi(i) + bk*sink/real(k, wp)
-             chi_rpsi = chi_rpsi + bkr*sink/real(k, wp)
+             chi(i) = chi(i) + bk*sink/REAL(k, wp)
+             chi_rpsi = chi_rpsi + bkr*sink/REAL(k, wp)
              chi_eta = chi_eta + bk*cosk
 
              IF (k < Ksol) THEN
@@ -167,58 +168,79 @@
 
        !       R = transpose(reshape([psi, psir, psiz, psirr, psirz, psizz, Fpsi, Fprim, qpsi, qprim, rhot, rhotr, rhotz, chi, chir, chiz], [Np,Nqua]))
 
-   R(1, :) = psi
-   R(2, :) = psir
-   R(3, :) = psiz
-   R(4, :) = psirr
-   R(5, :) = psirz
-   R(6, :) = psizz
-   R(7, :) = Fpsi
-   R(8, :) = Fprim
-   R(9, :) = qpsi
-   R(10, :) = qprim
-   R(11, :) = rhot
-   R(12, :) = rhotr
-   R(13, :) = rhotz
-   R(14, :) = chi
-   R(15, :) = chir
-   R(16, :) = chiz
+       R(1, :) = psi
+       R(2, :) = psir
+       R(3, :) = psiz
+       R(4, :) = psirr
+       R(5, :) = psirz
+       R(6, :) = psizz
+       R(7, :) = Fpsi
+       R(8, :) = Fprim
+       R(9, :) = qpsi
+       R(10, :) = qprim
+       R(11, :) = rhot
+       R(12, :) = rhotr
+       R(13, :) = rhotz
+       R(14, :) = chi
+       R(15, :) = chir
+       R(16, :) = chiz
 
     END SUBROUTINE Solovev
 
-    SUBROUTINE psisurf_solov2(X, Y)
+    SUBROUTINE psisurf_solov2(X, Y, Vp)
        USE constants
        IMPLICIT NONE
 
-       ! I/O variables
-       REAL(KIND=wp), DIMENSION(Np), INTENT(OUT)  :: X, Y                                    ! new basis coordinates (input)
+       INTEGER, PARAMETER :: Nr = 2000
 
-       ! Local variables
-       REAL(KIND=wp), DIMENSION(Np)     :: aux                                    ! new basis coordinates (input)
-       REAL(KIND=wp), DIMENSION(NgridR) :: F1                                    ! new basis coordinates (input)
-       REAl, DIMENSION(2000) :: aux1, aux2, aux3, psi                                   ! new basis coordinates (input)
-       INTEGER :: k, ioc
+       REAL(KIND=wp), DIMENSION(Np), INTENT(OUT) :: X, Y
+       REAL(KIND=wp), DIMENSION(Np), INTENT(IN) :: Vp
 
-       CALL random_number(aux)
-       CALL random_number(aux3)
-       aux = pi*(2.0*aux - 1.0)            ! theta
-       aux3 = a0*aux3
+       REAL(KIND=wp), DIMENSION(Np) :: theta
+       REAL(KIND=wp), DIMENSION(Nr) :: radius, Rtrial, Ztrial
+       REAL(KIND=wp), DIMENSION(Nr) :: psi, psir, psiz, Fpsi, normB, residual
+       REAL(KIND=wp) :: sintheta, costheta, Kconst
+       INTEGER :: j, k, ioc
 
-       do k = 1, Np
-          aux2 = aux3*Sin(aux(k))
-          aux1 = aux3*Cos(aux(k))
+       ! Canonical-surface condition, consistent with the EFIT and circular
+       ! initializers:
+       !
+       !   psi - psi0 - Kconst*(F/|B|)*Vp = 0,
+       !   Kconst = USE_PC*(rhoi/R0)*(As/Zs).
+       Kconst = REAL(USE_PC, wp)*rhoi/R0*As/Zs
 
-          psi = (amp*((alfa**2*(-1.0 + (aux1 + 1.0)**2)**2)/4.+(-gama + (aux1 + 1.0)**2)*aux2**2))/(2.*(1 + alfa**2))
+       CALL random_number(theta)
+       theta = pi*(2.0_WP*theta - 1.0_WP)
 
-          ioc = Minloc(abs(psi - psi0), 1)
-          X(k) = 1.0 + aux1(ioc)
-          Y(k) = aux2(ioc)
+       ! Midpoint radial grid avoids evaluating exactly on the magnetic axis
+       ! or at the nominal edge.
+       radius = [((REAL(j, wp) - 0.5_WP)*a0/REAL(Nr, wp), j=1, Nr)]
 
-          !        if(sqrt((X(k)-1.0)**2 + Y(k)**2).gt.a0) then
-          !            X(k) = X0
-          !            Y(k) = Y0
-          !        else
-          !        endif
+       DO k = 1, Np
+          sintheta = SIN(theta(k))
+          costheta = COS(theta(k))
 
-       end do
+          Rtrial = 1.0_WP + radius*costheta
+          Ztrial = radius*sintheta
+
+          psi = amp*(0.25_WP*alfa**2*(Rtrial**2 - 1.0_WP)**2 &
+                     + (Rtrial**2 - gama)*Ztrial**2) &
+                /(2.0_WP*(1.0_WP + alfa**2))
+
+          psir = amp*(alfa**2*Rtrial*(Rtrial**2 - 1.0_WP) &
+                      + 2.0_WP*Rtrial*Ztrial**2) &
+                 /(2.0_WP*(1.0_WP + alfa**2))
+
+          psiz = amp*(Rtrial**2 - gama)*Ztrial/(1.0_WP + alfa**2)
+
+          Fpsi = SQRT(1.0_WP + 2.0_WP*amp*gama*psi/(1.0_WP + alfa**2))
+          normB = SQRT(Fpsi**2 + psir**2 + psiz**2)/Rtrial
+
+          residual = ABS(psi - psi0 - Kconst*(Fpsi/normB)*Vp(k))
+          ioc = MINLOC(residual, 1)
+
+          X(k) = Rtrial(ioc)
+          Y(k) = Ztrial(ioc)
+       END DO
+
     END SUBROUTINE psisurf_solov2

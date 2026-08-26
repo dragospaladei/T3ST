@@ -27,7 +27,6 @@ CycloneBaseCase:
   a0: 0.600
   safety: 0.28
   shear_mag: 2.24
-  amp: 1.0
   elong: 1.2
   device: 3
   shot: 54178
@@ -102,7 +101,6 @@ CycloneBaseZhang:
   a0: 0.625
   safety: 0.85
   shear_mag: 0.0
-  amp: 1.0
   elong: 1.2
   device: 3
   shot: 54178
@@ -177,7 +175,6 @@ MAST-U:
   a0: 0.47
   safety: 1.0
   shear_mag: 0.0
-  amp: 1.1
   elong: 1.2
   device: 1
   shot: 47090
@@ -252,7 +249,6 @@ TCV:
   a0: 0.47
   safety: 0.85
   shear_mag: 0.0
-  amp: 1.1
   elong: 1.2
   device: 2
   shot: 81500
@@ -327,7 +323,6 @@ WEST:
   a0: 0.5
   safety: 0.85
   shear_mag: 0.0
-  amp: 1.0
   elong: 1.2
   device: 3
   shot: 54178
@@ -424,7 +419,6 @@ JT60SA:
   safety: 0.60000
   shear_mag: -0.2766412
 
-  amp: 1.0               # estimated Solovev amplitude
   elong: 1.8             # estimated from the shaped S2 cross-section
 
   # No JT-60SA entry exists in the device enum; device/shot/shotslice omitted.

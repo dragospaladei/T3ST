@@ -10,27 +10,27 @@
 !  01/01/2024   | D. I. Palade        | Remake
 !========================================================================================================
 
-
 !========================================================================================================
 ! EFIT2: interpolate all Nqua quantities using bilinear interpolation on the EFIT grid
 !========================================================================================================
-SUBROUTINE EFIT2(X, Y, R)
+SUBROUTINE EFIT2(npoints, X, Y, R)
    USE constants
    IMPLICIT NONE
 
    !---------------------------------------------------------------------------------
    ! I/O
    !---------------------------------------------------------------------------------
-   REAL(KIND=wp), DIMENSION(Np),      INTENT(IN)  :: X, Y
-   REAL(KIND=wp), DIMENSION(Nqua, Np), INTENT(OUT) :: R
+   INTEGER, INTENT(IN) :: npoints
+   REAL(KIND=wp), DIMENSION(npoints), INTENT(IN) :: X, Y
+   REAL(KIND=wp), DIMENSION(Nqua, npoints), INTENT(OUT) :: R
 
    !---------------------------------------------------------------------------------
    ! Locals
    !---------------------------------------------------------------------------------
-   INTEGER,       DIMENSION(Np) :: poz1, poz2
-   INTEGER                    :: i, j
-   REAL(KIND=wp), DIMENSION(Np) :: F1, F2, F3, F4
-   REAL(KIND=wp), DIMENSION(Np) :: X1, Y1, Xef, Yef
+   INTEGER, DIMENSION(npoints) :: poz1, poz2
+   INTEGER :: i, j
+   REAL(KIND=wp), DIMENSION(npoints) :: F1, F2, F3, F4
+   REAL(KIND=wp), DIMENSION(npoints) :: X1, Y1, Xef, Yef
 
    !---------------------------------------------------------------------------------
    ! Cell indices and local coordinates
@@ -38,8 +38,8 @@ SUBROUTINE EFIT2(X, Y, R)
    poz1 = modulo(int((X - minR)/stepR), NgridR)
    poz2 = modulo(int((Y - minZ)/stepZ), NgridZ)
 
-   X1  = minR + poz1*stepR
-   Y1  = minZ + poz2*stepZ
+   X1 = minR + poz1*stepR
+   Y1 = minZ + poz2*stepZ
 
    Xef = (X - X1)/stepR
    Yef = (Y - Y1)/stepZ
@@ -48,92 +48,17 @@ SUBROUTINE EFIT2(X, Y, R)
    ! Bilinear interpolation for each quantity i
    !---------------------------------------------------------------------------------
    DO i = 1, Nqua
-      DO j = 1, Np
-         F1(j) = Efit_data(NgridR*NgridZ*(i - 1) +  poz1(j)   *NgridR +  poz2(j))
-         F2(j) = Efit_data(NgridR*NgridZ*(i - 1) + (poz1(j)+1)*NgridR +  poz2(j))
-         F3(j) = Efit_data(NgridR*NgridZ*(i - 1) +  poz1(j)   *NgridR + (poz2(j)+1))
-         F4(j) = Efit_data(NgridR*NgridZ*(i - 1) + (poz1(j)+1)*NgridR + (poz2(j)+1))
+      DO j = 1, npoints
+         F1(j) = Efit_data(NgridR*NgridZ*(i - 1) + poz1(j)*NgridR + poz2(j))
+         F2(j) = Efit_data(NgridR*NgridZ*(i - 1) + (poz1(j) + 1)*NgridR + poz2(j))
+         F3(j) = Efit_data(NgridR*NgridZ*(i - 1) + poz1(j)*NgridR + (poz2(j) + 1))
+         F4(j) = Efit_data(NgridR*NgridZ*(i - 1) + (poz1(j) + 1)*NgridR + (poz2(j) + 1))
       END DO
 
       R(i, :) = F1 + (F2 - F1)*Xef + (F3 - F1)*Yef + Xef*Yef*(F1 + F4 - F2 - F3)
    END DO
 
 END SUBROUTINE EFIT2
-
-
-!========================================================================================================
-! psisurf_efit2: choose (X,Y) on a psi-surface satisfying a condition involving Vp
-!========================================================================================================
-SUBROUTINE psisurf_efit_old(X, Y, Vp)
-   USE constants
-   IMPLICIT NONE
-
-   !---------------------------------------------------------------------------------
-   ! I/O
-   !---------------------------------------------------------------------------------
-   REAL(KIND=wp), DIMENSION(Np), INTENT(OUT) :: X, Y
-   REAL(KIND=wp), DIMENSION(Np), INTENT(IN)  :: Vp
-
-   !---------------------------------------------------------------------------------
-   ! Locals
-   !---------------------------------------------------------------------------------
-   REAL(KIND=wp), DIMENSION(Np)      :: aux, keep
-   INTEGER,       DIMENSION(NgridR)  :: aux1
-
-   LOGICAL                          :: mask(NgridR)
-   REAL(KIND=wp), DIMENSION(NgridR) :: Rvals, Zvals, diff, targeta
-   INTEGER                          :: i, j, k, ioc, joc
-   REAL(KIND=wp), DIMENSION(NgridR) :: F, psi, psir, psiz, normB
-
-   ! Random line angle
-   CALL random_number(aux)
-   aux = pi*(2.0_wp*aux - 1.0_wp)
-
-   DO k = 1, Np
-
-      ! Build indices along a straight line in (R,Z) via tan(theta)
-      DO i = 1, NgridR
-         j = int(-minZ/stepZ + tan(aux(k))*(minR - 1.0_wp + i*stepR)/stepZ)
-         aux1(i) = i*NgridR + j
-      END DO
-
-      ! Sample fields along that line
-      DO i = 1, NgridR
-         IF ((aux1(i) > (NgridR*NgridZ)) .OR. (aux1(i) <= 0)) THEN
-            aux1(i) = int(Ngrid/2)
-         END IF
-
-         psi(i)  = Efit_data(aux1(i))
-         F(i)    = Efit_data(aux1(i) + 6*NgridR*NgridZ)
-         psir(i) = Efit_data(aux1(i) + 1*NgridR*NgridZ)
-         psiz(i) = Efit_data(aux1(i) + 2*NgridR*NgridZ)
-
-         normB(i) = sqrt((F(i)**2 + psir(i)**2 + psiz(i)**2) / (minR + i*stepR)**2)
-      END DO
-
-      ! R and Z samples along that line
-      Rvals = [(minR + (i-1)*stepR, i=1, NgridR)]
-      Zvals = tan(aux(k))*(Rvals - 1.0_wp)
-
-      ! Target psi along the line
-      targeta = real(USE_PC,wp)*rhoi/R0*As/Zs*F/normB*Vp(k) + psi0
-
-      ! Mask inside plasma region
-      mask = ((Rvals - 1.0_wp)**2 + Zvals**2 <= (a0**2))
-
-      ! Difference array and minimum restricted to mask
-      diff = abs(psi - targeta)
-      ioc  = minloc(merge(diff, huge(100.0_wp), mask), 1)
-
-      joc = int(-minZ/stepZ + tan(aux(k))*(minR - 1.0_wp + ioc*stepR)/stepZ)
-
-      keep(k) = ioc
-      X(k)    = minR + ioc*stepR
-      Y(k)    = minZ + joc*stepZ
-   END DO
-
-END SUBROUTINE psisurf_efit_old
-
 
 !========================================================================================================
 ! psisurf_efit3: contour-based sampling of phi(R,Z)=0 where
@@ -147,15 +72,15 @@ SUBROUTINE psisurf_efit3(X, Y, Vp)
    ! Arguments
    !---------------------------------------------------------------------------------
    REAL(KIND=wp), DIMENSION(Np), INTENT(OUT) :: X, Y
-   REAL(KIND=wp), DIMENSION(Np), INTENT(IN)  :: Vp
+   REAL(KIND=wp), DIMENSION(Np), INTENT(IN) :: Vp
 
    !---------------------------------------------------------------------------------
    ! Locals
    !---------------------------------------------------------------------------------
    INTEGER :: i, j, k, npts, idx
    REAL(KIND=wp), DIMENSION(NgridR, NgridZ) :: psi, F, psir, psiz, normB, phi3
-   REAL(KIND=wp), DIMENSION(NgridR)         :: Rvals
-   REAL(KIND=wp), DIMENSION(NgridZ)         :: Zvals
+   REAL(KIND=wp), DIMENSION(NgridR) :: Rvals
+   REAL(KIND=wp), DIMENSION(NgridZ) :: Zvals
 
    REAL(KIND=wp) :: dR_loc, dZ_loc, Kconst, urand
    REAL(KIND=wp), ALLOCATABLE :: Rc(:), Zc(:)
@@ -166,25 +91,25 @@ SUBROUTINE psisurf_efit3(X, Y, Vp)
    dR_loc = stepR
    dZ_loc = stepZ
 
-   Rvals = [(minR + (i-1)*dR_loc, i=1, NgridR)]
-   Zvals = [(minZ + (j-1)*dZ_loc, j=1, NgridZ)]
+   Rvals = [(minR + (i - 1)*dR_loc, i=1, NgridR)]
+   Zvals = [(minZ + (j - 1)*dZ_loc, j=1, NgridZ)]
 
    !---------------------------------------------------------------------------------
    ! Rebuild psi and related quantities from Efit_data
    !---------------------------------------------------------------------------------
    DO j = 1, NgridZ
       DO i = 1, NgridR
-         idx = (i-1)*NgridR + j
-         psi(i, j)   = Efit_data(idx)
-         F(i, j)     = Efit_data(idx + 6*NgridR*NgridZ)
-         psir(i, j)  = Efit_data(idx + 1*NgridR*NgridZ)
-         psiz(i, j)  = Efit_data(idx + 2*NgridR*NgridZ)
-         normB(i, j) = sqrt((F(i, j)**2 + psir(i, j)**2 + psiz(i, j)**2) / (Rvals(i)**2))
+         idx = (i - 1)*NgridR + j
+         psi(i, j) = Efit_data(idx)
+         F(i, j) = Efit_data(idx + 6*NgridR*NgridZ)
+         psir(i, j) = Efit_data(idx + 1*NgridR*NgridZ)
+         psiz(i, j) = Efit_data(idx + 2*NgridR*NgridZ)
+         normB(i, j) = sqrt((F(i, j)**2 + psir(i, j)**2 + psiz(i, j)**2)/(Rvals(i)**2))
       END DO
    END DO
 
    ! Constant prefactor K = (USE_PC*rhoi/R0)*(As/Zs)
-   Kconst = real(USE_PC,wp)*rhoi/R0*As/Zs
+   Kconst = REAL(USE_PC, wp)*rhoi/R0*As/Zs
 
    !---------------------------------------------------------------------------------
    ! Parallel loop over particles: build phi3 and sample from phi3=0 contour intersections
@@ -192,7 +117,7 @@ SUBROUTINE psisurf_efit3(X, Y, Vp)
 !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(k, phi3, Rc, Zc, npts, urand, idx) SCHEDULE(DYNAMIC)
    DO k = 1, Np
 
-      phi3 = psi - psi0 - Kconst * (F/normB) * Vp(k)
+      phi3 = psi - psi0 - Kconst*(F/normB)*Vp(k)
 
       CALL extract_contour_zero(phi3, Rvals, Zvals, Rc, Zc, npts)
 
@@ -203,12 +128,12 @@ SUBROUTINE psisurf_efit3(X, Y, Vp)
       END IF
 
       CALL random_number(urand)
-      idx = INT(1 + urand * REAL(npts-1, wp))   ! random intersection
+      idx = INT(1 + urand*REAL(npts - 1, wp))   ! random intersection
 
       X(k) = Rc(idx)
       Y(k) = Zc(idx)
 
-      DEALLOCATE(Rc, Zc)
+      DEALLOCATE (Rc, Zc)
    END DO
 !$OMP END PARALLEL DO
 
@@ -221,29 +146,29 @@ CONTAINS
       USE constants
       IMPLICIT NONE
 
-      REAL(KIND=wp), INTENT(IN)  :: phi3(NgridR, NgridZ), Rvals(NgridR), Zvals(NgridZ)
+      REAL(KIND=wp), INTENT(IN) :: phi3(NgridR, NgridZ), Rvals(NgridR), Zvals(NgridZ)
       REAL(KIND=wp), ALLOCATABLE, INTENT(OUT) :: Rc(:), Zc(:)
       INTEGER, INTENT(OUT) :: npts
 
-      INTEGER  :: i, j, icount
+      INTEGER :: i, j, icount
       REAL(wp) :: f00, f10, f01, f11, t, rint, zint
       REAL(wp), ALLOCATABLE :: rtemp(:), ztemp(:)
 
-      ALLOCATE(rtemp(NgridR*NgridZ*4))
-      ALLOCATE(ztemp(NgridR*NgridZ*4))
+      ALLOCATE (rtemp(NgridR*NgridZ*4))
+      ALLOCATE (ztemp(NgridR*NgridZ*4))
       icount = 0
 
       DO j = 1, NgridZ - 1
          DO i = 1, NgridR - 1
-            f00 = phi3(i  , j  )
-            f10 = phi3(i+1, j  )
-            f01 = phi3(i  , j+1)
-            f11 = phi3(i+1, j+1)
+            f00 = phi3(i, j)
+            f10 = phi3(i + 1, j)
+            f01 = phi3(i, j + 1)
+            f11 = phi3(i + 1, j + 1)
 
             ! Bottom edge: (i,j) -> (i+1,j)
-            IF (f00*f10 < 0.0_wp) THEN
-               t    = f00 / (f00 - f10)
-               rint = Rvals(i) + t*(Rvals(i+1) - Rvals(i))
+            IF (f00*f10 < 0.0_WP) THEN
+               t = f00/(f00 - f10)
+               rint = Rvals(i) + t*(Rvals(i + 1) - Rvals(i))
                zint = Zvals(j)
                icount = icount + 1
                rtemp(icount) = rint
@@ -251,30 +176,30 @@ CONTAINS
             END IF
 
             ! Top edge: (i,j+1) -> (i+1,j+1)
-            IF (f01*f11 < 0.0_wp) THEN
-               t    = f01 / (f01 - f11)
-               rint = Rvals(i) + t*(Rvals(i+1) - Rvals(i))
-               zint = Zvals(j+1)
+            IF (f01*f11 < 0.0_WP) THEN
+               t = f01/(f01 - f11)
+               rint = Rvals(i) + t*(Rvals(i + 1) - Rvals(i))
+               zint = Zvals(j + 1)
                icount = icount + 1
                rtemp(icount) = rint
                ztemp(icount) = zint
             END IF
 
             ! Left edge: (i,j) -> (i,j+1)
-            IF (f00*f01 < 0.0_wp) THEN
-               t    = f00 / (f00 - f01)
+            IF (f00*f01 < 0.0_WP) THEN
+               t = f00/(f00 - f01)
                rint = Rvals(i)
-               zint = Zvals(j) + t*(Zvals(j+1) - Zvals(j))
+               zint = Zvals(j) + t*(Zvals(j + 1) - Zvals(j))
                icount = icount + 1
                rtemp(icount) = rint
                ztemp(icount) = zint
             END IF
 
             ! Right edge: (i+1,j) -> (i+1,j+1)
-            IF (f10*f11 < 0.0_wp) THEN
-               t    = f10 / (f10 - f11)
-               rint = Rvals(i+1)
-               zint = Zvals(j) + t*(Zvals(j+1) - Zvals(j))
+            IF (f10*f11 < 0.0_WP) THEN
+               t = f10/(f10 - f11)
+               rint = Rvals(i + 1)
+               zint = Zvals(j) + t*(Zvals(j + 1) - Zvals(j))
                icount = icount + 1
                rtemp(icount) = rint
                ztemp(icount) = zint
@@ -285,17 +210,16 @@ CONTAINS
 
       IF (icount > 1) THEN
          npts = icount
-         ALLOCATE(Rc(npts), Zc(npts))
+         ALLOCATE (Rc(npts), Zc(npts))
          Rc = rtemp(1:npts)
          Zc = ztemp(1:npts)
       ELSE
          npts = 0
-         ALLOCATE(Rc(0), Zc(0))
+         ALLOCATE (Rc(0), Zc(0))
       END IF
 
-      DEALLOCATE(rtemp, ztemp)
+      DEALLOCATE (rtemp, ztemp)
    END SUBROUTINE extract_contour_zero
-
 
    !---------------------------------------------------------------------------------
    ! The routines below are kept (reformatted) for completeness. They are not called
@@ -310,7 +234,7 @@ CONTAINS
       INTEGER :: n, i, j, itmp
       REAL(wp) :: cx, cz, tmpa, tmpr, tmpz
       REAL(wp), ALLOCATABLE :: ang(:)
-      INTEGER,  ALLOCATABLE :: idx(:)
+      INTEGER, ALLOCATABLE :: idx(:)
 
       n = SIZE(Rc)
       IF (n <= 2) RETURN
@@ -318,7 +242,7 @@ CONTAINS
       cx = SUM(Rc)/n
       cz = SUM(Zc)/n
 
-      ALLOCATE(ang(n), idx(n))
+      ALLOCATE (ang(n), idx(n))
       DO i = 1, n
          ang(i) = atan2(Zc(i) - cz, Rc(i) - cx)
          idx(i) = i
@@ -333,36 +257,35 @@ CONTAINS
 
          j = i - 1
          DO WHILE (j >= 1 .AND. ang(j) > tmpa)
-            ang(j+1) = ang(j)
-            idx(j+1) = idx(j)
-            Rc(j+1)  = Rc(j)
-            Zc(j+1)  = Zc(j)
+            ang(j + 1) = ang(j)
+            idx(j + 1) = idx(j)
+            Rc(j + 1) = Rc(j)
+            Zc(j + 1) = Zc(j)
             j = j - 1
          END DO
 
-         ang(j+1) = tmpa
-         idx(j+1) = itmp
-         Rc(j+1)  = tmpr
-         Zc(j+1)  = tmpz
+         ang(j + 1) = tmpa
+         idx(j + 1) = itmp
+         Rc(j + 1) = tmpr
+         Zc(j + 1) = tmpz
       END DO
 
-      DEALLOCATE(ang, idx)
+      DEALLOCATE (ang, idx)
    END SUBROUTINE order_points_by_angle
-
 
    SUBROUTINE interp_point_along_contour(Rc, Zc, s, starget, Rout, Zout)
       USE constants
       IMPLICIT NONE
 
-      REAL(KIND=wp), INTENT(IN)  :: Rc(:), Zc(:), s(:), starget
+      REAL(KIND=wp), INTENT(IN) :: Rc(:), Zc(:), s(:), starget
       REAL(KIND=wp), INTENT(OUT) :: Rout, Zout
 
       INTEGER :: i
 
       DO i = 2, SIZE(s)
          IF (starget <= s(i)) THEN
-            Rout = Rc(i-1) + (Rc(i) - Rc(i-1))*(starget - s(i-1))/(s(i) - s(i-1))
-            Zout = Zc(i-1) + (Zc(i) - Zc(i-1))*(starget - s(i-1))/(s(i) - s(i-1))
+            Rout = Rc(i - 1) + (Rc(i) - Rc(i - 1))*(starget - s(i - 1))/(s(i) - s(i - 1))
+            Zout = Zc(i - 1) + (Zc(i) - Zc(i - 1))*(starget - s(i - 1))/(s(i) - s(i - 1))
             RETURN
          END IF
       END DO

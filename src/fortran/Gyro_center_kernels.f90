@@ -4,116 +4,116 @@
 ! Module name kept as drift_kernels for compatibility.
 !========================================================================================================
 
-module drift_kernels
-   use constants
-   implicit none
+MODULE drift_kernels
+   USE constants
+   IMPLICIT NONE
 
-contains
+CONTAINS
 
-   pure subroutine gyrocenter_drifts(xi, yi, zi, vpi, mui, q1, q2, q3, time, &
-                          vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, check_1, check_2, check_3, &
-                          vs_1, vs_2, vs_3, Qx1, Qy1, Qz1, Qw1, Qph1, Sol_data)
+   PURE SUBROUTINE gyrocenter_drifts(xi, yi, zi, vpi, mui, q1, q2, q3, time, &
+                                     vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx, check_1, check_2, check_3, &
+                                     vs_1, vs_2, vs_3, Qx1, Qy1, Qz1, Qw1, Qph1, Sol_data)
       !$omp declare simd(gyrocenter_drifts) uniform(time,Qx1,Qy1,Qz1,Qw1,Qph1, Sol_data) notinbranch
 
       !---------------------------------------------------------------------------------
       ! Arguments
       !---------------------------------------------------------------------------------
-      real(wp), intent(in)  :: xi, yi, zi, vpi, mui, time
-      real(wp), intent(out) :: q1, q2, q3, vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx
-      real(wp), intent(out) :: check_1, check_2, check_3, vs_1, vs_2, vs_3
-      real(wp), intent(in)  :: Sol_data(SOL_NDATA)
-      real(wp), intent(in), contiguous :: Qx1(:), Qy1(:), Qz1(:), Qw1(:), Qph1(:)
-      real(wp) ::  Q0wrp1
+      REAL(wp), INTENT(in) :: xi, yi, zi, vpi, mui, time
+      REAL(wp), INTENT(out) :: q1, q2, q3, vx, vy, vz, ap, vm, vbF, vbD, kin, Hi, FMi, Pc, B, Vtx, VFx
+      REAL(wp), INTENT(out) :: check_1, check_2, check_3, vs_1, vs_2, vs_3
+      REAL(wp), INTENT(in) :: Sol_data(SOL_NDATA)
+      REAL(wp), INTENT(in), CONTIGUOUS :: Qx1(:), Qy1(:), Qz1(:), Qw1(:), Qph1(:)
+      REAL(wp) :: Q0wrp1
       !---------------------------------------------------------------------------------
       ! Locals
       !---------------------------------------------------------------------------------
 
       ! Fields / drifts
-      real(wp) :: Esx, Esy, Esz, Bsx, Bsy, Bsz, Bsp, Etx, Ety, Etz
-      real(wp) :: Bx, By, Bz
-      real(wp) :: gradBx, gradBy, gradBz
-      real(wp) :: rotbx, rotby, rotbz
-      real(wp) :: rotux, rotuy, rotuz
-      real(wp) :: grad_u2_x, grad_u2_y, grad_u2_z, omega, R02avrg
-      real(wp) :: phi0x, phi0y, phi0z, phi_ZF, phi_ZF_x
+      REAL(wp) :: Esx, Esy, Esz, Bsx, Bsy, Bsz, Bsp, Etx, Ety, Etz
+      REAL(wp) :: Bx, By, Bz
+      REAL(wp) :: gradBx, gradBy, gradBz
+      REAL(wp) :: rotbx, rotby, rotbz
+      REAL(wp) :: rotux, rotuy, rotuz
+      REAL(wp) :: grad_u2_x, grad_u2_y, grad_u2_z, omega, R02avrg
+      REAL(wp) :: phi0x, phi0y, phi0z, phi_ZF, phi_ZF_x
 
       ! Geometry
-      real(wp) :: hx, hy, hz, hx2, hy2, hz2
-      real(wp) :: G(3, 3), F(3, 3), M(3, 3), efit_vals(16)
+      REAL(wp) :: hx, hy, hz, hx2, hy2, hz2
+      REAL(wp) :: G(3, 3), F(3, 3), M(3, 3), efit_vals(16)
 
       ! Coordinates / profiles
-      real(wp) :: rr, rr2, theta, chi, chir, chiz, rhot, rhotr, rhotz
-      real(wp) :: rhotrr, rhotrz, rhotzz, psiradius
-      real(wp) :: qpsi, qprim, psiprim, psiprim2
-      real(wp) :: psi, psir, psiz, psirr, psizz, psirz
-      real(wp) :: Fpsi, Fprim, delta_q1
+      REAL(wp) :: rr, rr2, theta, chi, chir, chiz, rhot, rhotr, rhotz
+      REAL(wp) :: rhotrr, rhotrz, rhotzz, psiradius
+      REAL(wp) :: qpsi, qprim, psiprim, psiprim2
+      REAL(wp) :: psi, psir, psiz, psirr, psizz, psirz
+      REAL(wp) :: Fpsi, Fprim, delta_q1
 
       ! Turbulence accumulators
-      real(wp) :: phi0, phix, phiy, phiz, phixt, phiyt, phizt
-      real(wp) :: Apar0, Aparx, Apary, Aparz
-      real(wp) :: Tprofile, faza, zintc, zints, gpar, gprim
+      REAL(wp) :: phi0, phix, phiy, phiz, phixt, phiyt, phizt
+      REAL(wp) :: Apar0, Aparx, Apary, Aparz
+      REAL(wp) :: Tprofile, faza, zintc, zints, gpar, gprim
       ! --- hoisted invariants ---
-      real(wp) :: env1
-      real(wp) :: q3_over_C3, gamma_delta_q1, shear_factor, flr_pref
-      real(wp) :: gxx, gyy, gxy
+      REAL(wp) :: env1
+      REAL(wp) :: q3_over_C3, gamma_delta_q1, shear_factor, flr_pref
+      REAL(wp) :: gxx, gyy, gxy
       ! --- SIMD-loop temporaries ---
-      real(wp) :: amplu, amplu0, wfac, keff_x, keff_y, keff_z, frac, gg
-      integer :: ddm
-      real(wp) :: Vx_1, Vy_1, Vz_1, Ap_1
+      REAL(wp) :: amplu, amplu0, wfac, keff_x, keff_y, keff_z, frac, gg
+      INTEGER :: ddm
+      REAL(wp) :: Vx_1, Vy_1, Vz_1, Ap_1
 
       ! Numerics / helpers
-      real(wp) :: xi_m1, xi2, yi2
-      real(wp) :: one_m_rr2, root1, inv_root1
-      real(wp) :: invxi, invxi2, invxi3, invhx, invhy, invhz
-      real(wp) :: invB, invB3, invBsp
-      real(wp) :: a02, tau, s_star
-      real(wp) :: tsc, msc, temp, dens, Hi0, msg
-      integer  :: poz1, poz2
-      real(wp) :: X1, Y1, Xef, Yef
-      real(wp) :: F1, F2, F3, F4
-      real(wp) :: faza0, zintc0, zints0, frac0, cos_m, sin_m
-      real(wp) :: cos_ddm(-dmmax:dmmax)
-      real(wp) :: sin_ddm(-dmmax:dmmax)
-      integer :: n, jax, i
-      
+      REAL(wp) :: xi_m1, xi2, yi2
+      REAL(wp) :: one_m_rr2, root1, inv_root1
+      REAL(wp) :: invxi, invxi2, invxi3, invhx, invhy, invhz
+      REAL(wp) :: invB, invB3, invBsp
+      REAL(wp) :: a02, tau, s_star
+      REAL(wp) :: tsc, msc, temp, dens, Hi0, msg
+      INTEGER :: poz1, poz2
+      REAL(wp) :: X1, Y1, Xef, Yef
+      REAL(wp) :: F1, F2, F3, F4
+      REAL(wp) :: faza0, zintc0, zints0, frac0, cos_m, sin_m
+      REAL(wp) :: cos_ddm(-dmmax:dmmax)
+      REAL(wp) :: sin_ddm(-dmmax:dmmax)
+      INTEGER :: n, jax, i
+
       ! Solovev flux-coordinate helpers
-	real(wp) :: psi_sep, delta_sep
-	real(wp) :: rpsi, rpsi_tab, rpsir, rpsiz
-	real(wp) :: h2, hsqrt, delta2, delta_geom
-	real(wp) :: eta, etar, etaz, ceta, seta
+      REAL(wp) :: psi_sep, delta_sep
+      REAL(wp) :: rpsi, rpsi_tab, rpsir, rpsiz
+      REAL(wp) :: h2, hsqrt, delta2, delta_geom
+      REAL(wp) :: eta, etar, etaz, ceta, seta
 
-	! Inline radial interpolation
-	real(wp) :: xsol, fsol
-	real(wp) :: w0sol, w0sol_r
-	real(wp) :: Ttor, Jedge
-	real(wp) :: vL, vR
-	real(wp) :: bk, bkr
+      ! Inline radial interpolation
+      REAL(wp) :: xsol, fsol
+      REAL(wp) :: w0sol, w0sol_r
+      REAL(wp) :: Ttor, Jedge
+      REAL(wp) :: vL, vR
+      REAL(wp) :: bk, bkr
 
-	! q and straight-angle derivatives
-	real(wp) :: Cqsol, Frpsi, qrpsi
-	real(wp) :: chi_rpsi, chi_eta
+      ! q and straight-angle derivatives
+      REAL(wp) :: Cqsol, Frpsi, qrpsi
+      REAL(wp) :: chi_rpsi, chi_eta
 
-	! Fourier recurrence
-	real(wp) :: sink, cosk, snext, cnext
+      ! Fourier recurrence
+      REAL(wp) :: sink, cosk, snext, cnext
 
-	integer :: isol, idxL, idxR
-	integer :: ibL, ibR, k
+      INTEGER :: isol, idxL, idxR
+      INTEGER :: ibL, ibR, k
 
       !---------------------------------------------------------------------------------
       ! Quick aliases / hoists
       !---------------------------------------------------------------------------------
-      xi_m1 = xi - 1.0_wp + eps_xi
+      xi_m1 = xi - 1.0_WP + eps_xi
       xi2 = xi*xi
       yi2 = yi*yi
 
       rr2 = xi_m1*xi_m1 + yi2
       rr = sqrt(rr2) + eps_rr
 
-      one_m_rr2 = max(1.0_wp - rr2, eps_root)
+      one_m_rr2 = max(1.0_WP - rr2, eps_root)
       root1 = sqrt(one_m_rr2)
-      inv_root1 = 1.0_wp/root1
+      inv_root1 = 1.0_WP/root1
 
-      invxi = 1.0_wp/xi
+      invxi = 1.0_WP/xi
       invxi2 = invxi*invxi
       invxi3 = invxi2*invxi
 
@@ -122,41 +122,41 @@ contains
       s_star = (As/Zs)*(rhoi/R0)
 
       ! Metric (cylindrical-like)
-      hx = 1.0_wp; hy = 1.0_wp; hz = xi
-      hx2 = 1.0_wp; hy2 = 1.0_wp; hz2 = xi2
-      invhx = 1.0_wp/hx
-      invhy = 1.0_wp/hy
-      invhz = 1.0_wp/hz
+      hx = 1.0_WP; hy = 1.0_WP; hz = xi
+      hx2 = 1.0_WP; hy2 = 1.0_WP; hz2 = xi2
+      invhx = 1.0_WP/hx
+      invhy = 1.0_WP/hy
+      invhz = 1.0_WP/hz
 
       !---------------------------------------------------------------------------------
       ! Geometry and magnetic equilibrium :: Straight-field-line angle, safety factor model, fluxes
       !---------------------------------------------------------------------------------
-      if (magnetic_model == 3) then   ! circular equilibrium
+      IF (magnetic_model == 3) THEN   ! circular equilibrium
 
          theta = atan2(yi, xi_m1)
 
          ! chi
-         chi = 2.0_wp*atan(sqrt((1.0_wp - rr)/(1.0_wp + rr))*tan(0.5_wp*theta))
+         chi = 2.0_WP*atan(sqrt((1.0_WP - rr)/(1.0_WP + rr))*tan(0.5_WP*theta))
 
          ! Derivatives of chi
          chir = sin(theta)*(rr*rr - xi)*(invxi/rr)*inv_root1
-         chiz = -(rr - cos(theta))*(1.0_wp/rr)*inv_root1
+         chiz = -(rr - cos(theta))*(1.0_WP/rr)*inv_root1
 
          ! rho_t and derivatives
          rhot = rr/a0
          rhotr = xi_m1/(rr*a0)
          rhotz = yi/(rr*a0)
-         rhotrr = (1.0_wp/a0)*yi2/(rr*rr*rr)
-         rhotrz = -(1.0_wp/a0)*yi*xi_m1/(rr*rr*rr)
-         rhotzz = (1.0_wp/a0)*(xi_m1*xi_m1)/(rr*rr*rr)
+         rhotrr = (1.0_WP/a0)*yi2/(rr*rr*rr)
+         rhotrz = -(1.0_WP/a0)*yi*xi_m1/(rr*rr*rr)
+         rhotzz = (1.0_WP/a0)*(xi_m1*xi_m1)/(rr*rr*rr)
 
          ! q(r) via Horner
          qpsi = (s3*rhot + s2)*rhot + s1
-         qprim = 2.0_wp*s3*rhot + s2
+         qprim = 2.0_WP*s3*rhot + s2
 
          ! psi'(r), psi''(r)
          psiprim = a0*rr/(qpsi*root1)
-         psiprim2 = -a02*(rr/(qpsi*root1))*(qprim/(a0*qpsi) - 1.0_wp/(one_m_rr2*rr))
+         psiprim2 = -a02*(rr/(qpsi*root1))*(qprim/(a0*qpsi) - 1.0_WP/(one_m_rr2*rr))
 
          ! Cartesian derivatives of psi
          psir = psiprim*rhotr
@@ -166,26 +166,25 @@ contains
          psizz = psiprim*rhotzz + psiprim2*rhotz*rhotz
 
          ! F(psi) profile
-         Fpsi = 1.0_wp
-         Fprim = 0.0_wp
+         Fpsi = 1.0_WP
+         Fprim = 0.0_WP
 
          ! Circular poloidal flux
-         psi = a02/s2*(rr/a0 - s1/s2*log(1.0_wp + s2/s1*rr/a0))
+         psi = a02/s2*(rr/a0 - s1/s2*log(1.0_WP + s2/s1*rr/a0))
 
-      else if (magnetic_model == 2) then
+      ELSE IF (magnetic_model == 2) THEN
 
          ! psi and derivatives (analytical model)
-         psi = (amp*((alfa**2*(-1.0 + xi**2)**2)/4.0_wp + (-gama + xi**2)*yi**2))/(2.0_wp*(1.0_wp + alfa**2))
-         psir = (amp*(alfa**2*xi*(-1.0 + xi**2) + 2.0_wp*xi*yi**2))/(2.0_wp*(1.0_wp + alfa**2))
-         psiz = (amp*(-gama + xi**2)*yi)/(1.0_wp + alfa**2)
-         psirr = (amp*(2.0_wp*alfa**2*xi**2 + alfa**2*(-1.0 + xi**2) + 2.0_wp*yi**2))/(2.0_wp*(1.0_wp + alfa**2))
-         psirz = (2.0_wp*amp*xi*yi)/(1.0_wp + alfa**2)
-         psizz = (amp*(-gama + xi**2))/(1.0_wp + alfa**2)
+         psi = (amp*((alfa**2*(-1.0 + xi**2)**2)/4.0_WP + (-gama + xi**2)*yi**2))/(2.0_WP*(1.0_WP + alfa**2))
+         psir = (amp*(alfa**2*xi*(-1.0 + xi**2) + 2.0_WP*xi*yi**2))/(2.0_WP*(1.0_WP + alfa**2))
+         psiz = (amp*(-gama + xi**2)*yi)/(1.0_WP + alfa**2)
+         psirr = (amp*(2.0_WP*alfa**2*xi**2 + alfa**2*(-1.0 + xi**2) + 2.0_WP*yi**2))/(2.0_WP*(1.0_WP + alfa**2))
+         psirz = (2.0_WP*amp*xi*yi)/(1.0_WP + alfa**2)
+         psizz = (amp*(-gama + xi**2))/(1.0_WP + alfa**2)
 
          ! F(psi)
-         Fpsi = sqrt(1.0_wp + 2.0_wp*amp*gama*psi/(1.0_wp + alfa**2))
-         Fprim = (amp*gama)/(1.0_wp + alfa**2)/Fpsi
-
+         Fpsi = sqrt(1.0_WP + 2.0_WP*amp*gama*psi/(1.0_WP + alfa**2))
+         Fprim = (amp*gama)/(1.0_WP + alfa**2)/Fpsi
 
          !======================================================================
          ! Solovev flux coordinates
@@ -204,8 +203,8 @@ contains
          ! delta = R^2 - 1 there, and psi = Psi0*delta^2
          !----------------------------------------------------------------------
 
-	delta_sep = 1.0_wp - gama
-	psi_sep = amp*alfa**2*delta_sep**2/(8.0_wp*(1.0_wp + alfa**2))
+         delta_sep = 1.0_WP - gama
+         psi_sep = amp*alfa**2*delta_sep**2/(8.0_WP*(1.0_WP + alfa**2))
 
          !----------------------------------------------------------------------
          ! Exact Solovev geometrical quantities
@@ -216,23 +215,23 @@ contains
 
          h2 = max(xi2 - gama, eps_root)
          hsqrt = sqrt(h2)
-         delta2 = (xi2 - 1.0_wp)**2 + 4.0_wp*yi2*h2/(alfa*alfa)
-         delta_geom = sqrt(max(delta2, 0.0_wp))
+         delta2 = (xi2 - 1.0_WP)**2 + 4.0_WP*yi2*h2/(alfa*alfa)
+         delta_geom = sqrt(max(delta2, 0.0_WP))
          rpsi = delta_geom/delta_sep
 
          ! Clamp only the TABLE LOOKUP coordinate.
          ! Normally particles should satisfy 0 <= rpsi <= SOL_R_MAX.
-rpsi_tab = min(rpsi, SOL_RMAX)
+         rpsi_tab = min(rpsi, SOL_RMAX)
          !======================================================================
          ! Inline interpolation on uniform rpsi grid
          ! xsol runs from 0 to Nsol-1.
          ! isol is a zero-based cell number: 0 ... Nsol-2.
          ! idxL,idxR are Fortran one-based table indices.
          !======================================================================
-xsol = rpsi_tab*SOL_INV_DR
+         xsol = rpsi_tab*SOL_INV_DR
 
          isol = min(int(xsol), Nsol - 2)
-         fsol = xsol - real(isol, wp)
+         fsol = xsol - REAL(isol, wp)
          idxL = isol + 1
          idxR = idxL + 1
 
@@ -246,13 +245,13 @@ xsol = rpsi_tab*SOL_INV_DR
          vL = Sol_data(SOL_W0_OFF + idxL)
          vR = Sol_data(SOL_W0_OFF + idxR)
 
-         if (isol == 0) then
+         IF (isol == 0) THEN
             w0sol = vL + (vR - vL)*fsol*fsol
-            w0sol_r = 2.0_wp*(vR - vL)*fsol*SOL_INV_DR
-         else
+            w0sol_r = 2.0_WP*(vR - vL)*fsol*SOL_INV_DR
+         ELSE
             w0sol = vL + (vR - vL)*fsol
             w0sol_r = (vR - vL)*SOL_INV_DR
-         end if
+         END IF
 
          !----------------------------------------------------------------------
          ! T(rpsi) = rhot^2
@@ -264,11 +263,11 @@ xsol = rpsi_tab*SOL_INV_DR
          vL = Sol_data(SOL_T_OFF + idxL)
          vR = Sol_data(SOL_T_OFF + idxR)
 
-         if (isol == 0) then
+         IF (isol == 0) THEN
             Ttor = vL + (vR - vL)*fsol*fsol
-         else
+         ELSE
             Ttor = vL + (vR - vL)*fsol
-         end if
+         END IF
 
          ! Jedge = integral_0^1 2*rpsi*q(rpsi) drpsi
          Jedge = Sol_data(SOL_JEDGE_IDX)
@@ -280,21 +279,21 @@ xsol = rpsi_tab*SOL_INV_DR
          ! The code uses R_axis = 1 in these normalized coordinates.
          !======================================================================
 
-         Cqsol = (1.0_wp + alfa**2)/(alfa*amp)
+         Cqsol = (1.0_WP + alfa**2)/(alfa*amp)
          qpsi = Cqsol*Fpsi*w0sol
          !----------------------------------------------------------------------
          ! dq/drpsi
          ! dF/drpsi = (dF/dpsi)*(dpsi/drpsi)  = Fprim * 2*psi_edge*rpsi
          !----------------------------------------------------------------------
 
-         Frpsi = 2.0_wp*psi_sep*rpsi*Fprim
+         Frpsi = 2.0_WP*psi_sep*rpsi*Fprim
          qrpsi = Cqsol*(Frpsi*w0sol + Fpsi*w0sol_r)
 
          !======================================================================
          ! True toroidal-flux radius
          !======================================================================
 
-         rhot = sqrt(max(Ttor, 0.0_wp))
+         rhot = sqrt(max(Ttor, 0.0_WP))
          !----------------------------------------------------------------------
          ! rho_t spatial derivatives
          !
@@ -308,27 +307,27 @@ xsol = rpsi_tab*SOL_INV_DR
          ! axis, just like any polar radial/angle coordinate pair.
          !----------------------------------------------------------------------
 
-         if ((rhot > eps_rr) .and. (abs(Jedge) > eps_B)) then
-            rhotr = qpsi*psir/(2.0_wp*psi_sep*Jedge*rhot)
-            rhotz = qpsi*psiz/(2.0_wp*psi_sep*Jedge*rhot)
-         else
+         IF ((rhot > eps_rr) .AND. (abs(Jedge) > eps_B)) THEN
+            rhotr = qpsi*psir/(2.0_WP*psi_sep*Jedge*rhot)
+            rhotz = qpsi*psiz/(2.0_WP*psi_sep*Jedge*rhot)
+         ELSE
 
-            rhotr = 0.0_wp
-            rhotz = 0.0_wp
-         end if
+            rhotr = 0.0_WP
+            rhotz = 0.0_WP
+         END IF
          !----------------------------------------------------------------------
          ! qprim in THIS kernel means dq/drhot, not dq/dpsi.
          ! drhot/drpsi = rpsi*q /(Jedge*rhot)
          ! dq/drhot = Jedge*rhot*(dq/drpsi)/(rpsi*q)
          !----------------------------------------------------------------------
 
-         if ((rpsi > eps_rr) .and. (rhot > eps_rr) .and. &
-             (abs(qpsi) > eps_B)) then
+         IF ((rpsi > eps_rr) .AND. (rhot > eps_rr) .AND. &
+             (abs(qpsi) > eps_B)) THEN
             qprim = Jedge*rhot*qrpsi/(rpsi*qpsi)
-         else
+         ELSE
             ! Regular magnetic-axis limit for an even q(rpsi) profile.
-            qprim = 0.0_wp
-         end if
+            qprim = 0.0_WP
+         END IF
          !======================================================================
          ! Exact Solovev geometrical angle eta
          !
@@ -339,39 +338,39 @@ xsol = rpsi_tab*SOL_INV_DR
          ! used below in this routine.
          !======================================================================
 
-         if (delta_geom > eps_rr) then
+         IF (delta_geom > eps_rr) THEN
 
-            ceta = (xi2 - 1.0_wp)/delta_geom
-            seta = 2.0_wp*yi*hsqrt/(alfa*delta_geom)
+            ceta = (xi2 - 1.0_WP)/delta_geom
+            seta = 2.0_WP*yi*hsqrt/(alfa*delta_geom)
             eta = atan2(seta, ceta)
             !---------------------------------------------------------------
             ! Exact eta derivatives
             !---------------------------------------------------------------
 
-            etar = -2.0_wp*xi*yi*(xi2 + 1.0_wp - 2.0_wp*gama)/(alfa*hsqrt*delta2)
-            etaz =  2.0_wp*(xi2 - 1.0_wp)*hsqrt/(alfa*delta2)
-         else
+            etar = -2.0_WP*xi*yi*(xi2 + 1.0_WP - 2.0_WP*gama)/(alfa*hsqrt*delta2)
+            etaz = 2.0_WP*(xi2 - 1.0_WP)*hsqrt/(alfa*delta2)
+         ELSE
 
             ! eta itself is undefined exactly at the magnetic axis.
-            eta  = 0.0_wp
-            ceta = 1.0_wp
-            seta = 0.0_wp
-            etar = 0.0_wp
-            etaz = 0.0_wp
-         end if
+            eta = 0.0_WP
+            ceta = 1.0_WP
+            seta = 0.0_WP
+            etar = 0.0_WP
+            etaz = 0.0_WP
+         END IF
          !----------------------------------------------------------------------
          ! rpsi derivatives
          !
          ! psi = psi_edge*rpsi^2
          !----------------------------------------------------------------------
 
-         if (rpsi > eps_rr) then
-            rpsir = psir/(2.0_wp*psi_sep*rpsi)
-            rpsiz = psiz/(2.0_wp*psi_sep*rpsi)
-         else
-            rpsir = 0.0_wp
-            rpsiz = 0.0_wp
-         end if
+         IF (rpsi > eps_rr) THEN
+            rpsir = psir/(2.0_WP*psi_sep*rpsi)
+            rpsiz = psiz/(2.0_WP*psi_sep*rpsi)
+         ELSE
+            rpsir = 0.0_WP
+            rpsiz = 0.0_WP
+         END IF
          !======================================================================
          ! Straight-field-line angle
          !
@@ -391,13 +390,13 @@ xsol = rpsi_tab*SOL_INV_DR
          ! use recurrence from sin(eta),cos(eta).
          !======================================================================
 
-         chi       = eta
-         chi_rpsi  = 0.0_wp
-         chi_eta   = 1.0_wp
+         chi = eta
+         chi_rpsi = 0.0_WP
+         chi_eta = 1.0_WP
 
          sink = seta
          cosk = ceta
-         do k = 1, Ksol
+         DO k = 1, Ksol
 
             !---------------------------------------------------------------
             ! Inline interpolation of b_k(rpsi)
@@ -412,44 +411,44 @@ xsol = rpsi_tab*SOL_INV_DR
             vL = Sol_data(ibL)
             vR = Sol_data(ibR)
 
-            if (isol == 0) then
+            IF (isol == 0) THEN
 
                ! b_k(0)=0 by construction
                bk = vR*fsol**k
-               bkr = real(k,wp)*vR*fsol**(k - 1)*SOL_INV_DR
-            else
+               bkr = REAL(k, wp)*vR*fsol**(k - 1)*SOL_INV_DR
+            ELSE
 
                bk = vL + (vR - vL)*fsol
                bkr = (vR - vL)*SOL_INV_DR
-            end if
+            END IF
             !---------------------------------------------------------------
             ! Reconstruct chi and its two natural derivatives
             !---------------------------------------------------------------
 
-            chi = chi + bk*sink/real(k,wp)
-            chi_rpsi = chi_rpsi + bkr*sink/real(k,wp)
+            chi = chi + bk*sink/REAL(k, wp)
+            chi_rpsi = chi_rpsi + bkr*sink/REAL(k, wp)
             chi_eta = chi_eta + bk*cosk
 
             !---------------------------------------------------------------
             ! sin[(k+1)eta], cos[(k+1)eta] recurrence
             !---------------------------------------------------------------
 
-            if (k < Ksol) then
+            IF (k < Ksol) THEN
                snext = sink*ceta + cosk*seta
                cnext = cosk*ceta - sink*seta
                sink = snext
                cosk = cnext
-            end if
-         end do
+            END IF
+         END DO
          !======================================================================
          ! Spatial derivatives of the straight-field-line angle
          !======================================================================
 
          chir = chi_rpsi*rpsir + chi_eta*etar
          chiz = chi_rpsi*rpsiz + chi_eta*etaz
-      else
+      ELSE
 
-         if (magnetic_model == 1) then
+         IF (magnetic_model == 1) THEN
             ! Grid indices
             poz1 = modulo(int((xi - minR)/stepR), NgridR)
             poz2 = modulo(int((yi - minZ)/stepZ), NgridZ)
@@ -472,14 +471,14 @@ xsol = rpsi_tab*SOL_INV_DR
             ! Efit_data :: {psi,psir,psiz,psirr,psirz,psizz, F,Fprim,
             !               qpsi,qprim, rhot, rhotR, rhotZ, chi, chir, chiz}
             !--------------------------------------------------------------
-            do jax = 1, 16
+            DO jax = 1, 16
                F1 = Efit_data(NgridR*NgridZ*(jax - 1) + poz1*NgridR + poz2)
                F2 = Efit_data(NgridR*NgridZ*(jax - 1) + (poz1 + 1)*NgridR + poz2)
                F3 = Efit_data(NgridR*NgridZ*(jax - 1) + poz1*NgridR + (poz2 + 1))
                F4 = Efit_data(NgridR*NgridZ*(jax - 1) + (poz1 + 1)*NgridR + (poz2 + 1))
 
                efit_vals(jax) = F1 + (F2 - F1)*Xef + (F3 - F1)*Yef + Xef*Yef*(F1 + F4 - F2 - F3)
-            end do
+            END DO
 
             psi = efit_vals(1)
             psir = efit_vals(2)
@@ -497,15 +496,15 @@ xsol = rpsi_tab*SOL_INV_DR
             rhot = efit_vals(11)
             rhotr = efit_vals(12)
             rhotz = efit_vals(13)
-         end if
+         END IF
 
-         if (magnetic_model == 1) then
+         IF (magnetic_model == 1) THEN
             chi = efit_vals(14)
             chir = efit_vals(15)
             chiz = efit_vals(16)
-         end if
+         END IF
 
-      end if
+      END IF
 
       !---------------------------------------------------------------------------------
       ! Scaled field-aligned coords (GENE-like)
@@ -518,8 +517,8 @@ xsol = rpsi_tab*SOL_INV_DR
       !---------------------------------------------------------------------------------
       ! Grad(qj) contravariant (G)
       !---------------------------------------------------------------------------------
-      G(1, 1) = C1*rhotr; G(2, 1) = C1*rhotz; G(3, 1) = 0.0_wp
-      G(1, 3) = C3*chir; G(2, 3) = C3*chiz; G(3, 3) = 0.0_wp
+      G(1, 1) = C1*rhotr; G(2, 1) = C1*rhotz; G(3, 1) = 0.0_WP
+      G(1, 3) = C3*chir; G(2, 3) = C3*chiz; G(3, 3) = 0.0_WP
 
       G(1, 2) = -C2*qpsi*chir - C2*chi*qprim*rhotr
       G(2, 2) = -C2*qpsi*chiz - C2*chi*qprim*rhotz
@@ -533,7 +532,7 @@ xsol = rpsi_tab*SOL_INV_DR
       Bz = Fpsi*invxi2
 
       B = sqrt(Bx*Bx*hx2 + By*By*hy2 + Bz*Bz*hz2)
-      invB = 1.0_wp/max(B, eps_B)
+      invB = 1.0_WP/max(B, eps_B)
       invB3 = invB*invB*invB
 
       !---------------------------------------------------------------------------------
@@ -541,32 +540,32 @@ xsol = rpsi_tab*SOL_INV_DR
       !---------------------------------------------------------------------------------
       gradBx = -((Fpsi*Fpsi + psir*psir + psiz*psiz) - Fpsi*Fprim*xi*psir - xi*psir*psirr - psiz*xi*psirz)*invB*invxi3
       gradBy = (Fpsi*Fprim*psiz + psir*psirz + psiz*psizz)*invB*invxi2
-      gradBz = 0.0_wp
+      gradBz = 0.0_WP
 
       rotbx = (Fprim*psiz*(psir*psir + psiz*psiz) - Fpsi*(psir*psirz + psiz*psizz))*invB3*invxi3
       rotby = -(Fpsi*Fpsi*Fpsi + Fpsi*(psir*psir + psiz*psiz) &
                 - xi*Fpsi*(psirz*psiz + psir*psirr) + xi*Fprim*psir*(psir*psir + psiz*psiz))*invB3*invxi2*invxi2
       rotbz = -(Fpsi*Fprim*(psir*psir + psiz*psiz) - Fpsi*Fpsi*(psirr + psizz) &
-                - psirr*psiz*psiz - psizz*psir*psir + 2.0_wp*psirz*psir*psiz)*invB3*invxi2*invxi2
+                - psirr*psiz*psiz - psizz*psir*psir + 2.0_WP*psirz*psir*psiz)*invB3*invxi2*invxi2
 
       !---------------------------------------------------------------------------------
       ! u, rotu, gradu, phi0 (e pur si muove)
       !---------------------------------------------------------------------------------
 
-      Omega = Omgt0*(1.0_wp + Omgtprim*(rhot - rhot0)) + eps_omega
-      R02avrg = 1.0_wp + a0*rhot/2.0_wp
+      Omega = Omgt0*(1.0_WP + Omgtprim*(rhot - rhot0)) + eps_omega
+      R02avrg = 1.0_WP + a0*rhot/2.0_WP
       rotux = xi*Omgt0*Omgtprim*rhotz
-      rotuy = -xi*Omgt0*Omgtprim*rhotr - 2.0_wp*Omega
-      rotuz = 0.0_wp
+      rotuy = -xi*Omgt0*Omgtprim*rhotr - 2.0_WP*Omega
+      rotuz = 0.0_WP
 
       ! u^2 gradient pieces and neoclassical Phi0 gradient
-      grad_u2_x = xi2*Omega*Omega*(rhotr*Omgt0*Omgtprim/Omega + 1.0_wp/xi)
+      grad_u2_x = xi2*Omega*Omega*(rhotr*Omgt0*Omgtprim/Omega + 1.0_WP/xi)
       grad_u2_y = xi2*Omega*Omega*(rhotz*Omgt0*Omgtprim/Omega)
-      grad_u2_z = 0.0_wp
+      grad_u2_z = 0.0_WP
 
-      phi0x = tau*(1.0_wp - R02avrg/xi2)*grad_u2_x + tau*Omega*Omega*R02avrg/xi
-      phi0y = tau*(1.0_wp - R02avrg/xi2)*grad_u2_y
-      phi0z = 0.0_wp
+      phi0x = tau*(1.0_WP - R02avrg/xi2)*grad_u2_x + tau*Omega*Omega*R02avrg/xi
+      phi0y = tau*(1.0_WP - R02avrg/xi2)*grad_u2_y
+      phi0z = 0.0_WP
 
       !---------------------------------------------------------------------------------
       ! B* (covariant) and E*
@@ -576,7 +575,7 @@ xsol = rpsi_tab*SOL_INV_DR
       Bsz = Bz + s_star*(vpi*rotbz + rotuz)
 
       Bsp = (Bsx*Bx*hx2 + Bsy*By*hy2 + Bsz*Bz*hz2)*invB
-      invBsp = 1.0_wp/max(Bsp, eps_Bsp)
+      invBsp = 1.0_WP/max(Bsp, eps_Bsp)
 
       Esx = -(phi0x + mui/Zs*gradBx - As/Zs*grad_u2_x)
       Esy = -(phi0y + mui/Zs*gradBy - As/Zs*grad_u2_y)
@@ -590,7 +589,7 @@ xsol = rpsi_tab*SOL_INV_DR
       !---------------------------------------------------------------------------------
       ! Cross-product matrix F = (grad(xj) x b) . grad(xi)
       !---------------------------------------------------------------------------------
-      F = 0.0_wp
+      F = 0.0_WP
       F(1, 2) = hz*Bz*invB*invhx*invhy
       F(1, 3) = -hy*By*invB*invhx*invhz
       F(2, 3) = hx*Bx*invB*invhy*invhz
@@ -598,35 +597,34 @@ xsol = rpsi_tab*SOL_INV_DR
       F(3, 1) = -F(1, 3)
       F(3, 2) = -F(2, 3)
 
-
       !---------------------------------------------------------------------------------
       ! Turbulent contribution (SIMD)    !!! in the description of turbulence (x,y,z) (q1,q2,q3)= field-aligned; whereas in the remaining (X,Y,Z) = (R,Z,varphi)
       !---------------------------------------------------------------------------------
-      phi0 = 0.0_wp; phix = 0.0_wp; phiy = 0.0_wp; phiz = 0.0_wp
-      phixt = 0.0_wp; phiyt = 0.0_wp; phizt = 0.0_wp
-      Apar0 = 0.0_wp; Aparx = 0.0_wp; Apary = 0.0_wp; Aparz = 0.0_wp
-      msg = 0.0_wp
+      phi0 = 0.0_WP; phix = 0.0_WP; phiy = 0.0_WP; phiz = 0.0_WP
+      phixt = 0.0_WP; phiyt = 0.0_WP; phizt = 0.0_WP
+      Apar0 = 0.0_WP; Aparx = 0.0_WP; Apary = 0.0_WP; Aparz = 0.0_WP
+      msg = 0.0_WP
 
       ! turbulence must be ON and must have started
 !      if ((USE_turb == ON) .and. ((time - tt)*sign(1.0_wp, tmax - t0) >= 0.0_wp)) then
-      if ((USE_turb == ON) .and. ((time - tt) >= 0.0_wp)) then
-       
+      IF ((USE_turb == ON) .AND. ((time - tt) >= 0.0_WP)) THEN
+
          ! Defaults (kept as in your original snippet)
          q3_over_C3 = q3/C3
          shear_factor = C2*qprim/C1
-         flr_pref = rhoi/R0*sqrt(2.0_wp*abs(mui)*As/(Zs**2*B))
+         flr_pref = rhoi/R0*sqrt(2.0_WP*abs(mui)*As/(Zs**2*B))
          gxx = G(1, 1)*G(1, 1)*invhx**2 + G(2, 1)*G(2, 1)*invhy**2 + G(3, 1)*G(3, 1)*invhz**2
          gyy = G(1, 2)*G(1, 2)*invhx**2 + G(2, 2)*G(2, 2)*invhy**2 + G(3, 2)*G(3, 2)*invhz**2
          gxy = G(1, 1)*G(1, 2)*invhx**2 + G(2, 1)*G(2, 2)*invhy**2 + G(3, 1)*G(3, 2)*invhz**2
 
-         gpar = exp((cos(q3_over_C3) - 1.0_wp)/lbalonz**2)*balloon   ! this must be periodic
+         gpar = exp((cos(q3_over_C3) - 1.0_WP)/lbalonz**2)*balloon   ! this must be periodic
          gprim = -sin(q3_over_C3)/lbalonz**2/C3*balloon ! note that this is g'/g
          env1 = noballoon + gpar             ! ballooning envelope multiplier
-         if (turb_model == 1) then
-            if (USE_polar == ON) then
+         IF (turb_model == 1) THEN
+            IF (USE_polar == ON) THEN
                !$omp simd private(faza,zintc,zints,amplu,amplu0,wfac,keff_x,keff_y,keff_z,Q0wrp1) &
                !$omp& reduction(+:phi0,phix,phiy,phiz,phixt,phiyt,phizt)
-               do n = 1, Nc
+               DO n = 1, Nc
 
                   wfac = Qw1(n)
                   Q0wrp1 = REAL(INT(C2*Qy1(n)*q00), wp)
@@ -637,10 +635,12 @@ xsol = rpsi_tab*SOL_INV_DR
 
                   faza = Qx1(n)*q1 + Qy1(n)*q2 + Qz1(n)*q3 - wfac*time + q3_over_C3*usetilt*(C2*Qy1(n)*qpsi - Q0wrp1) + Qph1(n)
 
-                  amplu = Qx1(n)*Qx1(n)*gxx + Qy1(n)*Qy1(n)*gyy + 2.0_wp*Qx1(n)*Qy1(n)*gxy
+                  amplu = Qx1(n)*Qx1(n)*gxx + Qy1(n)*Qy1(n)*gyy + 2.0_WP*Qx1(n)*Qy1(n)*gxy
                   amplu = flr_pref*sqrt(amplu)
-                  amplu = Cos(amplu - Pi/4.0*tanh(amplu**2))/(1.0 + Tanh(amplu**2/5.0)*Sqrt(amplu))  ! this is an approximation for J0(z)
-                  amplu = USE_larmor*amplu + (1.0-USE_larmor)
+                  ! Approximation for J0(z).
+                  amplu = Cos(amplu - Pi/4.0*tanh(amplu**2)) &
+                          /(1.0 + Tanh(amplu**2/5.0)*Sqrt(amplu))
+                  amplu = USE_larmor*amplu + (1.0 - USE_larmor)
                   amplu = norm*amplu!*exp(-amplu/20_wp)!QL1(n)*exp(-amplu/20_wp)
 
                   zintc = cos(faza)
@@ -655,15 +655,15 @@ xsol = rpsi_tab*SOL_INV_DR
                   phiyt = phiyt + amplu*keff_y*wfac*zints
                   phizt = phizt + amplu*keff_z*wfac*zints - amplu*gprim*zintc*wfac
 
-               end do
+               END DO
 
                phixt = env1*phixt
                phiyt = env1*phiyt
                phizt = env1*phizt
-            else
+            ELSE
                !$omp simd private(faza,zintc,zints,amplu,amplu0,wfac,keff_x,keff_y,keff_z,Q0wrp1) &
                !$omp& reduction(+:phi0,phix,phiy,phiz)
-               do n = 1, Nc
+               DO n = 1, Nc
 
                   wfac = Qw1(n)
                   Q0wrp1 = REAL(INT(C2*Qy1(n)*q00), wp)
@@ -674,10 +674,12 @@ xsol = rpsi_tab*SOL_INV_DR
 
                   faza = Qx1(n)*q1 + Qy1(n)*q2 + Qz1(n)*q3 - wfac*time + q3_over_C3*usetilt*(C2*Qy1(n)*qpsi - Q0wrp1) + Qph1(n)
 
-                  amplu = Qx1(n)*Qx1(n)*gxx + Qy1(n)*Qy1(n)*gyy + 2.0_wp*Qx1(n)*Qy1(n)*gxy
+                  amplu = Qx1(n)*Qx1(n)*gxx + Qy1(n)*Qy1(n)*gyy + 2.0_WP*Qx1(n)*Qy1(n)*gxy
                   amplu = flr_pref*sqrt(amplu)
-                  amplu = Cos(amplu - Pi/4.0*tanh(amplu**2))/(1.0 + Tanh(amplu**2/5.0)*Sqrt(amplu))  ! this is an approximation for J0(z)
-                  amplu = USE_larmor*amplu + (1.0-USE_larmor)
+                  ! Approximation for J0(z).
+                  amplu = Cos(amplu - Pi/4.0*tanh(amplu**2)) &
+                          /(1.0 + Tanh(amplu**2/5.0)*Sqrt(amplu))
+                  amplu = USE_larmor*amplu + (1.0 - USE_larmor)
                   amplu = norm*amplu!*exp(-amplu/20_wp)!QL1(n)*exp(-amplu/20_wp)
 
                   zintc = cos(faza)
@@ -688,28 +690,28 @@ xsol = rpsi_tab*SOL_INV_DR
                   phiy = phiy + amplu*keff_y*zintc
                   phiz = phiz + amplu*keff_z*zintc + amplu*gprim*zints
 
-               end do
-            end if
+               END DO
+            END IF
 
             phi0 = env1*phi0
             phix = env1*phix
             phiy = env1*phiy
             phiz = env1*phiz
 
-         elseif (turb_model == 2) then
+         ELSEIF (turb_model == 2) THEN
 ! precompute once per call (or keep cached in a module if dmmax is fixed)
-            do i = -dmmax, dmmax
-               cos_ddm(i) = cos(q3_over_C3*real(i, wp))
-               sin_ddm(i) = sin(q3_over_C3*real(i, wp))
-            end do
+            DO i = -dmmax, dmmax
+               cos_ddm(i) = cos(q3_over_C3*REAL(i, wp))
+               sin_ddm(i) = sin(q3_over_C3*REAL(i, wp))
+            END DO
 
-            if (USE_polar == ON) then
+            IF (USE_polar == ON) THEN
                !$omp simd private(faza0,zintc0,zints0,amplu,amplu0,wfac,gg,keff_x,keff_y,keff_z,frac0,frac,cos_m,sin_m,zintc,zints) &
                !$omp& reduction(+:phi0,phix,phiy,phiz,phixt,phiyt,phizt)
-               do n = 1, Nc
+               DO n = 1, Nc
                   keff_x = Qx1(n) + Qy1(n)*(q3_over_C3*shear_factor)
                   keff_y = Qy1(n)
-                  wfac   = Qw1(n)
+                  wfac = Qw1(n)
 
                   frac0 = C2*Qy1(n)*qpsi - int(C2*Qy1(n)*qpsi)    ! (same as your original)
                   faza0 = Qx1(n)*q1 + Qy1(n)*q2 + Qz1(n)*q3 - wfac*time + q3_over_C3*frac0 + Qph1(n)
@@ -717,15 +719,17 @@ xsol = rpsi_tab*SOL_INV_DR
                   zintc0 = cos(faza0)
                   zints0 = sin(faza0)
 
-                  amplu0 = Qx1(n)*Qx1(n)*gxx + Qy1(n)*Qy1(n)*gyy + 2.0_wp*Qx1(n)*Qy1(n)*gxy
+                  amplu0 = Qx1(n)*Qx1(n)*gxx + Qy1(n)*Qy1(n)*gyy + 2.0_WP*Qx1(n)*Qy1(n)*gxy
                   amplu0 = flr_pref*sqrt(amplu0)
-                  amplu0 = Cos(amplu0 - Pi/4.0*tanh(amplu0**2))/(1.0 + Tanh(amplu0**2/5.0)*Sqrt(amplu0))  ! this is an approximation for J0(z)
-                  amplu0 = USE_larmor*amplu0 + (1.0-USE_larmor)
+                  ! Approximation for J0(z).
+                  amplu0 = Cos(amplu0 - Pi/4.0*tanh(amplu0**2)) &
+                           /(1.0 + Tanh(amplu0**2/5.0)*Sqrt(amplu0))
+                  amplu0 = USE_larmor*amplu0 + (1.0 - USE_larmor)
                   amplu0 = norm*amplu0!*exp(-amplu/20_wp)!QL1(n)*exp(-amplu/20_wp)
 
-                  do ddm = -dmmax, dmmax
+                  DO ddm = -dmmax, dmmax
                      frac = frac0 + ddm
-                     gg = exp(-frac**2*lbalonz**2/2.0_wp)*lbalonz/sqrt(2.0_wp*pi)
+                     gg = exp(-frac**2*lbalonz**2/2.0_WP)*lbalonz/sqrt(2.0_WP*pi)
                      amplu = amplu0*gg
 
                      keff_z = Qz1(n) + frac/C3
@@ -746,16 +750,16 @@ xsol = rpsi_tab*SOL_INV_DR
                              - amplu*wfac*(-frac*lbalonz**2)*Qy1(n)*shear_factor*zintc
                      phiyt = phiyt + amplu*keff_y*wfac*zints
                      phizt = phizt + amplu*keff_z*wfac*zints
-                  end do
-               end do
+                  END DO
+               END DO
 
-            else
+            ELSE
                !$omp simd private(faza0,zintc0,zints0,amplu,amplu0,wfac,gg,keff_x,keff_y,keff_z,frac0,frac,cos_m,sin_m,zintc,zints) &
                !$omp& reduction(+:phi0,phix,phiy,phiz)
-               do n = 1, Nc
+               DO n = 1, Nc
                   keff_x = Qx1(n) + Qy1(n)*(q3_over_C3*shear_factor)
                   keff_y = Qy1(n)
-                  wfac   = Qw1(n)
+                  wfac = Qw1(n)
 
                   frac0 = C2*Qy1(n)*qpsi - int(C2*Qy1(n)*qpsi)    ! (same as your original)
                   faza0 = Qx1(n)*q1 + Qy1(n)*q2 + Qz1(n)*q3 - wfac*time + q3_over_C3*frac0 + Qph1(n)
@@ -763,15 +767,17 @@ xsol = rpsi_tab*SOL_INV_DR
                   zintc0 = cos(faza0)
                   zints0 = sin(faza0)
 
-                  amplu0 = Qx1(n)*Qx1(n)*gxx + Qy1(n)*Qy1(n)*gyy + 2.0_wp*Qx1(n)*Qy1(n)*gxy
+                  amplu0 = Qx1(n)*Qx1(n)*gxx + Qy1(n)*Qy1(n)*gyy + 2.0_WP*Qx1(n)*Qy1(n)*gxy
                   amplu0 = flr_pref*sqrt(amplu0)
-                  amplu0 = Cos(amplu0 - Pi/4.0*tanh(amplu0**2))/(1.0 + Tanh(amplu0**2/5.0)*Sqrt(amplu0))  ! this is an approximation for J0(z)
-                  amplu0 = USE_larmor*amplu0 + (1.0-USE_larmor)
+                  ! Approximation for J0(z).
+                  amplu0 = Cos(amplu0 - Pi/4.0*tanh(amplu0**2)) &
+                           /(1.0 + Tanh(amplu0**2/5.0)*Sqrt(amplu0))
+                  amplu0 = USE_larmor*amplu0 + (1.0 - USE_larmor)
                   amplu0 = norm*amplu0!exp(-amplu/20_wp)
 
-                  do ddm = -dmmax, dmmax
+                  DO ddm = -dmmax, dmmax
                      frac = frac0 + ddm
-                     gg = exp(-frac**2*lbalonz**2/2.0_wp)*lbalonz/sqrt(2.0_wp*pi)
+                     gg = exp(-frac**2*lbalonz**2/2.0_WP)*lbalonz/sqrt(2.0_WP*pi)
                      amplu = amplu0*gg
 
                      keff_z = Qz1(n) + frac/C3
@@ -786,21 +792,22 @@ xsol = rpsi_tab*SOL_INV_DR
                      phix = phix + amplu*keff_x*zintc + amplu*(-frac*lbalonz**2)*Qy1(n)*shear_factor*zints
                      phiy = phiy + amplu*keff_y*zintc
                      phiz = phiz + amplu*keff_z*zintc
-                  end do
-               end do
-            end if
+                  END DO
+               END DO
+            END IF
 
-         end if ! turbulence+model
+         END IF ! turbulence+model
          ! Radial envelope profile: mainly to avoid numerical problems at r=0 or turbulent runaway particles at the edge
-         Tprofile = tanh((turbprof*turbprof)*((rhot - 1.0_wp)**2)*(rhot**2))    ! radial profile of turbulence amplitude
-         Tprofile = Tprofile/tanh((turbprof*turbprof + 0.000001_wp)/16.0_wp)    ! scaled to mid-radius value; it's radial derivative is NOT taken into account in the ExB drift
-         
+         Tprofile = tanh((turbprof*turbprof)*((rhot - 1.0_WP)**2)*(rhot**2))    ! radial profile of turbulence amplitude
+         ! Scale to the mid-radius value. Its radial derivative is not included in the ExB drift.
+         Tprofile = Tprofile/tanh((turbprof*turbprof + 0.000001_WP)/16.0_WP)
+
          ! Zonal flow shearing effects; the average zonal flow was absorbed via a Galilean referance frame change
-         phi_ZF   = -rhoi/R0/(0.000001_wp+Phi)*gamma_E/2.0_wp*delta_q1**2
-         phi_ZF_x = -rhoi/R0/(0.000001_wp+Phi)*gamma_E*delta_q1
-         
-         phi0 = phi0 + phi_ZF 
-         phix = phix + phi_ZF_x 
+         phi_ZF = -rhoi/R0/(0.000001_WP + Phi)*gamma_E/2.0_WP*delta_q1**2
+         phi_ZF_x = -rhoi/R0/(0.000001_WP + Phi)*gamma_E*delta_q1
+
+         phi0 = phi0 + phi_ZF
+         phix = phix + phi_ZF_x
          ! Apply turbulent strength
          tsc = Tprofile*Phi
          Esx = Esx - tsc*(G(1, 1)*phix + G(1, 2)*phiy + G(1, 3)*phiz)
@@ -839,8 +846,8 @@ xsol = rpsi_tab*SOL_INV_DR
             Esy = Esy + Beta*msg*vpi*(G(2, 1)*Aparx + G(2, 2)*Apary + G(2, 3)*Aparz)
             Esz = Esz + Beta*msg*vpi*(G(3, 1)*Aparx + G(3, 2)*Apary + G(3, 3)*Aparz)
          END IF
-         
-      end if  ! use_turb condition
+
+      END IF  ! use_turb condition
 
       ! Turbulent-only E (difference from baseline)
       Etx = Esx - Etx
@@ -859,9 +866,9 @@ xsol = rpsi_tab*SOL_INV_DR
       !---------------------------------------------------------------------------------
       ! Drifts & accelerations::: the perturbative (turbulent) components
       !---------------------------------------------------------------------------------
-      Vx_1 = (- Beta*Zs/As*Apar0)*Bsx*invBsp + (rhoi/R0)*invBsp*(F(1, 1)*Etx + F(1, 2)*Ety + F(1, 3)*Etz)
-      Vy_1 = (- Beta*Zs/As*Apar0)*Bsy*invBsp + (rhoi/R0)*invBsp*(F(2, 1)*Etx + F(2, 2)*Ety + F(2, 3)*Etz)
-      Vz_1 = (- Beta*Zs/As*Apar0)*Bsz*invBsp + (rhoi/R0)*invBsp*(F(3, 1)*Etx + F(3, 2)*Ety + F(3, 3)*Etz)
+      Vx_1 = (-Beta*Zs/As*Apar0)*Bsx*invBsp + (rhoi/R0)*invBsp*(F(1, 1)*Etx + F(1, 2)*Ety + F(1, 3)*Etz)
+      Vy_1 = (-Beta*Zs/As*Apar0)*Bsy*invBsp + (rhoi/R0)*invBsp*(F(2, 1)*Etx + F(2, 2)*Ety + F(2, 3)*Etz)
+      Vz_1 = (-Beta*Zs/As*Apar0)*Bsz*invBsp + (rhoi/R0)*invBsp*(F(3, 1)*Etx + F(3, 2)*Ety + F(3, 3)*Etz)
       ap_1 = (Zs/As)*(Etx*Bsx + Ety*Bsy + Etz*Bsz)*invBsp
 
       !---------------------------------------------------------------------------------
@@ -871,100 +878,105 @@ xsol = rpsi_tab*SOL_INV_DR
       VFx = vx*G(1, 1) + vy*G(2, 1) + vz*G(3, 1)
 
       ! collisions
-      vm = 0.0_wp
+      vm = 0.0_WP
 
       !---------------------------------------------------------------------------------
       ! Energy (Hamiltonian)
       !---------------------------------------------------------------------------------
-      Hi = As*(vpi - Zs/As*Apar0)**2*0.5_wp + mui*B - As*xi2*Omega*Omega*0.5_wp &
-           + Zs*xi2*Omega*Omega*0.5_wp*tau*(1.0_wp - R02avrg/xi2) &
+      Hi = As*(vpi - Zs/As*Apar0)**2*0.5_WP + mui*B - As*xi2*Omega*Omega*0.5_WP &
+           + Zs*xi2*Omega*Omega*0.5_WP*tau*(1.0_WP - R02avrg/xi2) &
            + Zs*Phi*phi0
-      Hi0 = As*vpi*vpi*0.5_wp + mui*B - As*xi2*Omega*Omega*0.5_wp &
-           + Zs*xi2*Omega*Omega*0.5_wp*tau*(1.0_wp - R02avrg/xi2) 
-      Pc = psi - As/Zs*rhoi/R0*Fpsi/B*(vpi + 1.0_wp*Fpsi/B*Omega)
-      kin = As*0.5_wp*(vpi - Zs/As*Apar0)**2 + mui*B   ! pure kinetic energy, without rotational or potential contributions
+      Hi0 = As*vpi*vpi*0.5_WP + mui*B - As*xi2*Omega*Omega*0.5_WP &
+            + Zs*xi2*Omega*Omega*0.5_WP*tau*(1.0_WP - R02avrg/xi2)
+      Pc = psi - As/Zs*rhoi/R0*Fpsi/B*(vpi + 1.0_WP*Fpsi/B*Omega)
+      kin = As*0.5_WP*(vpi - Zs/As*Apar0)**2 + mui*B   ! pure kinetic energy, without rotational or potential contributions
       check_1 = phi0
       check_2 = phix
       check_3 = phiy
-      
-  check_1 = Bz/max(B,eps_B)
 
-  check_2 = qpsi*(Bx*chir + By*chiz)/max(B,eps_B)
+      check_1 = Bz/max(B, eps_B)
 
-  check_3 = -chi*qprim*(Bx*rhotr + By*rhotz)/B
+      check_2 = qpsi*(Bx*chir + By*chiz)/max(B, eps_B)
 
+      check_3 = -chi*qprim*(Bx*rhotr + By*rhotz)/B
 
       !---------------------------------------------------------------------------------
       ! vW
       !---------------------------------------------------------------------------------
-      
+
       temp = Ts*exp(delta_q1*a0/C1*Lts) !Ts*(1.0_wp + delta_q1*a0/C1*Lts)
-      dens= 1.0*exp(delta_q1*a0/C1*Lns) !1.0*(1.0_wp + delta_q1*a0/C1*Lns)
-      FMi = dens*exp(-Hi0 / temp) / temp**1.5_wp
-      
-      vs_1 = -(-ap_1*As*vpi/temp - mui/temp*(vx_1*gradBx + vy_1*gradBy + vz_1*gradBz))   ! the - is from rhs = - dfM/dt; the second - is from -E/T, the Maxwellian structure
-      vs_2 = -(+ Vtx) 
-      vs_3 = -(+ Vtx*(Hi0/temp - 1.5_wp))     
-      
-      vbD = -(-ap_1*As*vpi/temp - mui/temp*(vx_1*gradBx + vy_1*gradBy + vz_1*gradBz) + Vtx*a0/C1*(Lns + Lts*(Hi0/temp - 1.5_wp))) ! atentie la semnul lui Lns!
-      vbF = -(-ap*As*vpi/temp - mui/temp*(vx*gradBx + vy*gradBy + vz*gradBz) + VFx*a0/C1*(Lns + Lts*(Hi0/temp - 1.5_wp))) ! atentie la semnul lui Lns!
+      dens = 1.0*exp(delta_q1*a0/C1*Lns) !1.0*(1.0_wp + delta_q1*a0/C1*Lns)
+      FMi = dens*exp(-Hi0/temp)/temp**1.5_WP
 
-end subroutine gyrocenter_drifts
+      ! The outer minus comes from rhs=-dfM/dt; the inner minus comes from the Maxwellian -E/T.
+      vs_1 = -(-ap_1*As*vpi/temp &
+               - mui/temp*(vx_1*gradBx + vy_1*gradBy + vz_1*gradBz))
+      vs_2 = -(+Vtx)
+      vs_3 = -(+Vtx*(Hi0/temp - 1.5_WP))
 
-   pure subroutine collision_kicks(sm1, sm2, dt_local, xi, yi, zi, vpi, mui, B, vcolx, vcoly, vcolz, vcolm, vcolp)
+      vbD = -(-ap_1*As*vpi/temp &
+              - mui/temp*(vx_1*gradBx + vy_1*gradBy + vz_1*gradBz) &
+              + Vtx*a0/C1*(Lns + Lts*(Hi0/temp - 1.5_WP)))
+      vbF = -(-ap*As*vpi/temp &
+              - mui/temp*(vx*gradBx + vy*gradBy + vz*gradBz) &
+              + VFx*a0/C1*(Lns + Lts*(Hi0/temp - 1.5_WP)))
+
+   END SUBROUTINE gyrocenter_drifts
+
+   PURE SUBROUTINE collision_kicks(sm1, sm2, dt_local, xi, yi, zi, vpi, mui, B, vcolx, vcoly, vcolz, vcolm, vcolp)
       !$omp declare simd(collision_kicks) uniform(dt_local) notinbranch
 
       !---------------------------------------------------------------------------------
       ! Arguments
       !---------------------------------------------------------------------------------
-      real(wp), intent(in)  :: sm1, sm2, dt_local, xi, yi, zi, vpi, mui, B
-      real(wp), intent(out) :: vcolx, vcoly, vcolz, vcolm, vcolp
+      REAL(wp), INTENT(in) :: sm1, sm2, dt_local, xi, yi, zi, vpi, mui, B
+      REAL(wp), INTENT(out) :: vcolx, vcoly, vcolz, vcolm, vcolp
 
       !---------------------------------------------------------------------------------
       ! Locals
       !---------------------------------------------------------------------------------
-      real(wp) :: v, zeta, ene, ene2, xx, Fphi, Fpsi, sm, ce
-      real(wp) :: nub, nue, nueprim, nub1, nue1, nueprim1, gg, d
+      REAL(wp) :: v, zeta, ene, ene2, xx, Fphi, Fpsi, sm, ce
+      REAL(wp) :: nub, nue, nueprim, nub1, nue1, nueprim1, gg, d
 
       !---------------------------------------------------------------------------------
       ! collision_operator
       !---------------------------------------------------------------------------------
-      ene = As/2.0_wp*vpi**2 + B*abs(mui)
-      v = sqrt(2.0_wp*abs(ene)/As)
+      ene = As/2.0_WP*vpi**2 + B*abs(mui)
+      v = sqrt(2.0_WP*abs(ene)/As)
       zeta = vpi/v
 
       xx = sqrt(abs(ene))*sqrt(Aeff)/sqrt(As)
       Fphi = erf(xx)
-      Fpsi = (Fphi - 2.0_wp*xx*exp(-xx**2)/sqrt(pi))/(2.0_wp*xx**2)
+      Fpsi = (Fphi - 2.0_WP*xx*exp(-xx**2)/sqrt(pi))/(2.0_WP*xx**2)
 
-      gg = (16.0_wp*R0*c0)/(vth**4*(2.0_wp/As)**1.5_wp)
-      nub1 = (gg/4.0_wp)/ene**1.5_wp*(Fphi - Fpsi)
-      nue1 = gg/ene**1.5_wp*Fpsi
-      nueprim1 = gg*sqrt(Aeff/As/pi)*exp(-ene*Aeff/As)/ene**2 - 2.5_wp*nue1/ene
+      gg = (16.0_WP*R0*c0)/(vth**4*(2.0_WP/As)**1.5_WP)
+      nub1 = (gg/4.0_WP)/ene**1.5_WP*(Fphi - Fpsi)
+      nue1 = gg/ene**1.5_WP*Fpsi
+      nueprim1 = gg*sqrt(Aeff/As/pi)*exp(-ene*Aeff/As)/ene**2 - 2.5_WP*nue1/ene
 
       d = delta
-      ce = 1.0_wp/(1.0_wp + d*ene**(-1.0_wp)*(As/2.0_wp))
+      ce = 1.0_WP/(1.0_WP + d*ene**(-1.0_WP)*(As/2.0_WP))
 
       nub = nub1*ce
       nue = nue1*ce
-      nueprim = nueprim1*ce + nue1*2.0_wp*As*d/((As*d + 2.0_wp*ene)**2.0_wp)
+      nueprim = nueprim1*ce + nue1*2.0_WP*As*d/((As*d + 2.0_WP*ene)**2.0_WP)
 
-      sm = 1.0_wp*sign(1.0_wp, sm1 - 0.5_wp)
-      zeta = zeta*(1.0_wp - 1.0_wp*nub*dt_local) + sm*sqrt(dt_local*nub*(1.0_wp - zeta**2))
+      sm = 1.0_WP*sign(1.0_WP, sm1 - 0.5_WP)
+      zeta = zeta*(1.0_WP - 1.0_WP*nub*dt_local) + sm*sqrt(dt_local*nub*(1.0_WP - zeta**2))
 
-      sm = 1.0_wp*sign(1.0_wp, sm2 - 0.5_wp)
-      ene2 = ene - 1.0_wp*nue*dt_local*(ene - (1.5_wp + ene/(nue + 0.000001_wp)*nueprim)) + 2.0_wp*sm*sqrt(ene*nue*dt_local)
+      sm = 1.0_WP*sign(1.0_WP, sm2 - 0.5_WP)
+      ene2 = ene - 1.0_WP*nue*dt_local*(ene - (1.5_WP + ene/(nue + 0.000001_WP)*nueprim)) + 2.0_WP*sm*sqrt(ene*nue*dt_local)
       ene = abs(ene2)
 
-      v = sqrt(2.0_wp*abs(ene)/As)
+      v = sqrt(2.0_WP*abs(ene)/As)
 
       !---------------------------------------------------------------------------------
       ! Defaults
       !---------------------------------------------------------------------------------
-      vcolx = 0.0_wp; vcoly = 0.0_wp; vcolz = 0.0_wp
+      vcolx = 0.0_WP; vcoly = 0.0_WP; vcolz = 0.0_WP
       vcolp = (v*zeta - vpi)/dt_local
-      vcolm = (ene/B*(1.0_wp - zeta**2) - mui)/(dt_local + 0.00001_wp)
+      vcolm = (ene/B*(1.0_WP - zeta**2) - mui)/(dt_local + 0.00001_WP)
 
-   end subroutine collision_kicks
+   END SUBROUTINE collision_kicks
 
-end module drift_kernels
+END MODULE drift_kernels

@@ -11,7 +11,7 @@ LEGACY_EXEC = ../../scripts/a.out
 ONEAPI_ENV_SCRIPT = $(HOME)/intel/oneapi/compiler/2024.1/env/vars.sh
 
 SOURCES = Import_sims.f90 Run_parameters.f90 Export_files.f90 Thread_rng.f90 Turbulence_random_fields.f90 Gyro_center_kernels.f90 \
-Circular_Equilibrium.f90 Dispersion.f90 EFIT_Equilibrium.f90 Equilibrium_magnetic.f90 Equilibrium_dispatch.f90 \
+Circular_Equilibrium.f90 Dispersion.f90 EFIT_Equilibrium.f90 Equilibrium_magnetic.f90 \
 Particle_initial_conditions.f90 Warnings_printing.f90 Solovev_equilibrium.f90 testing_T3ST.f90 T3ST_main.f90
 
 OBJECTS = $(addprefix $(BUILD_DIR)/,$(SOURCES:.f90=.o))

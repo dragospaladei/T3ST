@@ -4,30 +4,30 @@
 ! Module name kept as rng_mod for compatibility.
 !========================================================================================================
 
-module rng_mod
-  use, intrinsic :: iso_fortran_env, only: int64, real64
-  use omp_lib
-  implicit none (type, external)
+MODULE rng_mod
+   USE, INTRINSIC :: iso_fortran_env, ONLY: INT64, REAL64
+   USE omp_lib
+   IMPLICIT NONE(TYPE, EXTERNAL)
 
-  integer(int64), parameter :: a03 = 2862933555777941757_int64
-  integer(int64), parameter :: c03 = 3037000493_int64
+   INTEGER(INT64), PARAMETER :: a03 = 2862933555777941757_INT64
+   INTEGER(INT64), PARAMETER :: c03 = 3037000493_INT64
 
-  integer(int64) :: seed03
+   INTEGER(INT64) :: seed03
 !$omp threadprivate(seed03)
 
-contains
+CONTAINS
 
-  subroutine rng_init(global_seed)
-    integer(int64), intent(in) :: global_seed
+   SUBROUTINE rng_init(global_seed)
+      INTEGER(INT64), INTENT(in) :: global_seed
 !$omp parallel
-    seed03 = global_seed + int(omp_get_thread_num(), int64) * 1234567_int64
+      seed03 = global_seed + int(omp_get_thread_num(), INT64)*1234567_INT64
 !$omp end parallel
-  end subroutine rng_init
+   END SUBROUTINE rng_init
 
-  real(real64) function rng_uniform()
-    ! NOTE: relies on 64-bit wraparound overflow (non-standard Fortran).
-    seed03 = a03*seed03 + c03
-    rng_uniform = 0.5_real64 + real(seed03, real64) * 2.0_real64**(-64)
-  end function rng_uniform
+   REAL(REAL64) FUNCTION rng_uniform()
+      ! NOTE: relies on 64-bit wraparound overflow (non-standard Fortran).
+      seed03 = a03*seed03 + c03
+      rng_uniform = 0.5_REAL64 + REAL(seed03, REAL64)*2.0_REAL64**(-64)
+   END FUNCTION rng_uniform
 
-end module rng_mod
+END MODULE rng_mod

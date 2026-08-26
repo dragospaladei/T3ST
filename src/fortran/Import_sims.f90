@@ -46,18 +46,18 @@ MODULE sims
    INTEGER, PARAMETER :: wp = selected_real_kind(7)
 
    REAL(KIND=wp), ALLOCATABLE, DIMENSION(:, :) :: array1
-   INTEGER                                     :: rows1
-   INTEGER                                     :: cols1
+   INTEGER :: rows1
+   INTEGER :: cols1
 
-   CHARACTER(LEN=3)                    :: noofsimstr
-   INTEGER                             :: noofsim
-   INTEGER, PARAMETER                  :: name_len = 64
+   CHARACTER(LEN=3) :: noofsimstr
+   INTEGER :: noofsim
+   INTEGER, PARAMETER :: name_len = 64
    CHARACTER(LEN=name_len), ALLOCATABLE :: param_names(:)
-   CHARACTER(LEN=:), ALLOCATABLE      :: project_root
+   CHARACTER(LEN=:), ALLOCATABLE :: project_root
 
    ! 'Sim' or 'DB'. This selects Sims/Sim_XXX.dat or Sims/DB_XXX.dat and also
    ! determines the output folder name under data/.
-   CHARACTER(LEN=3)   :: file_type
+   CHARACTER(LEN=3) :: file_type
 
    ! First-line comment from the .dat file, e.g.:
    !   "Manual | scenario: CycloneBaseCase | sweeps: none | exported: 2026-03-23"
@@ -88,16 +88,16 @@ CONTAINS
    !   - data/Sim_XXX or data/DB_XXX and Run_XXXXX folders exist.
    !=====================================================================================================
    SUBROUTINE load_simulation_matrix(type_choice, type_choice_arg, sim_number_arg)
-      CHARACTER(LEN=10000)          :: CWD
+      CHARACTER(LEN=10000) :: CWD
       CHARACTER(LEN=:), ALLOCATABLE :: source
       CHARACTER(LEN=:), ALLOCATABLE :: output_dir
       CHARACTER(LEN=:), ALLOCATABLE :: run_dir
-      CHARACTER(LEN=35)             :: aux
-      LOGICAL                       :: exists
-      INTEGER                       :: i
-      CHARACTER(LEN=512)            :: first_line
-      CHARACTER(LEN=10000)          :: header_line
-      INTEGER, INTENT(OUT)          :: type_choice
+      CHARACTER(LEN=35) :: aux
+      LOGICAL :: exists
+      INTEGER :: i
+      CHARACTER(LEN=512) :: first_line
+      CHARACTER(LEN=10000) :: header_line
+      INTEGER, INTENT(OUT) :: type_choice
       INTEGER, INTENT(IN), OPTIONAL :: type_choice_arg
       INTEGER, INTENT(IN), OPTIONAL :: sim_number_arg
 
@@ -110,7 +110,7 @@ CONTAINS
          PRINT *, 'Please select the file type to load:'
          PRINT *, '  1 - Sim (Sims/Sim_XXX.dat)'
          PRINT *, '  2 - DB  (Sims/DB_XXX.dat)'
-         READ  *, type_choice
+         READ *, type_choice
       END IF
 
       DO WHILE (type_choice /= 1 .AND. type_choice /= 2)
@@ -118,7 +118,7 @@ CONTAINS
             ERROR STOP 'Invalid file type argument. Use 1 for Sim or 2 for DB.'
          END IF
          PRINT *, 'Invalid choice. Please enter 1 (Sim) or 2 (DB):'
-         READ  *, type_choice
+         READ *, type_choice
       END DO
 
       IF (type_choice == 1) THEN
@@ -141,7 +141,7 @@ CONTAINS
          noofsim = sim_number_arg
       ELSE
          PRINT *, 'Please enter the number of the '//TRIM(file_type)//' file:'
-         READ  *, noofsim
+         READ *, noofsim
       END IF
 
       DO WHILE (noofsim /= INT(noofsim) .OR. noofsim < 1 .OR. noofsim > 999)
@@ -149,10 +149,10 @@ CONTAINS
             ERROR STOP 'Invalid file number argument. Use an integer from 1 to 999.'
          END IF
          PRINT *, 'The number does not exist, please try again!'
-         READ  *, noofsim
+         READ *, noofsim
       END DO
 
-      WRITE(noofsimstr, '(I3.3)') noofsim
+      WRITE (noofsimstr, '(I3.3)') noofsim
       source = project_root//'/Sims/'//TRIM(file_type)//'_'//noofsimstr//'.dat'
 
       !---------------------------------------------------------------------------------
@@ -162,7 +162,7 @@ CONTAINS
       !   type_choice = 1, noofsim = 1  ->  Sims/Sim_001.dat
       !   type_choice = 2, noofsim = 4  ->  Sims/DB_004.dat
       !---------------------------------------------------------------------------------
-      OPEN(UNIT=999, FILE=source, STATUS='old', ACTION='read')
+      OPEN (UNIT=999, FILE=source, STATUS='old', ACTION='read')
 
       !---------------------------------------------------------------------------------
       ! Read (and retain) optional comment line
@@ -173,17 +173,17 @@ CONTAINS
       ! We handle both by reading the first line as a character string and checking.
       !---------------------------------------------------------------------------------
       sim_comment = ''
-      READ(999, '(A)') first_line
+      READ (999, '(A)') first_line
       first_line = ADJUSTL(first_line)
 
       IF (first_line(1:1) == '#') THEN
          ! Strip the leading '#' and optional space, store for later use
          sim_comment = ADJUSTL(first_line(2:))
          ! Now read rows1 from the next line
-         READ(999, *) rows1
+         READ (999, *) rows1
       ELSE
          ! No comment — first_line already contains the rows count as a string
-         READ(first_line, *) rows1
+         READ (first_line, *) rows1
       END IF
 
       !---------------------------------------------------------------------------------
@@ -195,29 +195,29 @@ CONTAINS
       !---------------------------------------------------------------------------------
       output_dir = project_root//'/data/'//TRIM(file_type)//'_'//noofsimstr
 
-      INQUIRE(DIRECTORY=output_dir, EXIST=exists)
+      INQUIRE (DIRECTORY=output_dir, EXIST=exists)
       IF (.NOT. exists) THEN
          CALL ensure_directory(output_dir)
       ELSE
          PRINT *, 'The folder '//TRIM(file_type)//'_'//noofsimstr//' already exists'
       END IF
 
-      WRITE(*,*) '------------------------------------------------------------------------------'
+      WRITE (*, *) '------------------------------------------------------------------------------'
       IF (LEN_TRIM(sim_comment) > 0) THEN
-         WRITE(*,*) 'File origin: '//TRIM(sim_comment)
-         WRITE(*,*) '------------------------------------------------------------------------------'
+         WRITE (*, *) 'File origin: '//TRIM(sim_comment)
+         WRITE (*, *) '------------------------------------------------------------------------------'
       END IF
 
       ! Mirror the parameters into data/Sim_XXX/Sim_XXX.dat or data/DB_XXX/DB_XXX.dat.
-      OPEN(UNIT=998, FILE=output_dir//'/'//TRIM(file_type)//'_'//noofsimstr//'.dat', &
-           FORM='formatted', ACCESS='stream', STATUS='replace')
+      OPEN (UNIT=998, FILE=output_dir//'/'//TRIM(file_type)//'_'//noofsimstr//'.dat', &
+            FORM='formatted', ACCESS='stream', STATUS='replace')
 
       ! Write comment line first (if present), then rows1. The remaining file content
       ! is mirrored below as it is read.
       IF (LEN_TRIM(sim_comment) > 0) THEN
-         WRITE(998, '(A)') '# '//TRIM(sim_comment)
+         WRITE (998, '(A)') '# '//TRIM(sim_comment)
       END IF
-      WRITE(998, *) rows1
+      WRITE (998, *) rows1
 
       !---------------------------------------------------------------------------------
       ! Pre-create one output folder for each run row.
@@ -226,7 +226,7 @@ CONTAINS
       ! T3ST_main later opens binary outputs inside these folders.
       !---------------------------------------------------------------------------------
       DO i = 1, rows1
-         WRITE(aux, '(I5.5)') i
+         WRITE (aux, '(I5.5)') i
          run_dir = output_dir//'/Run_'//TRIM(aux)
          CALL ensure_directory(run_dir)
       END DO
@@ -238,27 +238,26 @@ CONTAINS
       ! silent misalignment between numeric values and parameter names.
       !---------------------------------------------------------------------------------
       READ (999, *) cols1
-      WRITE(998, *) cols1
+      WRITE (998, *) cols1
 
       ! Read and mirror the parameter-name header row
       READ (999, '(A)') header_line
-      WRITE(998, '(A)') TRIM(header_line)
+      WRITE (998, '(A)') TRIM(header_line)
       CALL parse_parameter_header(header_line, cols1, param_names)
 
-      ALLOCATE(array1(rows1, cols1))
+      ALLOCATE (array1(rows1, cols1))
 
       ! Read each simulation row. The main program loops over rows1 and calls
       ! load_run_parameters(run), which copies array1(run, :) into named constants.
       DO i = 1, rows1
          READ (999, *) array1(i, :)
-         WRITE(998, *) array1(i, :)
+         WRITE (998, *) array1(i, :)
       END DO
 
-      CLOSE(999)
-      CLOSE(998)
+      CLOSE (999)
+      CLOSE (998)
 
    END SUBROUTINE load_simulation_matrix
-
 
    FUNCTION find_project_root(start_dir) RESULT(root)
       !---------------------------------------------------------------------------------
@@ -280,9 +279,9 @@ CONTAINS
       DO
          ! The project root is identified by the three directories that define this
          ! codebase layout.
-         INQUIRE(DIRECTORY=TRIM(current)//'/config', EXIST=has_config)
-         INQUIRE(DIRECTORY=TRIM(current)//'/Sims', EXIST=has_sims)
-         INQUIRE(DIRECTORY=TRIM(current)//'/src', EXIST=has_src)
+         INQUIRE (DIRECTORY=TRIM(current)//'/config', EXIST=has_config)
+         INQUIRE (DIRECTORY=TRIM(current)//'/Sims', EXIST=has_sims)
+         INQUIRE (DIRECTORY=TRIM(current)//'/src', EXIST=has_src)
 
          IF (has_config .AND. has_sims .AND. has_src) THEN
             root = TRIM(current)
@@ -301,7 +300,6 @@ CONTAINS
       ERROR STOP 'Could not locate project root containing config/, Sims/, and src/'
    END FUNCTION find_project_root
 
-
    SUBROUTINE ensure_directory(path)
       !---------------------------------------------------------------------------------
       ! Create a directory only if it does not already exist.
@@ -312,12 +310,11 @@ CONTAINS
       CHARACTER(LEN=*), INTENT(IN) :: path
       LOGICAL :: exists
 
-      INQUIRE(DIRECTORY=TRIM(path), EXIST=exists)
+      INQUIRE (DIRECTORY=TRIM(path), EXIST=exists)
       IF (.NOT. exists) THEN
-         CALL execute_command_line('mkdir -p "'//TRIM(path)//'"', wait=.true.)
+         CALL execute_command_line('mkdir -p "'//TRIM(path)//'"', wait=.TRUE.)
       END IF
    END SUBROUTINE ensure_directory
-
 
    SUBROUTINE parse_parameter_header(line, n_expected, names)
       !---------------------------------------------------------------------------------
@@ -330,8 +327,8 @@ CONTAINS
       ! names and numeric columns in array1.
       !---------------------------------------------------------------------------------
       IMPLICIT NONE
-      CHARACTER(LEN=*), INTENT(IN)               :: line
-      INTEGER, INTENT(IN)                        :: n_expected
+      CHARACTER(LEN=*), INTENT(IN) :: line
+      INTEGER, INTENT(IN) :: n_expected
       CHARACTER(LEN=*), ALLOCATABLE, INTENT(OUT) :: names(:)
 
       INTEGER :: n, p, L, start, finish
@@ -340,7 +337,7 @@ CONTAINS
       s = TRIM(line)
       L = LEN_TRIM(s)
 
-      ALLOCATE(names(n_expected))
+      ALLOCATE (names(n_expected))
       names = ""
 
       n = 0
@@ -374,7 +371,6 @@ CONTAINS
       END IF
    END SUBROUTINE parse_parameter_header
 
-
    INTEGER FUNCTION parameter_index(name) RESULT(idx)
       !---------------------------------------------------------------------------------
       ! Return the column index associated with a parameter name.
@@ -404,7 +400,6 @@ CONTAINS
       ERROR STOP "Parameter not found in header: "//TRIM(name)
    END FUNCTION parameter_index
 
-
    LOGICAL FUNCTION parameter_exists(name) RESULT(found)
       !---------------------------------------------------------------------------------
       ! Check whether an optional parameter exists in the input header.
@@ -429,6 +424,5 @@ CONTAINS
          END IF
       END DO
    END FUNCTION parameter_exists
-
 
 END MODULE sims
