@@ -1,0 +1,95 @@
+ Run number :: 1/5
+ Start time :: 26/08/2026  10:48:29
+ Folder     :: /home/dragos.palade/Work/FAST/25_08_2026/data/Sim_002/Run_00001/
+ Saved-trajectory diagnostics: GOOD
+   checked loops:            1
+   failed loops :            0
+   failed checks:            0
+   failure breakdown:
+     shape/size checks              :            0
+     F0 <= 0                        :            0
+     FM*exp(betaF)/F0 identity      :            0
+     Htraj(:,1) time constancy      :            0
+     Htraj(:,2) time constancy      :            0
+     Pctraj(:,1) time constancy     :            0
+     Obs_FF-Obs_FD vs Obs_DF-Obs_DD :            0
+     Obs_FD-Obs_DD vs Obs_FF-Obs_DF :            0
+ ------------------------------------------------------------------------------
+ Total computation time  =    2.696700    
+ ------------------------------------------------------------------------------
+ Run number :: 2/5
+ Start time :: 26/08/2026  10:48:31
+ Folder     :: /home/dragos.palade/Work/FAST/25_08_2026/data/Sim_002/Run_00002/
+ Saved-trajectory diagnostics: GOOD
+   checked loops:            1
+   failed loops :            0
+   failed checks:            0
+   failure breakdown:
+     shape/size checks              :            0
+     F0 <= 0                        :            0
+     FM*exp(betaF)/F0 identity      :            0
+     Htraj(:,1) time constancy      :            0
+     Htraj(:,2) time constancy      :            0
+     Pctraj(:,1) time constancy     :            0
+     Obs_FF-Obs_FD vs Obs_DF-Obs_DD :            0
+     Obs_FD-Obs_DD vs Obs_FF-Obs_DF :            0
+ ------------------------------------------------------------------------------
+ Total computation time  =    2.250800    
+ ------------------------------------------------------------------------------
+ Run number :: 3/5
+ Start time :: 26/08/2026  10:48:34
+ Folder     :: /home/dragos.palade/Work/FAST/25_08_2026/data/Sim_002/Run_00003/
+ Saved-trajectory diagnostics: GOOD
+   checked loops:            1
+   failed loops :            0
+   failed checks:            0
+   failure breakdown:
+     shape/size checks              :            0
+     F0 <= 0                        :            0
+     FM*exp(betaF)/F0 identity      :            0
+     Htraj(:,1) time constancy      :            0
+     Htraj(:,2) time constancy      :            0
+     Pctraj(:,1) time constancy     :            0
+     Obs_FF-Obs_FD vs Obs_DF-Obs_DD :            0
+     Obs_FD-Obs_DD vs Obs_FF-Obs_DF :            0
+ ------------------------------------------------------------------------------
+ Total computation time  =    3.732400    
+ ------------------------------------------------------------------------------
+ Run number :: 4/5
+ Start time :: 26/08/2026  10:48:37
+ Folder     :: /home/dragos.palade/Work/FAST/25_08_2026/data/Sim_002/Run_00004/
+ Saved-trajectory diagnostics: GOOD
+   checked loops:            1
+   failed loops :            0
+   failed checks:            0
+   failure breakdown:
+     shape/size checks              :            0
+     F0 <= 0                        :            0
+     FM*exp(betaF)/F0 identity      :            0
+     Htraj(:,1) time constancy      :            0
+     Htraj(:,2) time constancy      :            0
+     Pctraj(:,1) time constancy     :            0
+     Obs_FF-Obs_FD vs Obs_DF-Obs_DD :            0
+     Obs_FD-Obs_DD vs Obs_FF-Obs_DF :            0
+ ------------------------------------------------------------------------------
+ Total computation time  =    3.259800    
+ ------------------------------------------------------------------------------
+ Run number :: 5/5
+ Start time :: 26/08/2026  10:48:41
+ Folder     :: /home/dragos.palade/Work/FAST/25_08_2026/data/Sim_002/Run_00005/
+ Saved-trajectory diagnostics: GOOD
+   checked loops:            1
+   failed loops :            0
+   failed checks:            0
+   failure breakdown:
+     shape/size checks              :            0
+     F0 <= 0                        :            0
+     FM*exp(betaF)/F0 identity      :            0
+     Htraj(:,1) time constancy      :            0
+     Htraj(:,2) time constancy      :            0
+     Pctraj(:,1) time constancy     :            0
+     Obs_FF-Obs_FD vs Obs_DF-Obs_DD :            0
+     Obs_FD-Obs_DD vs Obs_FF-Obs_DF :            0
+ ------------------------------------------------------------------------------
+ Total computation time  =    2.625500    
+ ------------------------------------------------------------------------------

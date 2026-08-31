@@ -412,7 +412,7 @@ CONTAINS
 
       CALL validate_derived_run_parameters
 
-      gamma_E = gamma_ZF + Omgtprim          ! total shearing rate used by turbulence
+      gamma_E = gamma_ZF! + Omgtprim          ! total shearing rate used by turbulence
       usetilt = REAL(USE_tilt, wp)
       balloon = REAL(USE_balloon, wp)        ! integer switch -> 0.0 or 1.0
       noballoon = 1.0_WP - balloon

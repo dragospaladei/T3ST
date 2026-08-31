@@ -26,7 +26,8 @@ SUBROUTINE initialize_particles(X, Y, Z, mu, Vp, Einit, F0, G0, FM, betaF, betaD
    REAL(KIND=wp), DIMENSION(Np) :: En, PA, aux, Jac
    REAL(KIND=wp), DIMENSION(Np) :: phi0, phi1, phi2, B, Bx, By, Bz, q1, q2, q3
    REAL(KIND=wp), DIMENSION(Np) :: rhot, delta_q1, temp, dens
-   REAL(KIND=wp) :: m1, m2, Ts_eff
+   REAL(KIND=wp), DIMENSION(Np) :: Omega, R02avrg, Hi0
+   REAL(KIND=wp) :: m1, m2, Ts_eff, tau
 
    ! ------------------------------------------------------------------------------------------------------------------------
    ! Pitch angle PA = (-pi, pi) or fixed
@@ -100,14 +101,24 @@ SUBROUTINE initialize_particles(X, Y, Z, mu, Vp, Einit, F0, G0, FM, betaF, betaD
    temp = Ts_eff*exp(delta_q1*a0/C1*Lts)           !Ts*(1.0_wp + delta_q1*a0/C1*Lts)
    dens = 1.0_WP*exp(delta_q1*a0/C1*Lns)           !1.0*(1.0_wp + delta_q1*a0/C1*Lns)
 
+   ! Use the same non-turbulent rotating-frame Hamiltonian as
+   ! gyrocenter_drifts.  En is the sampled kinetic energy and remains the
+   ! quantity exported through Einit; Hi0 is the energy entering the
+   ! stationary rotating-frame Maxwellian.
+   tau = Aeff*Te/(Ti + Te)
+   Omega = Omgt0*(1.0_WP + Omgtprim*(rhot - rhot0)) + eps_omega
+   R02avrg = 1.0_WP + 1.5_WP*(a0*rhot)**2
+   Hi0 = En - 0.5_WP*As*X**2*Omega**2 &
+         + 0.5_WP*Zs*tau*Omega**2*(X**2 - R02avrg)
+
 ! here we define 3 "weights":
 ! 1) G0 the marker distribution in the z phase space implemented :: it is a pure Maxwellian in energy (no jacobian resulting from there); the rhot*a0*X = r*R comes from the jacobian of the transformation between uniform (r,theta,varphi) coordinates and real space (x,y,z) - cartesian
 ! 2) F0 the initial distribution function (in practice its a maxwellian with exponential profiles)
 ! 3) beta the exponential weight associated with our modified deltaF scheme
 
    Jac = (rhot*a0*X)
-   FM = dens*exp(-En/temp)/temp**1.5_WP
-   F0 = dens*exp(-En/temp)/temp**1.5_WP
+   FM = dens*exp(-Hi0/temp)/temp**1.5_WP
+   F0 = dens*exp(-Hi0/temp)/temp**1.5_WP
    G0 = 1.0_WP*exp(-En/Ts_eff)/Ts_eff**(1.5_WP)/Jac
 !  FM  = FM/(sum(FM*Jac)/Np)                       ! normalization of JF_M
 !  F0  = F0/(sum(F0*Jac)/Np)                       ! normalization of JF_0

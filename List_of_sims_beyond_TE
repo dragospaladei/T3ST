@@ -1,0 +1,17 @@
+S01: an attempt to GEDSQK             [5]                 !
+
+
+
+
+
+
+
+
+
+
+
+
+                     !Note: gg is normalized in L1, i.e. int gg = 1; this implies Phi^2 = <|phi|^2> @ z=0
+                     !Note: if one desires Phi^2 = <<|phi|^2>>_z then gg should be normalized in L2, i.e. int gg^2 = 1
+                     !Note: this explains the temporary growth in transport with lbalonz (the field strength across a flux surface is actually \propto lbalonz)
+

@@ -411,25 +411,20 @@ JT60SA:
   # Analytical-equilibrium safety factor and magnetic shear.
   # Estimated to reproduce q=0.911 and s_hat=0.8346 at rho=0.5,
   # while taking q(0) approximately 0.6 from the published q-profile figure.
+  safety: 0.60000
+  shear_mag: -0.2766412
+  elong: 1.8             # estimated from the shaped S2 cross-section
   device: 3
   shot: 54178
   shotslice: 6
   Omgt0: 0
   Omgtprim: 0
-  safety: 0.60000
-  shear_mag: -0.2766412
-
-  elong: 1.8             # estimated from the shaped S2 cross-section
-
-  # No JT-60SA entry exists in the device enum; device/shot/shotslice omitted.
-  Omgt0: 0               # rotation not specified in the paper
-  Omgtprim: 0
 
   # Synthetic turbulence mapping to the GENE results
   turb_model: 2
-  x_corr: 3              # GENE-like radial spectrum
-  y_corr: 2              # GENE-like binormal spectrum
-  t_corr: 2
+  x_corr: 1              # GENE-like radial spectrum
+  y_corr: 1              # GENE-like binormal spectrum
+  t_corr: 1
   Phi: 0.01              # schema default; not inferable from the paper
   turbprof: 5.0
   Ai: 0.60               # estimated ITG fraction; mixed ITG/TEM regime

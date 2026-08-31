@@ -34,7 +34,7 @@ CONTAINS
       REAL(wp) :: gradBx, gradBy, gradBz
       REAL(wp) :: rotbx, rotby, rotbz
       REAL(wp) :: rotux, rotuy, rotuz
-      REAL(wp) :: grad_u2_x, grad_u2_y, grad_u2_z, omega, R02avrg
+      REAL(wp) :: grad_u2_x, grad_u2_y, grad_u2_z, omega, R02avrg, R02avrg_prim
       REAL(wp) :: phi0x, phi0y, phi0z, phi_ZF, phi_ZF_x
 
       ! Geometry
@@ -553,7 +553,18 @@ CONTAINS
       !---------------------------------------------------------------------------------
 
       Omega = Omgt0*(1.0_WP + Omgtprim*(rhot - rhot0)) + eps_omega
-      R02avrg = 1.0_WP + a0*rhot/2.0_WP
+
+      ! Circular-equilibrium flux-surface average of R^2.  The flux-surface
+      ! measure is proportional to R dtheta, hence, with
+      ! R = 1 + r cos(theta) and r = a0*rhot,
+      !
+      !   <R^2> = integral R^3 dtheta / integral R dtheta
+      !         = 1 + 3 r^2/2.
+      !
+      ! R02avrg_prim is d<R^2>/d(rhot).  It is retained in grad(phi0), since
+      ! R02avrg is evaluated on the particle's current flux surface.
+      R02avrg = 1.0_WP + 1.5_WP*(a0*rhot)**2
+      R02avrg_prim = 3.0_WP*a0*a0*rhot
       rotux = xi*Omgt0*Omgtprim*rhotz
       rotuy = -xi*Omgt0*Omgtprim*rhotr - 2.0_WP*Omega
       rotuz = 0.0_WP
@@ -563,8 +574,16 @@ CONTAINS
       grad_u2_y = xi2*Omega*Omega*(rhotz*Omgt0*Omgtprim/Omega)
       grad_u2_z = 0.0_WP
 
-      phi0x = tau*(1.0_WP - R02avrg/xi2)*grad_u2_x + tau*Omega*Omega*R02avrg/xi
-      phi0y = tau*(1.0_WP - R02avrg/xi2)*grad_u2_y
+      ! Equilibrium potential:
+      !
+      !   phi0 = tau*Omega(rhot)^2 * (R^2 - <R^2>)/2.
+      !
+      ! The last terms below are the previously omitted derivatives of the
+      ! radially varying flux-surface average <R^2>(rhot).
+      phi0x = tau*(1.0_WP - R02avrg/xi2)*grad_u2_x + tau*Omega*Omega*R02avrg/xi &
+              - 0.5_WP*tau*Omega*Omega*R02avrg_prim*rhotr
+      phi0y = tau*(1.0_WP - R02avrg/xi2)*grad_u2_y &
+              - 0.5_WP*tau*Omega*Omega*R02avrg_prim*rhotz
       phi0z = 0.0_WP
 
       !---------------------------------------------------------------------------------
@@ -729,6 +748,10 @@ CONTAINS
 
                   DO ddm = -dmmax, dmmax
                      frac = frac0 + ddm
+                     !Note: gg is normalized in L1, i.e. int gg = 1; this implies Phi^2 = <|phi|^2> @ z=0
+                     !Note: if one desires Phi^2 = <<|phi|^2>>_z then gg should be normalized in L2, i.e. int gg^2 = 1
+                     !Note: this explains the temporary growth in transport with lbalonz (the field strength across a flux surface is actually \propto lbalonz)
+                     
                      gg = exp(-frac**2*lbalonz**2/2.0_WP)*lbalonz/sqrt(2.0_WP*pi)
                      amplu = amplu0*gg
 
@@ -777,6 +800,9 @@ CONTAINS
 
                   DO ddm = -dmmax, dmmax
                      frac = frac0 + ddm
+                     !Note: gg is normalized in L1, i.e. int gg = 1; this implies Phi^2 = <|phi|^2> @ z=0
+                     !Note: if one desires Phi^2 = <<|phi|^2>>_z then gg should be normalized in L2, i.e. int gg^2 = 1
+                     !Note: this explains the temporary growth in transport with lbalonz (the field strength across a flux surface is actually \propto lbalonz)
                      gg = exp(-frac**2*lbalonz**2/2.0_WP)*lbalonz/sqrt(2.0_WP*pi)
                      amplu = amplu0*gg
 
@@ -886,8 +912,7 @@ CONTAINS
       Hi = As*(vpi - Zs/As*Apar0)**2*0.5_WP + mui*B - As*xi2*Omega*Omega*0.5_WP &
            + Zs*xi2*Omega*Omega*0.5_WP*tau*(1.0_WP - R02avrg/xi2) &
            + Zs*Phi*phi0
-      Hi0 = As*vpi*vpi*0.5_WP + mui*B - As*xi2*Omega*Omega*0.5_WP &
-            + Zs*xi2*Omega*Omega*0.5_WP*tau*(1.0_WP - R02avrg/xi2)
+      Hi0 = Hi - (Zs*Phi*phi0 - Zs*vpi*Apar0 + Zs**2/2.0_WP/As*Apar0**2)
       Pc = psi - As/Zs*rhoi/R0*Fpsi/B*(vpi + 1.0_WP*Fpsi/B*Omega)
       kin = As*0.5_WP*(vpi - Zs/As*Apar0)**2 + mui*B   ! pure kinetic energy, without rotational or potential contributions
       check_1 = phi0
@@ -906,11 +931,11 @@ CONTAINS
 
       temp = Ts*exp(delta_q1*a0/C1*Lts) !Ts*(1.0_wp + delta_q1*a0/C1*Lts)
       dens = 1.0*exp(delta_q1*a0/C1*Lns) !1.0*(1.0_wp + delta_q1*a0/C1*Lns)
-      FMi = dens*exp(-Hi0/temp)/temp**1.5_WP
+      FMi  = dens*exp(-Hi0/temp)/temp**1.5_WP
 
       ! The outer minus comes from rhs=-dfM/dt; the inner minus comes from the Maxwellian -E/T.
-      vs_1 = -(-ap_1*As*vpi/temp &
-               - mui/temp*(vx_1*gradBx + vy_1*gradBy + vz_1*gradBz))
+      ! Esx-Etx = -nabla Hi0.
+      vs_1 = - (-As*vpi*ap_1 + Zs*( vx_1*(Esx - Etx) + vy_1*(Esy - Ety) + vz_1*(Esz - Etz) ) ) / temp
       vs_2 = -(+Vtx)
       vs_3 = -(+Vtx*(Hi0/temp - 1.5_WP))
 
