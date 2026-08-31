@@ -1,0 +1,24 @@
+DB1: database_9  [server 32]          [999]               !   Ln, Ai, Phi == 3 variables; this is a good starting point to test also regression models;
+DB2: database_7  [server 32]          [999]               !   Ln, Ai, Phi, lx, ly == 5 variables; this is a good starting point to test also regression models;
+DB3: database_7  [server 32]          [999]               !   Ln, Ai, Phi, lx, ly == 5 variables; this is a good starting point to test also regression models;
+DB4: database_7  [server 205-mv 32]   [999]               !   Ln, Ai, Phi, lx, ly == 5 variables; this is a good starting point to test also regression models;
+DB5: database_7  [server 149-mv 32]   [999]               !   Ln, Ai, Phi, lx, ly == 5 variables; this is a good starting point to test also regression models;
+DB6: database_7  [server 32]          [999]               !   Ln, Ai, Phi, lx, ly == 5 variables; this is a good starting point to test also regression models;
+DB7: database_7  [server 32]          [999]               !   Ln, Ai, Phi, lx, ly == 5 variables; this is a good starting point to test also regression models;
+DB8: database_7  [server 32]          [999]               !   Ln, Ai, Phi, lx, ly == 5 variables; this is a good starting point to test also regression models;
+DB9: database_7  [server 32]          [999]               !   Ln, Ai, Phi, lx, ly == 5 variables; this is a good starting point to test also regression models;
+DB10: database_7  [server 32]         [999]               !   Ln, Ai, Phi, lx, ly == 5 variables; this is a good starting point to test also regression models;
+DB11: database_7  [server 205-mv 32]  [999]               !   Ln, Ai, Phi, lx, ly == 5 variables; this is a good starting point to test also regression models;
+DB12: database_3  [server 32]         [9999]              !   Ln, Ai, Phi, lx, ly, lz, lbalonz, tc, Ts == 9 variables; 
+DB13: database_3  [server 32]         [9999]              !   Ln, Ai, Phi, lx, ly, lz, lbalonz, tc, Ts == 9 variables; 
+DB14: database_3  [server 149-mv 32]  [9999]              !   Ln, Ai, Phi, lx, ly, lz, lbalonz, tc, Ts == 9 variables; 
+DB15: database_3  [server 149-mv 32]  [9999]              !   Ln, Ai, Phi, lx, ly, lz, lbalonz, tc, Ts == 9 variables; 
+DB16: database_3  [server 149-mv 32]  [9999]              !   Ln, Ai, Phi, lx, ly, lz, lbalonz, tc, Ts == 9 variables; 
+DB17: database_3  [server 32]         [9999]              !   Ln, Ai, Phi, lx, ly, lz, lbalonz, tc, Ts == 9 variables; 
+DB18: database_3  [server 32]         [9999]              !   Ln, Ai, Phi, lx, ly, lz, lbalonz, tc, Ts == 9 variables; 
+DB19: database_3  [server 32]         [9999]              !   Ln, Ai, Phi, lx, ly, lz, lbalonz, tc, Ts == 9 variables; 
+DB20: database_3  [server 32]         [9999]              !   Ln, Ai, Phi, lx, ly, lz, lbalonz, tc, Ts == 9 variables; 
+DB21: database_3  [server 32]         [9999]              !   Ln, Ai, Phi, lx, ly, lz, lbalonz, tc, Ts == 9 variables; 
+
+DB22: database_0  [server 32]         [9999]              !   Ln, Ai, Phi, lx, ly, lbalonz, tc == 7 variables; 
+
